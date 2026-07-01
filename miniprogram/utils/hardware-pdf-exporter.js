@@ -11,7 +11,8 @@ const CANVAS_H = Math.round(A4_H_PT * SCALE);
 const MARGIN = 40 * SCALE;
 const MAX_SPEC_PAGES = 5; // 五金规范最多扫多少页
 
-const HARDWARE_DIR = 'cabinet/utils/cabinet-hardware/';
+const HARDWARE_DIR = '/cabinet/utils/cabinet-hardware/';
+const SPEC_EXTS = ['.png', '.jpg'];
 
 module.exports = { exportHardware };
 
@@ -167,20 +168,24 @@ function _probeImage(canvas, src) {
 // 返回五金规范图片路径数组（按 -1, -2 顺序或单页 fallback）。
 // 若都不存在，返回 [null]（占位符会由渲染阶段处理）。
 async function _resolveSpecPages(canvas) {
-  // 优先扫 -1 -> -N 多页
+  // 优先扫 -1 -> -N 多页（.png / .jpg 都试）
   const multi = [];
   for (let i = 1; i <= MAX_SPEC_PAGES; i++) {
-    const path = HARDWARE_DIR + '五金规范-' + i + '.jpg';
-    const ok = await _probeImage(canvas, path);
-    if (!ok) break;
-    multi.push(path);
+    let found = null;
+    for (const ext of SPEC_EXTS) {
+      const path = HARDWARE_DIR + '五金规范-' + i + ext;
+      if (await _probeImage(canvas, path)) { found = path; break; }
+    }
+    if (!found) break;
+    multi.push(found);
   }
   if (multi.length > 0) return multi;
 
-  // 回退到无后缀单页
-  const single = HARDWARE_DIR + '五金规范.jpg';
-  const ok = await _probeImage(canvas, single);
-  if (ok) return [single];
+  // 回退到无后缀单页（.png / .jpg 都试）
+  for (const ext of SPEC_EXTS) {
+    const single = HARDWARE_DIR + '五金规范' + ext;
+    if (await _probeImage(canvas, single)) return [single];
+  }
 
   // 都没有，返回单个 null 占位
   return [null];
