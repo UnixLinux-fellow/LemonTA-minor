@@ -16,7 +16,26 @@ const HARDWARE_DIR = 'cabinet/utils/cabinet-hardware/';
 module.exports = { exportHardware };
 
 async function exportHardware({ canvas, fileName }) {
-  throw new Error('not implemented');
+  if (!canvas) throw new Error('canvas is required');
+
+  const ctx = canvas.getContext('2d');
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
+
+  const sources = await _buildSources(canvas);
+
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  let isFirst = true;
+
+  for (let i = 0; i < sources.length; i++) {
+    const s = sources[i];
+    await _renderImagePage(canvas, ctx, s.path, s.fallback);
+    await _addCanvasPage(doc, canvas, isFirst);
+    isFirst = false;
+  }
+
+  const buf = doc.output('arraybuffer');
+  return _writeToTempFile(buf, fileName);
 }
 
 function _resetCanvas(ctx) {
@@ -191,4 +210,14 @@ async function _buildSources(canvas) {
     fallback: '进口五金参数图片缺失',
   });
   return sources;
+}
+
+// 渲染一页：白底 + 图片 contain 铺满整页（含 MARGIN）。
+async function _renderImagePage(canvas, ctx, src, fallbackText) {
+  _resetCanvas(ctx);
+  const x = MARGIN;
+  const y = MARGIN;
+  const w = CANVAS_W - MARGIN * 2;
+  const h = CANVAS_H - MARGIN * 2;
+  await _drawImageContain(canvas, ctx, src, x, y, w, h, fallbackText);
 }
