@@ -134,3 +134,61 @@ function _writeToTempFile(arrayBuffer, fileName) {
     });
   });
 }
+
+// 返回 Promise<boolean>：图片能否加载成功。用于探测代码包内资源是否存在。
+function _probeImage(canvas, src) {
+  return new Promise((resolve) => {
+    const img = canvas.createImage();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = src;
+  });
+}
+
+// 返回五金规范图片路径数组（按 -1, -2 顺序或单页 fallback）。
+// 若都不存在，返回 [null]（占位符会由渲染阶段处理）。
+async function _resolveSpecPages(canvas) {
+  // 优先扫 -1 -> -N 多页
+  const multi = [];
+  for (let i = 1; i <= MAX_SPEC_PAGES; i++) {
+    const path = HARDWARE_DIR + '五金规范-' + i + '.jpg';
+    const ok = await _probeImage(canvas, path);
+    if (!ok) break;
+    multi.push(path);
+  }
+  if (multi.length > 0) return multi;
+
+  // 回退到无后缀单页
+  const single = HARDWARE_DIR + '五金规范.jpg';
+  const ok = await _probeImage(canvas, single);
+  if (ok) return [single];
+
+  // 都没有，返回单个 null 占位
+  return [null];
+}
+
+// 构造按顺序的图片资源列表：
+// 尺寸 → 五金规范（1-N 页）→ 国产 → 进口
+async function _buildSources(canvas) {
+  const specPages = await _resolveSpecPages(canvas);
+  const sources = [];
+  sources.push({
+    path: HARDWARE_DIR + '衣柜尺寸.png',
+    fallback: '衣柜尺寸图片缺失',
+  });
+  specPages.forEach((path) => {
+    sources.push({
+      path,
+      fallback: '五金规范图片缺失，请将 五金规范.docx 另存为图片（.jpg）放入 cabinet-hardware/ 目录',
+    });
+  });
+  sources.push({
+    path: HARDWARE_DIR + '国产五金参数.jpg',
+    fallback: '国产五金参数图片缺失',
+  });
+  sources.push({
+    path: HARDWARE_DIR + '进口五金参数.jpg',
+    fallback: '进口五金参数图片缺失',
+  });
+  return sources;
+}
