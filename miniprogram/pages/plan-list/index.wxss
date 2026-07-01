@@ -160,8 +160,13 @@
   color: #fff7c2;
 }
 
-.export-btn-wrap { padding: 16rpx 32rpx 40rpx; }
+.export-btn-wrap {
+  padding: 16rpx 32rpx 40rpx;
+  display: flex;
+  gap: 20rpx;
+}
 .export-btn {
+  flex: 1;
   background: #fff;
   border: 2rpx solid #1f2937;
   color: #1f2937;
@@ -171,7 +176,6 @@
   text-align: center;
 }
 .export-btn:active { background: #f3f4f6; }
-.export-btn + .export-btn { margin-top: 20rpx; }
 
 /* 离屏 canvas：不让用户看到，但仍在 DOM 内以便 createSelectorQuery 拿到 node */
 .pdf-canvas {
