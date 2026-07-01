@@ -171,6 +171,7 @@
   text-align: center;
 }
 .export-btn:active { background: #f3f4f6; }
+.export-btn + .export-btn { margin-top: 20rpx; }
 
 /* 离屏 canvas：不让用户看到，但仍在 DOM 内以便 createSelectorQuery 拿到 node */
 .pdf-canvas {
