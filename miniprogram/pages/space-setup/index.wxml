@@ -1,0 +1,47 @@
+<view class="page">
+  <view class="section">
+    <view class="label">空间照片</view>
+    <view class="photo-zone" bindtap="onChoosePhoto">
+      <image wx:if="{{photoPath}}" src="{{photoPath}}" mode="aspectFill"></image>
+      <view class="photo-plus" wx:else>+</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="form-row">
+      <view class="form-label">空间名称</view>
+      <input class="form-input" type="text" maxlength="15" placeholder="{{name ? '' : '最多15字符'}}" value="{{name}}" bindinput="onInputName" />
+    </view>
+    <view class="form-row">
+      <view class="form-label">墙体宽度</view>
+      <input class="form-input" type="number" placeholder="44 ~ 1000 cm" value="{{wallW}}" bindinput="onInputW" />
+      <view class="form-suffix">cm</view>
+    </view>
+    <view class="form-row">
+      <view class="form-label">墙体高度</view>
+      <input class="form-input" type="number" placeholder="232 ~ 1000 cm" value="{{wallH}}" bindinput="onInputH" />
+      <view class="form-suffix">cm</view>
+    </view>
+
+    <view class="error" wx:if="{{errorMsg}}">{{errorMsg}}</view>
+  </view>
+
+  <view class="section">
+    <view class="label">是否有转角衣柜</view>
+    <view class="corner-grid">
+      <view class="corner-cell {{cornerType === 'WZJ' ? 'active' : ''}}" data-v="WZJ" bindtap="onPickCorner">无转角</view>
+      <view class="corner-cell {{cornerType === 'ZZJ' ? 'active' : ''}}" data-v="ZZJ" bindtap="onPickCorner">左转角柜</view>
+      <view class="corner-cell {{cornerType === 'YZJ' ? 'active' : ''}}" data-v="YZJ" bindtap="onPickCorner">右转角柜</view>
+      <view class="corner-cell {{cornerType === 'ZYZJ' ? 'active' : ''}}" data-v="ZYZJ" bindtap="onPickCorner">双侧转角柜</view>
+    </view>
+
+    <view class="switch-row">
+      <view class="label">需要加高模块</view>
+      <switch checked="{{hasRaise}}" bindchange="onToggleRaise" color="#1f2937" />
+    </view>
+  </view>
+
+  <view class="confirm-bar">
+    <button class="confirm-btn" bindtap="onConfirm" disabled="{{!canSubmit}}">确认</button>
+  </view>
+</view>

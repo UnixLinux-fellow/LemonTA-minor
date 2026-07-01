@@ -1,0 +1,182 @@
+.page {
+  min-height: 100vh;
+  background: #f6f6f6;
+  padding-bottom: 120rpx;
+}
+
+.hero {
+  background: linear-gradient(135deg, #fff7c2 0%, #fde68a 100%);
+  padding: 64rpx 40rpx 80rpx;
+}
+
+.hero-title {
+  font-size: 52rpx;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8rpx;
+}
+
+.hero-sub {
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-bottom: 40rpx;
+}
+
+.start-btn {
+  width: 100%;
+  background: #1f2937;
+  color: #fff7c2;
+  font-size: 32rpx;
+  font-weight: 500;
+  border-radius: 999rpx;
+  padding: 24rpx 0;
+  border: none;
+}
+
+.start-btn::after {
+  border: none;
+}
+
+.list-wrap {
+  padding: 32rpx 32rpx 0;
+}
+
+.list-title {
+  font-size: 28rpx;
+  color: #6b7280;
+  margin-bottom: 16rpx;
+}
+
+.plan-item {
+  background: #fff;
+  border-radius: 18rpx;
+  padding: 28rpx 28rpx;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04);
+}
+
+.plan-main {
+  flex: 1;
+}
+
+.plan-name {
+  font-size: 32rpx;
+  color: #1f2937;
+  font-weight: 500;
+  margin-bottom: 10rpx;
+}
+
+.plan-meta {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.plan-meta .dot {
+  margin: 0 12rpx;
+}
+
+.del-btn {
+  width: 60rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  text-align: center;
+  color: #d1d5db;
+  font-size: 32rpx;
+}
+
+.empty {
+  margin: 120rpx 32rpx;
+  background: #fff;
+  border-radius: 18rpx;
+  padding: 80rpx 0;
+  text-align: center;
+}
+
+.empty-text {
+  font-size: 30rpx;
+  color: #6b7280;
+  margin-bottom: 12rpx;
+}
+
+.empty-tip {
+  font-size: 26rpx;
+  color: #9ca3af;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+.modal-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 560rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 48rpx 40rpx 32rpx;
+  text-align: center;
+}
+
+.modal-title {
+  font-size: 34rpx;
+  font-weight: 500;
+  margin-bottom: 16rpx;
+}
+
+.modal-body {
+  font-size: 28rpx;
+  color: #6b7280;
+  margin-bottom: 32rpx;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 24rpx;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 22rpx 0;
+  border-radius: 999rpx;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 30rpx;
+}
+
+.modal-btn.primary {
+  background: #1f2937;
+  color: #fff7c2;
+}
+
+.export-btn-wrap { padding: 16rpx 32rpx 40rpx; }
+.export-btn {
+  background: #fff;
+  border: 2rpx solid #1f2937;
+  color: #1f2937;
+  font-size: 30rpx;
+  border-radius: 999rpx;
+  padding: 22rpx 0;
+  text-align: center;
+}
+.export-btn:active { background: #f3f4f6; }
+
+/* 离屏 canvas：不让用户看到，但仍在 DOM 内以便 createSelectorQuery 拿到 node */
+.pdf-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 595px;
+  height: 842px;
+}

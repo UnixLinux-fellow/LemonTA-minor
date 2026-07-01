@@ -1,0 +1,162 @@
+.page {
+  min-height: 100vh;
+  background: #f6f6f6;
+  padding-bottom: 200rpx;
+}
+
+.section {
+  background: #fff;
+  margin: 24rpx 28rpx;
+  border-radius: 18rpx;
+  padding: 32rpx 28rpx;
+}
+
+.label {
+  font-size: 28rpx;
+  color: #6b7280;
+  margin-bottom: 16rpx;
+}
+
+.photo-zone {
+  height: 360rpx;
+  background: #f3f4f6;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.photo-zone image {
+  width: 100%;
+  height: 100%;
+}
+
+.photo-plus {
+  width: 90rpx;
+  height: 90rpx;
+  border-radius: 50%;
+  border: 4rpx dashed #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56rpx;
+  color: #94a3b8;
+}
+
+.input {
+  background: #f3f4f6;
+  border-radius: 12rpx;
+  padding: 24rpx 28rpx;
+  font-size: 30rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  background: #f9fafb;
+  border-radius: 14rpx;
+  padding: 8rpx 28rpx;
+  margin-bottom: 16rpx;
+  min-height: 88rpx;
+}
+
+.form-label {
+  font-size: 28rpx;
+  color: #1f2937;
+  width: 160rpx;
+  flex-shrink: 0;
+}
+
+.form-input {
+  flex: 1;
+  font-size: 30rpx;
+  color: #1f2937;
+  padding: 18rpx 0;
+}
+
+.form-suffix {
+  font-size: 26rpx;
+  color: #9ca3af;
+  margin-left: 12rpx;
+}
+
+.row {
+  display: flex;
+  gap: 24rpx;
+}
+
+.row .input {
+  flex: 1;
+}
+
+.error {
+  margin-top: 16rpx;
+  color: #ef4444;
+  font-size: 26rpx;
+  line-height: 1.5;
+}
+
+.corner-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.corner-cell {
+  border: 2rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #4b5563;
+}
+
+.corner-cell.active {
+  border-color: #1f2937;
+  background: #fef9c3;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12rpx;
+}
+
+.switch-row .label {
+  margin-bottom: 0;
+}
+
+.confirm-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 24rpx 28rpx env(safe-area-inset-bottom);
+  box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.05);
+}
+
+.confirm-btn {
+  width: 100%;
+  padding: 26rpx 0;
+  border-radius: 999rpx;
+  background: #1f2937;
+  color: #fff7c2;
+  font-size: 32rpx;
+}
+
+.confirm-btn[disabled] {
+  background: #d1d5db;
+  color: #fff;
+}
+
+.confirm-btn::after {
+  border: none;
+}

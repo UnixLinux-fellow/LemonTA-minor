@@ -1,0 +1,23 @@
+<view class="psm" wx:if="{{visible}}">
+  <view class="psm-mask" bindtap="onCancel"></view>
+  <view class="psm-card">
+    <view class="psm-title">选择要导出的方案</view>
+    <view class="psm-all" bindtap="onToggleAll">
+      <view class="psm-checkbox {{selectedIds.length === plans.length && plans.length ? 'on' : ''}}"></view>
+      <text>全选 ({{selectedIds.length}}/{{plans.length}})</text>
+    </view>
+    <scroll-view class="psm-list" scroll-y="{{true}}">
+      <view class="psm-row" wx:for="{{plans}}" wx:key="id" data-id="{{item.id}}" bindtap="onToggle">
+        <view class="psm-checkbox {{selectedMap[item.id] ? 'on' : ''}}"></view>
+        <view class="psm-row-main">
+          <view class="psm-row-name">{{item.name}}</view>
+          <view class="psm-row-meta">{{item.wall.w}}×{{item.wall.h}}cm · {{item.cornerLabel}} · {{item.cabinetCount}} 个柜子</view>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="psm-actions">
+      <view class="psm-btn" bindtap="onCancel">取消</view>
+      <view class="psm-btn primary {{selectedIds.length === 0 ? 'disabled' : ''}}" bindtap="onConfirm">下一步</view>
+    </view>
+  </view>
+</view>

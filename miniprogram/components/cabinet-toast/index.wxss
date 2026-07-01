@@ -1,0 +1,22 @@
+.cabinet-toast {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 30%;
+  z-index: 999;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.cabinet-toast__inner {
+  background: rgba(15, 23, 42, 0.85);
+  color: #ff5252;
+  padding: 18rpx 36rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  max-width: 80vw;
+  text-align: center;
+  font-weight: 500;
+  box-shadow: 0 6rpx 24rpx rgba(0, 0, 0, 0.18);
+}

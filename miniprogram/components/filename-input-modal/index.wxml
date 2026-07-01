@@ -1,0 +1,11 @@
+<view class="fim" wx:if="{{visible}}">
+  <view class="fim-mask" bindtap="onCancel"></view>
+  <view class="fim-card">
+    <view class="fim-title">PDF 文件名</view>
+    <input class="fim-input" value="{{value}}" placeholder="我的衣柜方案.pdf" bindinput="onInput" />
+    <view class="fim-actions">
+      <view class="fim-btn" bindtap="onCancel">取消</view>
+      <view class="fim-btn primary" bindtap="onConfirm">确认导出</view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,75 @@
+<view class="page">
+  <view class="info-bar">
+    <view class="info-name">{{plan.name}}</view>
+    <view class="info-meta">{{plan.wall.w}}×{{plan.wall.h}}cm · {{cornerLabel}}{{plan.hasRaise ? ' · 加高' : ''}}</view>
+  </view>
+
+  <view class="canvas-zone"
+        bindtouchstart="onTouchStartCanvas"
+        bindtouchmove="onTouchMoveCanvas"
+        bindtouchend="onTouchEndCanvas"
+        bindtouchcancel="onTouchEndCanvas"
+        bindwheel="onCanvasWheel">
+    <canvas type="webgl" id="webgl" class="webgl"></canvas>
+    <!-- iOS 不支持 wx.canvasToTempFilePath 直接吃 webgl canvas（内部走 getContext('2d') 会冲突），
+         所以挂一块离屏的 2d canvas：渲染器 readPixels → 画到这里 → 由它出图。 -->
+    <canvas type="2d" id="snap2d" class="snap2d"></canvas>
+  </view>
+
+  <view class="ctrl-bar">
+    <view class="ctrl-row">
+      <view class="ctrl-btn {{showDoor ? 'on' : ''}}" bindtap="onToggleDoor">{{showDoor ? '隐藏柜门' : '显示柜门'}}</view>
+      <view class="ctrl-btn" bindtap="onResetWall">重置墙面</view>
+    </view>
+    <view class="color-row">
+      <view class="color-row-label">选择柜体颜色</view>
+      <view class="color-cell {{color === item.id ? 'active' : ''}}"
+            wx:for="{{colors}}"
+            wx:key="id"
+            data-id="{{item.id}}"
+            bindtap="onPickColor">
+        <view class="color-circle" style="background:{{item.css}}"></view>
+        <view class="color-name">{{item.label}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="picker-bar">
+    <view class="picker-tabs">
+      <view wx:if="{{show50}}" class="tab {{sizeTab === 50 ? 'active' : ''}}" data-v="50" bindtap="onSwitchSize">50 cm</view>
+      <view wx:if="{{show100}}" class="tab {{sizeTab === 100 ? 'active' : ''}}" data-v="100" bindtap="onSwitchSize">100 cm</view>
+      <view class="picker-hint">
+        <text wx:if="{{meta.isFull}}" style="color:#16a34a;">已布满，请点击确认布局</text>
+      </view>
+    </view>
+    <scroll-view class="model-row" scroll-x="{{true}}" scroll-left="{{scrollViewLeft}}" scroll-with-animation="{{false}}" bindscroll="onPickerScroll">
+      <view class="model-cell {{selectedModelIdx === idx ? 'active' : ''}}"
+            wx:for="{{modelList}}"
+            wx:for-index="idx"
+            wx:key="name"
+            data-idx="{{idx}}"
+            bindtap="onPickModel">
+        <view class="model-thumb">
+          <canvas type="webgl" id="thumb-canvas-{{idx}}" class="thumb-canvas"></canvas>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view wx:if="{{scrollNeeded}}" class="scroll-indicator"
+          bindtouchstart="onIndicatorTouchStart"
+          bindtouchmove="onIndicatorTouchMove"
+          bindtouchend="onIndicatorTouchEnd"
+          bindtouchcancel="onIndicatorTouchEnd">
+      <view class="scroll-indicator-thumb"
+            style="width: {{thumbWidthPct}}%; left: {{thumbLeftPct}}%;">
+      </view>
+    </view>
+  </view>
+
+  <view class="action-bar">
+    <view class="action-btn" bindtap="onPrev">上一模块</view>
+    <view class="action-btn primary" bindtap="onNext">{{nextBtnText}}</view>
+  </view>
+
+  <cabinet-toast text="{{toast}}"></cabinet-toast>
+</view>

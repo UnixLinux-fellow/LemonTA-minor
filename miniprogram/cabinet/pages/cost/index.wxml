@@ -1,0 +1,124 @@
+<view class="page">
+  <view class="section wireframe">
+    <view class="title">{{plan.name}}</view>
+    <view class="wf-wrap" wx:if="{{plan.wireframeImage}}">
+      <image class="wf-image"
+             src="{{plan.wireframeImage}}"
+             mode="widthFix"
+             show-menu-by-longpress="{{false}}"></image>
+      <view class="wf-label" wx:for="{{labelPositions}}" wx:key="key"
+            style="left: {{item.left}}%; top: {{item.top}}%;">{{item.idx}}</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="title">成本&配件汇总清单</view>
+    <view class="cab-card" wx:for="{{cost.modules}}" wx:key="label">
+      <view class="cab-card-head">
+        <view class="cab-card-name">{{item.label}} {{item.code}}-{{item.w}}-{{item.h}}</view>
+        <view class="cab-card-price">¥ {{item.total}}</view>
+        <view class="cab-card-detail" data-idx="{{index}}" bindtap="openDetail">查看模块明细 ›</view>
+      </view>
+      <view class="cab-card-grid">
+        <view class="cab-card-cell">
+          <text class="lbl">板材合计</text>
+          <text class="val">¥ {{item.panelCost}}</text>
+        </view>
+        <view class="cab-card-cell">
+          <text class="lbl">运输费用</text>
+          <text class="val">¥ {{item.transport}}</text>
+        </view>
+        <view class="cab-card-cell">
+          <text class="lbl">五金配件</text>
+          <text class="val">¥ {{item.hardwareCost}}</text>
+        </view>
+        <view class="cab-card-cell">
+          <text class="lbl">安装费用</text>
+          <text class="val">¥ {{item.install}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="cab-card sk-card" wx:if="{{cost.sk}}">
+      <view class="cab-card-head">
+        <view class="cab-card-name">{{cost.sk.label}}</view>
+        <view class="cab-card-price">¥ {{cost.sk.total}}</view>
+      </view>
+      <view class="cab-card-cell">
+        <text class="lbl">面积 {{cost.sk.area}}㎡ × 单价 ¥{{cost.sk.unit}}</text>
+      </view>
+    </view>
+
+    <view class="grand-total">
+      <text>总成本预估</text>
+      <text class="big">¥ {{cost.grandTotal}}</text>
+    </view>
+  </view>
+
+  <view class="bottom-bar">
+    <view class="btn outline" bindtap="onChangeConfig">更换配置</view>
+    <view class="btn primary" bindtap="onDownload">一键下载</view>
+  </view>
+
+  <view class="modal" wx:if="{{detailOpen}}">
+    <view class="mask" bindtap="closeDetail"></view>
+    <view class="card">
+      <view class="card-head">
+        <view class="card-title">{{currentDetail.label}} {{currentDetail.code}}</view>
+        <view class="card-total">¥ {{currentDetail.total}}</view>
+      </view>
+      <view class="card-section">
+        <view class="card-sec-title">板材（含加工费用）</view>
+        <view class="tbl-row tbl-head">
+          <view class="c1">名称</view>
+          <view class="c2">尺寸</view>
+          <view class="c3">面积</view>
+          <view class="c4">单价</view>
+          <view class="c5">小计</view>
+        </view>
+        <view class="tbl-row" wx:for="{{currentDetail.detail.panels}}" wx:key="name">
+          <view class="c1">{{item.name}}</view>
+          <view class="c2">{{item.size}}</view>
+          <view class="c3">{{item.area}}㎡×{{item.qty}}</view>
+          <view class="c4">¥{{item.unit}}</view>
+          <view class="c5">¥{{item.total}}</view>
+        </view>
+      </view>
+      <view class="card-section">
+        <view class="card-sec-title">五金 & 配件</view>
+        <view class="tbl-row tbl-head">
+          <view class="c1">部件</view>
+          <view class="c2">规格</view>
+          <view class="c3">数量</view>
+          <view class="c4">单价</view>
+          <view class="c5">小计</view>
+        </view>
+        <view class="tbl-row" wx:for="{{currentDetail.detail.hardware}}" wx:key="name">
+          <view class="c1">{{item.name}}</view>
+          <view class="c2">数量</view>
+          <view class="c3">{{item.qty}}</view>
+          <view class="c4">¥{{item.unit}}</view>
+          <view class="c5">¥{{item.total}}</view>
+        </view>
+      </view>
+      <view class="card-close" bindtap="closeDetail">关闭</view>
+    </view>
+  </view>
+
+  <view class="modal" wx:if="{{downloadOpen}}">
+    <view class="mask" bindtap="closeDownload"></view>
+    <view class="card download">
+      <view class="dl-title">百度网盘下载链接</view>
+      <view class="dl-tip">复制链接后请打开 [百度网盘] App 粘贴访问</view>
+      <view class="dl-link">{{downloadInfo.link}} 提取码: {{downloadInfo.code}}</view>
+      <view class="dl-actions">
+        <view class="btn outline" bindtap="closeDownload">关闭</view>
+        <view class="btn primary" bindtap="onCopyLink">一键复制</view>
+      </view>
+    </view>
+  </view>
+
+  <canvas type="2d" id="wf-canvas" class="wf-bake-canvas"></canvas>
+
+  <view class="floating-toast" wx:if="{{floatToast}}">{{floatToast}}</view>
+</view>

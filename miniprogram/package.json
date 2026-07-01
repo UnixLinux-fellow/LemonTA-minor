@@ -1,0 +1,9 @@
+{
+  "name": "lemonta-miniprogram",
+  "version": "1.0.0",
+  "description": "LEMONTA wardrobe design miniprogram",
+  "main": "app.js",
+  "dependencies": {
+    "threejs-miniprogram": "^0.0.8"
+  }
+}

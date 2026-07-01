@@ -1,0 +1,3 @@
+<view class="cabinet-toast" wx:if="{{visible}}">
+  <view class="cabinet-toast__inner">{{text}}</view>
+</view>

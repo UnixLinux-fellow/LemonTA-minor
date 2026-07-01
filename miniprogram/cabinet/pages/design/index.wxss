@@ -1,0 +1,238 @@
+.page {
+  min-height: 100vh;
+  background: #fff;
+  padding-bottom: 200rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.info-bar {
+  background: #fef9c3;
+  padding: 20rpx 28rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 16rpx;
+}
+
+.info-name {
+  font-size: 32rpx;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.info-meta {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.canvas-zone {
+  position: relative;
+  background: linear-gradient(180deg, #fafaf9 60%, #f3f4f6);
+  padding: 16rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.webgl {
+  width: 92vw;
+  height: 420rpx;
+  background: #fff;
+  border: 4rpx solid #e5e7eb;
+  border-radius: 6rpx;
+}
+
+/* 离屏 2d 截图画布：不可见、不占布局、不接收触摸，仅给截图 API 用 */
+.snap2d {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.ctrl-bar {
+  background: #fff;
+  padding: 24rpx 28rpx;
+  border-bottom: 2rpx solid #f3f4f6;
+}
+
+.ctrl-row {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.ctrl-btn {
+  flex: 1;
+  background: #f3f4f6;
+  border-radius: 12rpx;
+  padding: 18rpx 0;
+  text-align: center;
+  font-size: 26rpx;
+  color: #4b5563;
+}
+
+.ctrl-btn.on {
+  background: #14532d;
+  color: #fef9c3;
+}
+
+.color-row {
+  display: flex;
+  gap: 24rpx;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.color-row-label {
+  flex: 0 0 auto;
+  font-size: 24rpx;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.color-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 0;
+  border-radius: 12rpx;
+  border: 2rpx solid transparent;
+}
+
+.color-cell.active {
+  border-color: #1f2937;
+  background: #fef9c3;
+}
+
+.color-circle {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  border: 2rpx solid rgba(0, 0, 0, 0.1);
+}
+
+.color-name {
+  font-size: 22rpx;
+  color: #4b5563;
+}
+
+.picker-bar {
+  background: #fff;
+  padding: 16rpx 24rpx;
+  flex: 1;
+}
+
+.picker-tabs {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+  align-items: center;
+}
+
+.picker-hint {
+  flex: 1;
+  font-size: 22rpx;
+  color: #6b7280;
+  text-align: right;
+}
+
+.tab {
+  padding: 12rpx 28rpx;
+  border-radius: 999rpx;
+  background: #f3f4f6;
+  font-size: 26rpx;
+  color: #4b5563;
+}
+
+.tab.active {
+  background: #1f2937;
+  color: #fef9c3;
+}
+
+.model-row {
+  white-space: nowrap;
+}
+
+/* 自定义横向滑动条：scroll-view 原生 scrollbar 在小程序里展现不一致，
+   也不能用 enhanced（会让 canvas 溢出）。这里跟随 bindscroll 自己渲一条进度条。*/
+.scroll-indicator {
+  position: relative;
+  height: 16rpx;
+  background: #e5e7eb;
+  border-radius: 8rpx;
+  margin: 14rpx 8rpx 0 8rpx;
+}
+
+.scroll-indicator-thumb {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: #1f2937;
+  border-radius: 8rpx;
+  pointer-events: none;
+}
+
+/* 单个 cell 占 ~1/3 可视宽度（picker-bar 内宽 ~702rpx ÷ 3 - 间隙 ≈ 220rpx）
+   超过 3 个时由父级 .model-row 的 scroll-x 横向滑动查看 */
+.model-cell {
+  display: inline-flex;
+  box-sizing: border-box;
+  width: 220rpx;
+  margin-right: 14rpx;
+  border-radius: 10rpx;
+  border: 2rpx solid #e5e7eb;
+  overflow: hidden;
+}
+
+.model-cell:last-child {
+  margin-right: 0;
+}
+
+.model-cell.active {
+  border-color: #1f2937;
+  background: #fef9c3;
+}
+
+.model-thumb {
+  width: 100%;
+  height: 350rpx;
+  overflow: hidden;
+}
+
+.action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: #fff;
+  border-top: 2rpx solid #f3f4f6;
+  padding: 20rpx 24rpx env(safe-area-inset-bottom);
+  gap: 16rpx;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 26rpx 0;
+  border-radius: 999rpx;
+  background: #f3f4f6;
+  text-align: center;
+  font-size: 30rpx;
+  color: #1f2937;
+}
+
+.action-btn.primary {
+  background: #1f2937;
+  color: #fef9c3;
+}
+
+.thumb-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 6rpx;
+}

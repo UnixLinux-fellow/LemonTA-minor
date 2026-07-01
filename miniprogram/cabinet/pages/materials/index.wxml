@@ -1,0 +1,87 @@
+<view class="page">
+  <view class="preview-wireframe">
+    <view class="pw-title">空间衣柜布置预览</view>
+    <image wx:if="{{plan.previewImage}}"
+           class="pw-image"
+           src="{{plan.previewImage}}"
+           mode="widthFix"
+           show-menu-by-longpress="{{false}}"></image>
+  </view>
+  <view class="space-info">
+    <view class="space-name">{{plan.name}}</view>
+    <view class="space-meta">墙体 {{plan.wall.w}}×{{plan.wall.h}}cm · 共 {{cabinetCount}} 个柜子</view>
+  </view>
+
+  <view class="section">
+    <view class="title">衣柜板材品牌</view>
+    <view class="sub">板材品牌决定柜体环保等级与寿命</view>
+    <view class="opts">
+      <view class="opt {{materials.panel === item.id ? 'active' : ''}}"
+            wx:for="{{panelOpts}}" wx:key="id"
+            data-id="{{item.id}}"
+            bindtap="pickPanel">
+        <view class="opt-name">{{item.name}}</view>
+        <view class="opt-desc">{{item.desc}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="title">门板材质</view>
+    <view class="sub">门板表面材质（加价项）</view>
+    <view class="opts">
+      <view class="opt {{materials.doorPanel === item.id ? 'active' : ''}}"
+            wx:for="{{doorPanelOpts}}" wx:key="id"
+            data-id="{{item.id}}"
+            bindtap="pickDoorPanel">
+        <view class="opt-name">{{item.name}}</view>
+        <view class="opt-desc">{{item.desc}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="title">门板工艺</view>
+    <view class="sub">门板造型工艺（加价项）</view>
+    <view class="opts row-4">
+      <view class="opt {{materials.doorCraft === item.id ? 'active' : ''}}"
+            wx:for="{{doorCraftOpts}}" wx:key="id"
+            data-id="{{item.id}}"
+            bindtap="pickDoorCraft">
+        <view class="opt-name">{{item.name}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="title">五金品牌</view>
+    <view class="sub">铰链、滑轨等五金件品牌</view>
+    <view class="opts row-2">
+      <view class="opt {{materials.hardware === item.id ? 'active' : ''}}"
+            wx:for="{{hardwareOpts}}" wx:key="id"
+            data-id="{{item.id}}"
+            bindtap="pickHardware">
+        <view class="opt-name">{{item.name}}</view>
+        <view class="opt-desc">{{item.desc}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="title">照明系统</view>
+    <view class="sub">柜体灯光配置</view>
+    <view class="opts row-3">
+      <view class="opt {{materials.lighting === item.id ? 'active' : ''}}"
+            wx:for="{{lightingOpts}}" wx:key="id"
+            data-id="{{item.id}}"
+            bindtap="pickLighting">
+        <view class="opt-name">{{item.name}}</view>
+        <view class="opt-desc">{{item.desc}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-bar">
+    <button class="primary" bindtap="onCalc">计算成本</button>
+  </view>
+</view>
