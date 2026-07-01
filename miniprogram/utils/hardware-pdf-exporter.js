@@ -30,7 +30,7 @@ async function exportHardware({ canvas, fileName }) {
     if (s.path) {
       try {
         const embedded = await _embedSourceAsPng(canvas, ctx, s.path);
-        doc = _appendPngPage(doc, embedded.dataUrl, embedded.width, embedded.height, isFirst);
+        doc = _appendPngPage(doc, embedded.dataUrl, embedded.format, embedded.width, embedded.height, isFirst);
         isFirst = false;
         continue;
       } catch (e) {
@@ -47,48 +47,44 @@ async function exportHardware({ canvas, fileName }) {
   return _writeToTempFile(buf, fileName);
 }
 
-// 用 canvas 1:1 绘制源图后输出 PNG（无损），返回 { dataUrl, width, height }
+// 不经 canvas 中转：wx.getImageInfo 拿源图 tempPath + 尺寸，再 readFile 得 base64。
+// 返回 { dataUrl, format, width, height }。format 是 'PNG' 或 'JPEG'。
 async function _embedSourceAsPng(canvas, ctx, src) {
-  const img = await new Promise((resolve, reject) => {
-    const im = canvas.createImage();
-    im.onload = () => resolve(im);
-    im.onerror = () => reject(new Error('image load failed: ' + src));
-    im.src = src;
-  });
-  const w = img.width;
-  const h = img.height;
-  if (!w || !h) throw new Error('image has zero size: ' + src);
-  canvas.width = w;
-  canvas.height = h;
-  ctx.clearRect(0, 0, w, h);
-  ctx.drawImage(img, 0, 0, w, h);
-  const tmp = await new Promise((resolve, reject) => {
-    wx.canvasToTempFilePath({
-      canvas,
-      fileType: 'png',
-      success: (r) => resolve(r.tempFilePath),
-      fail: (err) => reject(new Error('canvasToTempFilePath failed: ' + (err && err.errMsg))),
+  console.log('[hardware-pdf] getImageInfo start:', src);
+  const info = await new Promise((resolve, reject) => {
+    wx.getImageInfo({
+      src,
+      success: (r) => resolve(r),
+      fail: (err) => reject(new Error('getImageInfo failed: ' + (err && err.errMsg))),
     });
   });
+  console.log('[hardware-pdf] getImageInfo ok:', src, info.width + 'x' + info.height, info.type, 'path=', info.path);
+
+  const type = String(info.type || '').toLowerCase();
+  const isPng = type === 'png' || /\.png$/i.test(src);
+  const format = isPng ? 'PNG' : 'JPEG';
+  const mime = isPng ? 'image/png' : 'image/jpeg';
+
   const dataUrl = await new Promise((resolve, reject) => {
     wx.getFileSystemManager().readFile({
-      filePath: tmp,
+      filePath: info.path,
       encoding: 'base64',
-      success: (r) => resolve('data:image/png;base64,' + r.data),
-      fail: (err) => reject(new Error('readFile tmp failed: ' + (err && err.errMsg))),
+      success: (r) => resolve('data:' + mime + ';base64,' + r.data),
+      fail: (err) => reject(new Error('readFile failed: ' + (err && err.errMsg))),
     });
   });
-  return { dataUrl, width: w, height: h };
+  console.log('[hardware-pdf] readFile ok:', src, 'base64 length=', dataUrl.length);
+  return { dataUrl, format, width: info.width, height: info.height };
 }
 
 // 页面尺寸 = 源图像素尺寸（1 px → 1 pt），PDF 100% 缩放即源图 1:1
-function _appendPngPage(doc, dataUrl, w, h, isFirst) {
+function _appendPngPage(doc, dataUrl, format, w, h, isFirst) {
   if (!doc) {
     doc = new jsPDF({ unit: 'pt', format: [w, h] });
   } else {
     doc.addPage([w, h]);
   }
-  doc.addImage(dataUrl, 'PNG', 0, 0, w, h);
+  doc.addImage(dataUrl, format, 0, 0, w, h);
   return doc;
 }
 
