@@ -19,24 +19,111 @@ module.exports = { exportHardware };
 async function exportHardware({ canvas, fileName }) {
   if (!canvas) throw new Error('canvas is required');
 
+  // canvas 只用于占位符降级页（图片缺失时才画）
   const ctx = canvas.getContext('2d');
   canvas.width = CANVAS_W;
   canvas.height = CANVAS_H;
 
   const sources = await _buildSources(canvas);
 
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  // 用第一个可用源图的尺寸作为文档初始尺寸；jsPDF 需要在 new 时给出 format
+  // 我们让每一页各自 addPage 时再传 format，逐页尺寸独立
+  let doc = null;
   let isFirst = true;
 
   for (let i = 0; i < sources.length; i++) {
     const s = sources[i];
-    await _renderImagePage(canvas, ctx, s.path, s.fallback);
-    await _addCanvasPage(doc, canvas, isFirst);
+    if (s.path) {
+      // 有源图 → 读原文件 base64 直嵌，保持像素级完整
+      try {
+        const meta = await _loadImageMeta(canvas, s.path);
+        const dataUrl = await _readAsDataUrl(s.path, meta.format);
+        doc = _appendImagePage(doc, dataUrl, meta.format, meta.width, meta.height, isFirst);
+        isFirst = false;
+        continue;
+      } catch (e) {
+        // 读文件失败 → 走占位符降级
+        console.warn('[hardware-pdf] embed image failed, fallback to placeholder:', s.path, e && e.message);
+      }
+    }
+    // 无源图或读文件失败 → canvas 画占位符，按 A4 一页
+    await _renderPlaceholderPage(canvas, ctx, s.fallback);
+    doc = await _appendCanvasPage(doc, canvas, isFirst);
     isFirst = false;
   }
 
   const buf = doc.output('arraybuffer');
   return _writeToTempFile(buf, fileName);
+}
+
+// 读源图，返回 { width, height, format } — format 是 'PNG' 或 'JPEG'
+function _loadImageMeta(canvas, src) {
+  return new Promise((resolve, reject) => {
+    const img = canvas.createImage();
+    img.onload = () => {
+      const ext = (src.split('.').pop() || '').toLowerCase();
+      const format = (ext === 'png') ? 'PNG' : 'JPEG';
+      resolve({ width: img.width, height: img.height, format });
+    };
+    img.onerror = () => reject(new Error('image load failed: ' + src));
+    img.src = src;
+  });
+}
+
+// 读小程序代码包内文件为 data URL（jsPDF.addImage 可直接吃）
+function _readAsDataUrl(src, format) {
+  return new Promise((resolve, reject) => {
+    // wx.getFileSystemManager().readFile 支持代码包内路径（不需要 /wxfile://）
+    // 但需要绝对路径（我们的 HARDWARE_DIR 以 / 开头）
+    const filePath = src.startsWith('/') ? src.slice(1) : src;
+    wx.getFileSystemManager().readFile({
+      filePath,
+      encoding: 'base64',
+      success: (r) => {
+        const mime = format === 'PNG' ? 'image/png' : 'image/jpeg';
+        resolve('data:' + mime + ';base64,' + r.data);
+      },
+      fail: (err) => reject(new Error('readFile failed: ' + (err && err.errMsg))),
+    });
+  });
+}
+
+// 用图片原始像素尺寸创建/追加一页；页面尺寸单位换算到 pt（1 px @ 72 DPI = 1 pt）
+// 高 DPI 图（例如 200 DPI 的扫描件）会因此产生比 A4 大的物理页面 —
+// 但 PDF 阅读器会自动缩放到屏幕/纸张适应显示，用户 100% 缩放时看到的就是原图 1:1
+function _appendImagePage(doc, dataUrl, format, imgW, imgH, isFirst) {
+  const pageW = imgW; // pt
+  const pageH = imgH;
+  if (!doc) {
+    doc = new jsPDF({ unit: 'pt', format: [pageW, pageH] });
+  } else {
+    doc.addPage([pageW, pageH]);
+  }
+  doc.addImage(dataUrl, format, 0, 0, pageW, pageH);
+  return doc;
+}
+
+// 占位符页仍走原 A4 canvas 路径
+async function _appendCanvasPage(doc, canvas, isFirst) {
+  if (!doc) {
+    doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  } else {
+    doc.addPage('a4');
+  }
+  const tmp = await _captureJpeg(canvas);
+  const dataUrl = await _readBase64(tmp);
+  doc.addImage(dataUrl, 'JPEG', 0, 0, A4_W_PT, A4_H_PT);
+  return doc;
+}
+
+// 只画占位符文字的一页
+async function _renderPlaceholderPage(canvas, ctx, fallbackText) {
+  _resetCanvas(ctx);
+  const x = MARGIN;
+  const y = MARGIN;
+  const w = CANVAS_W - MARGIN * 2;
+  const h = CANVAS_H - MARGIN * 2;
+  _drawPlaceholder(ctx, x, y, w, h, fallbackText);
 }
 
 function _resetCanvas(ctx) {
