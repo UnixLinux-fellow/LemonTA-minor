@@ -5,7 +5,7 @@ const jsPDF = jspdfModule.jsPDF || jspdfModule;
 
 const A4_W_PT = 595.28;
 const A4_H_PT = 841.89;
-const SCALE = 2;
+const SCALE = 4; // canvas 像素 / pt，越大文字/图片越清晰（4 ≈ 285 DPI）
 const CANVAS_W = Math.round(A4_W_PT * SCALE);
 const CANVAS_H = Math.round(A4_H_PT * SCALE);
 const MARGIN = 40 * SCALE;
@@ -118,7 +118,7 @@ function _captureJpeg(canvas) {
     wx.canvasToTempFilePath({
       canvas,
       fileType: 'jpg',
-      quality: 0.85,
+      quality: 0.95,
       success: (r) => resolve(r.tempFilePath),
       fail: reject,
     });
