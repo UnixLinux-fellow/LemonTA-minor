@@ -1,6 +1,7 @@
 // PDF 导出（canvas 渲染版）：用 2d canvas 把每一页画成 JPEG，再用 jsPDF.addImage 拼成 PDF。
 // 这样中文走系统字体，不用打包字体文件，主包体积不爆。
 const jspdfModule = require('../vendor/jspdf.min.js');
+const costEngine = require('../cabinet/utils/cost-engine.js');
 const jsPDF = jspdfModule.jsPDF || jspdfModule;
 
 const A4_W_PT = 595.28;
@@ -62,6 +63,19 @@ function _formatCurrency(n) {
   const parts = n.toFixed(2).split('.');
   parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return '¥' + parts.join('.');
+}
+
+function _computeCostFor(plan) {
+  if (!plan || !plan.materials) return null;
+  try {
+    return costEngine.calc({
+      cabinets: plan.cabinets || [],
+      materials: plan.materials,
+      wall: plan.wall,
+    });
+  } catch (e) {
+    return null;
+  }
 }
 
 function _drawImageContain(canvas, ctx, src, dx, dy, dw, dh, fallback) {
