@@ -145,14 +145,15 @@ async function _renderOverview(canvas, ctx, plan) {
   await _drawImageContain(canvas, ctx, plan.previewImage, MARGIN, previewY, previewW, previewH, '无预览');
 }
 
-async function _renderLayout(canvas, ctx, plan) {
+async function _renderLayout(canvas, ctx, plan, options) {
   _resetCanvas(ctx);
   ctx.fillStyle = '#1f2937';
   ctx.font = 'bold ' + (22 * SCALE) + 'px sans-serif';
   ctx.fillText('布局线框图', MARGIN, MARGIN);
 
+  const cost = options && options.cost;
   const cabinets = Array.isArray(plan.cabinets) ? plan.cabinets : [];
-  const rows = _buildCabinetRows(plan, cabinets);
+  const rows = _buildCabinetRows(plan, cabinets, cost);
   const wfY = MARGIN + 50 * SCALE;
   const wfW = CANVAS_W - MARGIN * 2;
   const totalContentH = CANVAS_H - wfY - MARGIN;
@@ -166,24 +167,28 @@ async function _renderLayout(canvas, ctx, plan) {
   }
 
   // 让表格优先塞下所有柜子；行高在 14~28 之间动态收缩，线框图占用剩余空间，最少保留 30%
+  // 有成本列时末尾多一行"总计"
   const gap = 30 * SCALE;
   const headerH = 30 * SCALE;
   const idealRowH = 28 * SCALE;
   const minRowH = 14 * SCALE;
   const wfFloor = Math.floor(totalContentH * 0.30);
   const tableMaxH = totalContentH - gap - wfFloor;
-  let rowH = Math.floor((tableMaxH - headerH) / rows.length);
+  const showCost = !!cost;
+  const totalRowsForLayout = rows.length + (showCost ? 1 : 0);
+  let rowH = Math.floor((tableMaxH - headerH) / totalRowsForLayout);
   if (rowH > idealRowH) rowH = idealRowH;
   if (rowH < minRowH) rowH = minRowH;
-  const tableH = headerH + rows.length * rowH;
+  const tableH = headerH + totalRowsForLayout * rowH;
   const wfH = Math.max(wfFloor, totalContentH - gap - tableH);
 
   await _drawImageContain(canvas, ctx, src, MARGIN, wfY, wfW, wfH, hint);
-  _renderCabinetTable(ctx, rows, MARGIN, wfY + wfH + gap, wfW, headerH, rowH);
+  _renderCabinetTable(ctx, rows, MARGIN, wfY + wfH + gap, wfW, headerH, rowH, cost);
 }
 
-function _buildCabinetRows(plan, cabinets) {
-  const rows = cabinets.map((cab) => {
+function _buildCabinetRows(plan, cabinets, cost) {
+  const modules = (cost && Array.isArray(cost.modules)) ? cost.modules : null;
+  const rows = cabinets.map((cab, idx) => {
     const code = (cab.code || '').toLowerCase();
     const isCorner = cab.kind === 'corner' || code === 'y' || code === 'z' || code === 'yg' || code === 'zg';
     const depth = isCorner ? 110 : 60;
@@ -191,21 +196,27 @@ function _buildCabinetRows(plan, cabinets) {
       name: cab.label || '',
       size: `宽${cab.w}cmx高${cab.h}cmx深${depth}cm`,
       cornerText: isCorner ? '是' : '否',
+      cost: modules && modules[idx] && typeof modules[idx].total === 'number' ? modules[idx].total : null,
     };
   });
   const wall = plan.wall || {};
   if (wall.w && wall.h) {
     const skDepth = 6;
-    rows.push({ name: '左收口', size: `宽2cmx高${wall.h}cmx深${skDepth}cm`, cornerText: '否' });
-    rows.push({ name: '右收口', size: `宽2cmx高${wall.h}cmx深${skDepth}cm`, cornerText: '否' });
-    rows.push({ name: '上收口', size: `宽${wall.w - 4}cmx高2cmx深${skDepth}cm`, cornerText: '否' });
+    // 收口条：整体价 cost.sk.total 记在最后一条（上收口）行；左右收口显示 —
+    const skTotal = cost && cost.sk && typeof cost.sk.total === 'number' ? cost.sk.total : null;
+    rows.push({ name: '左收口', size: `宽2cmx高${wall.h}cmx深${skDepth}cm`, cornerText: '否', cost: null });
+    rows.push({ name: '右收口', size: `宽2cmx高${wall.h}cmx深${skDepth}cm`, cornerText: '否', cost: null });
+    rows.push({ name: '上收口', size: `宽${wall.w - 4}cmx高2cmx深${skDepth}cm`, cornerText: '否', cost: skTotal });
   }
   return rows;
 }
 
-function _renderCabinetTable(ctx, rows, x, y, w, headerH, rowH) {
+function _renderCabinetTable(ctx, rows, x, y, w, headerH, rowH, cost) {
   const headerPadX = 12 * SCALE;
-  const colRatios = [0.28, 0.46, 0.26];
+  const showCost = !!cost;
+  const colRatios = showCost
+    ? [0.24, 0.36, 0.16, 0.24]
+    : [0.28, 0.46, 0.26];
   const colX = [];
   let cx = x;
   for (let i = 0; i < colRatios.length; i++) {
@@ -222,7 +233,10 @@ function _renderCabinetTable(ctx, rows, x, y, w, headerH, rowH) {
   ctx.font = 'bold ' + (13 * SCALE) + 'px sans-serif';
   ctx.textBaseline = 'middle';
   const headerCenterY = y + headerH / 2;
-  ['名称', '尺寸', '是否是转角柜'].forEach((label, i) => {
+  const headers = showCost
+    ? ['名称', '尺寸', '是否是转角柜', '成本']
+    : ['名称', '尺寸', '是否是转角柜'];
+  headers.forEach((label, i) => {
     ctx.fillText(label, colX[i] + headerPadX, headerCenterY);
   });
 
@@ -242,7 +256,26 @@ function _renderCabinetTable(ctx, rows, x, y, w, headerH, rowH) {
     ctx.fillText(row.name, colX[0] + headerPadX, cellY);
     ctx.fillText(row.size, colX[1] + headerPadX, cellY);
     ctx.fillText(row.cornerText, colX[2] + headerPadX, cellY);
+    if (showCost) {
+      const costText = typeof row.cost === 'number' ? _formatCurrency(row.cost) : '—';
+      ctx.fillText(costText, colX[3] + headerPadX, cellY);
+    }
   });
+
+  // 总计行（仅 showCost）
+  if (showCost) {
+    const totalRowY = startY + rows.length * rowH;
+    ctx.fillStyle = '#1f2937';
+    ctx.fillRect(x, totalRowY, w, rowH);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold ' + bodyFontPx + 'px sans-serif';
+    ctx.textBaseline = 'middle';
+    const totalCenterY = totalRowY + rowH / 2;
+    ctx.fillText('总计', colX[0] + headerPadX, totalCenterY);
+    const grandTotal = typeof cost.grandTotal === 'number' ? cost.grandTotal : null;
+    const grandText = grandTotal != null ? _formatCurrency(grandTotal) : '—';
+    ctx.fillText(grandText, colX[3] + headerPadX, totalCenterY);
+  }
 
   ctx.textBaseline = 'top';
 }
@@ -1153,7 +1186,7 @@ async function exportPlansWithCost({ canvas, plans, fileName }) {
     await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
     if (i === 0) planEntryPage.set(plan.id, doc.internal.getNumberOfPages());
 
-    await _renderLayout(canvas, ctx, plan);
+    await _renderLayout(canvas, ctx, plan, { cost });
     await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
 
     // 成本透视：可能 1..N 页
