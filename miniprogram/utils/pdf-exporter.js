@@ -578,6 +578,46 @@ function _renderOverviewTable(ctx, plans, options) {
   return entries;
 }
 
+// 渲染方案的"成本透视"部分：
+// - 未算成本：1 页占位提示
+// - 已算成本：从上向下堆叠卡片，页满则新开一页
+// 返回渲染的 canvas 数组（每张对应 PDF 里的一页 JPEG）。
+// 调用方负责用 _addCanvasPage 把每张塞进 doc。
+async function _renderCostBreakdown(canvas, ctx, plan, cost) {
+  const pages = []; // 每项：一个已在 canvas 上画完的快照，用于随后 _captureJpeg
+  // 骨架：先只实现未算分支。已算分支由 Task 4-6 补齐。
+  if (!cost) {
+    _renderCostPlaceholderPage(ctx, plan);
+    pages.push('rendered');
+    return pages;
+  }
+  // 已算分支占位（Task 4 会替换）
+  _renderCostPlaceholderPage(ctx, plan, '（成本透视已算分支占位——Task 4 会填充）');
+  pages.push('rendered');
+  return pages;
+}
+
+// 未算成本占位页：方案名 + 副标题 + 居中提示
+function _renderCostPlaceholderPage(ctx, plan, overrideText) {
+  _resetCanvas(ctx);
+  ctx.fillStyle = '#1f2937';
+  ctx.font = 'bold ' + (28 * SCALE) + 'px sans-serif';
+  ctx.fillText(plan.name || '', MARGIN, MARGIN);
+
+  ctx.fillStyle = '#6b7280';
+  ctx.font = (14 * SCALE) + 'px sans-serif';
+  ctx.fillText('成本透视', MARGIN, MARGIN + 46 * SCALE);
+
+  const msg = overrideText || '未算成本，请到成本页选择板材/五金后再导出';
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = (16 * SCALE) + 'px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(msg, CANVAS_W / 2, CANVAS_H / 2);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+}
+
 function _captureJpeg(canvas) {
   return new Promise((resolve, reject) => {
     wx.canvasToTempFilePath({
