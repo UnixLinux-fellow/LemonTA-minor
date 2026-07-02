@@ -694,8 +694,7 @@ async function _renderAndFlushCostBreakdown(canvas, ctx, plan, cost, flushPage) 
     { title: '小计', ratio: 0.16 },
   ];
   const hardwareCols = [
-    { title: '部件', ratio: 0.28 },
-    { title: '规格', ratio: 0.16 },
+    { title: '部件', ratio: 0.44 },
     { title: '数量', ratio: 0.16 },
     { title: '单价', ratio: 0.20 },
     { title: '小计', ratio: 0.20 },
@@ -705,15 +704,25 @@ async function _renderAndFlushCostBreakdown(canvas, ctx, plan, cost, flushPage) 
   for (let i = 0; i < modules.length; i++) {
     const m = modules[i];
     const gap = 8 * SCALE;
-    const cardBlockH = _cabinetCardTotalHeight(m) + cardGap;
-    await addBlock(cardBlockH, (yy) => {
+    // 引导块：卡头 + 4 格 + 板材表（通常一页内可放下）
+    const headH = 36 * SCALE;
+    const gridH = 60 * SCALE;
+    const panelRows = _panelDetailRows(m);
+    const panelTableH = 26 * SCALE + Math.max(1, panelRows.length) * 22 * SCALE;
+    const leadBlockH = headH + gridH + gap + panelTableH + gap;
+    await addBlock(leadBlockH, (yy) => {
       let cy = yy;
       const cardH = _drawCabinetCard(ctx, m, contentX, cy, contentW);
       cy += cardH + gap;
-      const panelH = _drawDetailTable(ctx, panelCols, _panelDetailRows(m), contentX, cy, contentW);
-      cy += panelH + gap;
-      _drawDetailTable(ctx, hardwareCols, _hardwareDetailRows(m), contentX, cy, contentW);
+      _drawDetailTable(ctx, panelCols, panelRows, contentX, cy, contentW);
     });
+    // 五金表：可能很长，按剩余空间跨页写
+    await _drawPagedDetailTable(
+      ctx, hardwareCols, _hardwareDetailRows(m),
+      contentX, contentW, addBlock, endPage, beginPage,
+      () => y, () => pageBottom
+    );
+    y += cardGap;
   }
 
   if (cost.sk) {
@@ -820,7 +829,7 @@ function _drawCabinetCard(ctx, module_, x, y, w) {
   const priceW = ctx.measureText(priceText).width;
   ctx.fillText(priceText, x + w - priceW - 12 * SCALE, headCenterY);
 
-  // 4 格网格
+  // 4 格网格：标签 + 价格 同一行
   const gridY = y + headH;
   const cellW = w / 2;
   const cellH = gridH / 2;
@@ -832,17 +841,20 @@ function _drawCabinetCard(ctx, module_, x, y, w) {
   ];
   ctx.strokeStyle = '#e5e7eb';
   ctx.lineWidth = Math.max(1, 1 * SCALE);
+  ctx.textBaseline = 'middle';
   for (let i = 0; i < 4; i++) {
     const cx = x + (i % 2) * cellW;
     const cy = gridY + Math.floor(i / 2) * cellH;
     ctx.strokeRect(cx, cy, cellW, cellH);
+    const midY = cy + cellH / 2;
     ctx.fillStyle = '#6b7280';
     ctx.font = (12 * SCALE) + 'px sans-serif';
-    ctx.textBaseline = 'top';
-    ctx.fillText(cells[i][0], cx + 12 * SCALE, cy + 10 * SCALE);
+    const label = cells[i][0] + ': ';
+    ctx.fillText(label, cx + 12 * SCALE, midY);
+    const labelW = ctx.measureText(label).width;
     ctx.fillStyle = '#1f2937';
     ctx.font = 'bold ' + (14 * SCALE) + 'px sans-serif';
-    ctx.fillText(_formatCurrency(cells[i][1] || 0), cx + 12 * SCALE, cy + 30 * SCALE);
+    ctx.fillText(_formatCurrency(cells[i][1] || 0), cx + 12 * SCALE + labelW, midY);
   }
 
   ctx.textBaseline = 'top';
@@ -917,11 +929,36 @@ function _hardwareDetailRows(module_) {
   const hardware = (module_.detail && module_.detail.hardware) || [];
   return hardware.map((h) => [
     h.name || '',
-    '数量',
     h.qty != null ? String(h.qty) : '',
     h.unit != null ? _formatCurrency(h.unit) : '',
     h.total != null ? _formatCurrency(h.total) : '',
   ]);
+}
+
+// 跨页表格：把 rows 按当前剩余空间切片，每页写一遍表头。
+// 依赖 addBlock/endPage/beginPage/getY/getBottom 由 _renderAndFlushCostBreakdown 提供。
+async function _drawPagedDetailTable(ctx, columns, rows, x, w, addBlock, endPage, beginPage, getY, getBottom) {
+  const headerH = 26 * SCALE;
+  const rowH = 22 * SCALE;
+  const useRows = (Array.isArray(rows) && rows.length) ? rows : [Array(columns.length).fill('').map((_, i) => i === 0 ? '无数据' : '')];
+
+  let idx = 0;
+  while (idx < useRows.length) {
+    const remaining = getBottom() - getY();
+    // 若剩余高度连表头 + 1 行都放不下，翻页
+    if (remaining < headerH + rowH) {
+      await endPage();
+      beginPage();
+      continue;
+    }
+    const maxRowsThisPage = Math.floor((getBottom() - getY() - headerH) / rowH);
+    const slice = useRows.slice(idx, idx + maxRowsThisPage);
+    const chunkH = headerH + slice.length * rowH;
+    await addBlock(chunkH, (yy) => {
+      _drawDetailTable(ctx, columns, slice, x, yy, w);
+    });
+    idx += slice.length;
+  }
 }
 
 function _drawSkCard(ctx, sk, x, y, w) {
