@@ -591,10 +591,22 @@ async function _renderCostBreakdown(canvas, ctx, plan, cost) {
     pages.push('rendered');
     return pages;
   }
-  // 已算分支占位（Task 4 会替换）
-  _renderCostPlaceholderPage(ctx, plan, '（成本透视已算分支占位——Task 4 会填充）');
-  pages.push('rendered');
-  return pages;
+  const mgr = _createCostPageManager(canvas, ctx, plan);
+  const contentX = MARGIN;
+  const contentW = CANVAS_W - MARGIN * 2;
+  const cardGap = 20 * SCALE;
+
+  const modules = (cost.modules || []);
+  for (let i = 0; i < modules.length; i++) {
+    const m = modules[i];
+    const cardH = 36 * SCALE + 60 * SCALE; // 卡头 + 4 格
+    mgr.addBlock(cardH + cardGap, (y) => {
+      _drawCabinetCard(ctx, m, contentX, y, contentW);
+    });
+  }
+
+  // 收口条 + 总计（Task 6 会替换）
+  return mgr.finalize();
 }
 
 // 未算成本占位页：方案名 + 副标题 + 居中提示
@@ -616,6 +628,104 @@ function _renderCostPlaceholderPage(ctx, plan, overrideText) {
   ctx.fillText(msg, CANVAS_W / 2, CANVAS_H / 2);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
+}
+
+// 分页布局器：维护当前 canvas 的 y 光标；调用 addBlock(height, drawFn) 时
+// 若剩余高度不够则先 finalize 当前页（推入 pages），再复位光标并画。
+function _createCostPageManager(canvas, ctx, plan) {
+  const pageTopContent = MARGIN + 100 * SCALE; // 页眉占 100pt*SCALE 左右
+  const pageBottom = CANVAS_H - MARGIN;
+  const state = { y: 0, pages: [], canvas, ctx, plan };
+
+  function _drawHeader() {
+    _resetCanvas(ctx);
+    ctx.fillStyle = '#1f2937';
+    ctx.font = 'bold ' + (28 * SCALE) + 'px sans-serif';
+    ctx.fillText(plan.name || '', MARGIN, MARGIN);
+
+    ctx.fillStyle = '#6b7280';
+    ctx.font = (14 * SCALE) + 'px sans-serif';
+    ctx.fillText('成本透视', MARGIN, MARGIN + 46 * SCALE);
+  }
+
+  function beginPage() {
+    _drawHeader();
+    state.y = pageTopContent;
+  }
+
+  function commitPage() {
+    state.pages.push('rendered');
+  }
+
+  function remaining() {
+    return pageBottom - state.y;
+  }
+
+  function addBlock(height, drawFn) {
+    if (state.y + height > pageBottom && state.y > pageTopContent) {
+      commitPage();
+      beginPage();
+    }
+    drawFn(state.y);
+    state.y += height;
+  }
+
+  function finalize() {
+    if (state.y > pageTopContent) commitPage();
+    return state.pages;
+  }
+
+  beginPage();
+  return { addBlock, remaining, finalize };
+}
+
+function _drawCabinetCard(ctx, module_, x, y, w) {
+  const headH = 36 * SCALE;
+  const gridH = 60 * SCALE;
+  const totalH = headH + gridH;
+
+  // 卡头背景
+  ctx.fillStyle = '#f3f4f6';
+  ctx.fillRect(x, y, w, headH);
+
+  // 卡头文字（左：名称，右：¥total）
+  ctx.fillStyle = '#1f2937';
+  ctx.font = 'bold ' + (14 * SCALE) + 'px sans-serif';
+  ctx.textBaseline = 'middle';
+  const headCenterY = y + headH / 2;
+  const title = module_.label + ' ' + (module_.code || '') + '-' + module_.w + '-' + module_.h;
+  ctx.fillText(title, x + 12 * SCALE, headCenterY);
+  const priceText = _formatCurrency(module_.total || 0);
+  const priceW = ctx.measureText(priceText).width;
+  ctx.fillText(priceText, x + w - priceW - 12 * SCALE, headCenterY);
+
+  // 4 格网格
+  const gridY = y + headH;
+  const cellW = w / 2;
+  const cellH = gridH / 2;
+  const cells = [
+    ['板材合计', module_.panelCost],
+    ['运输费用', module_.transport],
+    ['五金配件', module_.hardwareCost],
+    ['安装费用', module_.install],
+  ];
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.lineWidth = Math.max(1, 1 * SCALE);
+  for (let i = 0; i < 4; i++) {
+    const cx = x + (i % 2) * cellW;
+    const cy = gridY + Math.floor(i / 2) * cellH;
+    ctx.strokeRect(cx, cy, cellW, cellH);
+    ctx.fillStyle = '#6b7280';
+    ctx.font = (12 * SCALE) + 'px sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText(cells[i][0], cx + 12 * SCALE, cy + 10 * SCALE);
+    ctx.fillStyle = '#1f2937';
+    ctx.font = 'bold ' + (14 * SCALE) + 'px sans-serif';
+    ctx.fillText(_formatCurrency(cells[i][1] || 0), cx + 12 * SCALE, cy + 30 * SCALE);
+  }
+
+  ctx.textBaseline = 'top';
+  return totalH;
 }
 
 function _captureJpeg(canvas) {
