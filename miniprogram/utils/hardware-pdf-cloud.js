@@ -7,13 +7,14 @@ const CACHE_VERSION_KEY = 'hardwarePdfCachedVersion';
 
 let _pendingPromise = null;
 
-function fetchHardwarePdf() {
+function fetchHardwarePdf(options) {
   if (_pendingPromise) return _pendingPromise;
-  _pendingPromise = _run().finally(() => { _pendingPromise = null; });
+  const onProgress = options && options.onProgress;
+  _pendingPromise = _run(onProgress).finally(() => { _pendingPromise = null; });
   return _pendingPromise;
 }
 
-async function _run() {
+async function _run(onProgress) {
   let manifest;
   try {
     manifest = await _fetchManifest();
@@ -30,8 +31,19 @@ async function _run() {
     return _cachedPdfPath();
   }
 
-  // Task 3 实现下载
-  throw new Error('download not implemented yet; version=' + manifest.version + ' cached=' + cachedVersion);
+  try {
+    const tempPath = await _downloadToTemp(manifest.url, onProgress);
+    const dest = await _persistToCache(tempPath);
+    _setCachedVersion(manifest.version);
+    return dest;
+  } catch (err) {
+    console.warn('[hardware-pdf-cloud] download failed:', err.message);
+    if (_isCachedFileExists()) {
+      wx.showToast({ title: '更新失败，已打开本地版本', icon: 'none', duration: 2000 });
+      return _cachedPdfPath();
+    }
+    throw err;
+  }
 }
 
 function _fetchManifest() {
@@ -71,6 +83,45 @@ function _getCachedVersion() {
   } catch (e) {
     return '';
   }
+}
+
+// 下载 PDF 到临时文件；onProgress(percent 0-100)。
+function _downloadToTemp(url, onProgress) {
+  return new Promise((resolve, reject) => {
+    const task = wx.downloadFile({
+      url,
+      success: (res) => {
+        if (res.statusCode !== 200) {
+          reject(new Error('download bad status: ' + res.statusCode));
+          return;
+        }
+        resolve(res.tempFilePath);
+      },
+      fail: (err) => reject(new Error('download failed: ' + (err && err.errMsg))),
+    });
+    if (task && task.onProgressUpdate && typeof onProgress === 'function') {
+      task.onProgressUpdate((p) => onProgress(p.progress));
+    }
+  });
+}
+
+// 把临时文件复制到 USER_DATA_PATH 下的固定路径，返回目标路径。
+function _persistToCache(tempPath) {
+  return new Promise((resolve, reject) => {
+    const dest = _cachedPdfPath();
+    const fs = wx.getFileSystemManager();
+    try { fs.unlinkSync(dest); } catch (e) { /* ignore */ }
+    fs.copyFile({
+      srcPath: tempPath,
+      destPath: dest,
+      success: () => resolve(dest),
+      fail: (err) => reject(new Error('copyFile failed: ' + (err && err.errMsg))),
+    });
+  });
+}
+
+function _setCachedVersion(v) {
+  try { wx.setStorageSync(CACHE_VERSION_KEY, v); } catch (e) { /* ignore */ }
 }
 
 module.exports = { fetchHardwarePdf };
