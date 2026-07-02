@@ -640,6 +640,96 @@ async function _renderCostBreakdown(canvas, ctx, plan, cost) {
   return mgr.finalize();
 }
 
+// 每完成一页就 flush（画完的 canvas 快照塞入 PDF），然后清空 canvas 继续画下一页。
+// 与 _renderCostBreakdown 不同：这版直接接管 canvas 逐页输出，不再收集 pages 数组。
+async function _renderAndFlushCostBreakdown(canvas, ctx, plan, cost, flushPage) {
+  if (!cost) {
+    _renderCostPlaceholderPage(ctx, plan);
+    await flushPage();
+    return;
+  }
+
+  const pageTopContent = MARGIN + 100 * SCALE;
+  const pageBottom = CANVAS_H - MARGIN;
+  const contentX = MARGIN;
+  const contentW = CANVAS_W - MARGIN * 2;
+  const cardGap = 20 * SCALE;
+  let y = 0;
+  let pageStarted = false;
+
+  function beginPage() {
+    _resetCanvas(ctx);
+    ctx.fillStyle = '#1f2937';
+    ctx.font = 'bold ' + (28 * SCALE) + 'px sans-serif';
+    ctx.fillText(plan.name || '', MARGIN, MARGIN);
+    ctx.fillStyle = '#6b7280';
+    ctx.font = (14 * SCALE) + 'px sans-serif';
+    ctx.fillText('成本透视', MARGIN, MARGIN + 46 * SCALE);
+    y = pageTopContent;
+    pageStarted = true;
+  }
+
+  async function endPage() {
+    if (pageStarted) {
+      await flushPage();
+      pageStarted = false;
+    }
+  }
+
+  async function addBlock(height, drawFn) {
+    if (!pageStarted) beginPage();
+    if (y + height > pageBottom && y > pageTopContent) {
+      await endPage();
+      beginPage();
+    }
+    drawFn(y);
+    y += height;
+  }
+
+  const panelCols = [
+    { title: '名称', ratio: 0.24 },
+    { title: '尺寸', ratio: 0.24 },
+    { title: '面积', ratio: 0.20 },
+    { title: '单价', ratio: 0.16 },
+    { title: '小计', ratio: 0.16 },
+  ];
+  const hardwareCols = [
+    { title: '部件', ratio: 0.28 },
+    { title: '规格', ratio: 0.16 },
+    { title: '数量', ratio: 0.16 },
+    { title: '单价', ratio: 0.20 },
+    { title: '小计', ratio: 0.20 },
+  ];
+
+  const modules = (cost.modules || []);
+  for (let i = 0; i < modules.length; i++) {
+    const m = modules[i];
+    const gap = 8 * SCALE;
+    const cardBlockH = _cabinetCardTotalHeight(m) + cardGap;
+    await addBlock(cardBlockH, (yy) => {
+      let cy = yy;
+      const cardH = _drawCabinetCard(ctx, m, contentX, cy, contentW);
+      cy += cardH + gap;
+      const panelH = _drawDetailTable(ctx, panelCols, _panelDetailRows(m), contentX, cy, contentW);
+      cy += panelH + gap;
+      _drawDetailTable(ctx, hardwareCols, _hardwareDetailRows(m), contentX, cy, contentW);
+    });
+  }
+
+  if (cost.sk) {
+    const skH = 36 * SCALE + 30 * SCALE + cardGap;
+    await addBlock(skH, (yy) => {
+      _drawSkCard(ctx, cost.sk, contentX, yy, contentW);
+    });
+  }
+  const grandH = 60 * SCALE + cardGap;
+  await addBlock(grandH, (yy) => {
+    _drawGrandTotalCard(ctx, cost.grandTotal, contentX, yy, contentW);
+  });
+
+  await endPage();
+}
+
 // 未算成本占位页：方案名 + 副标题 + 居中提示
 function _renderCostPlaceholderPage(ctx, plan, overrideText) {
   _resetCanvas(ctx);
@@ -982,4 +1072,82 @@ async function exportPlans({ canvas, plans, fileName }) {
   return _writeToTempFile(buf, fileName);
 }
 
-module.exports = { exportPlans, _countCabinets };
+async function exportPlansWithCost({ canvas, plans, fileName }) {
+  if (!canvas) throw new Error('canvas is required');
+  if (!Array.isArray(plans) || plans.length === 0) throw new Error('plans is empty');
+
+  const ctx = canvas.getContext('2d');
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
+
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  let isFirst = true;
+
+  // 1) 预计算每方案成本
+  const costMap = new Map();
+  plans.forEach((p) => {
+    costMap.set(p.id, _computeCostFor(p));
+  });
+
+  // 2) 预计算每方案在 PDF 里"入口页"号（供总表内链）
+  //    页序：目录页(1) + 每方案 [separator? + overview + layout + costBreakdown pages]
+  //    每方案 costBreakdown 页数不定；分两次遍历不划算，且内链只跳"入口页"（第一个可见页），
+  //    因此先假设每方案 costBreakdown 至少 1 页，剩余多出的页不影响内链跳转。
+  let pageCursor = 1; // 目录占第 1 页
+  for (let i = 0; i < plans.length; i++) {
+    const p = plans[i];
+    pageCursor += 1; // 入口页（i>0 是 separator，i==0 是 overview）
+    p._tocPage = pageCursor;
+    // 之后 layout + 至少 1 页 costBreakdown（若 > 1 页，不影响内链跳到第一个）
+    pageCursor += (i === 0 ? 1 : 2);
+    pageCursor += 1; // 至少 1 页 costBreakdown
+  }
+
+  // 3) 渲染总表
+  const tocEntries = _renderOverviewTable(ctx, plans, {
+    showCostColumn: true,
+    costMap,
+  });
+  await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+
+  // 4) 逐方案渲染
+  for (let i = 0; i < plans.length; i++) {
+    const plan = plans[i];
+    const cost = costMap.get(plan.id);
+
+    if (i > 0) {
+      _renderSeparator(ctx, plan, i + 1, plans.length);
+      await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+    }
+    await _renderOverview(canvas, ctx, plan);
+    await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+
+    await _renderLayout(canvas, ctx, plan);
+    await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+
+    // 成本透视：可能 1..N 页
+    // _renderCostBreakdown 内部 finalize 前每页画在同一个 canvas 上，
+    // 但由于我们一次只有一个 canvas，需要在每"页"绘制完后立刻 _addCanvasPage。
+    // 因此改造：让 _renderCostBreakdown 每完成一页就调用回调。
+    await _renderAndFlushCostBreakdown(canvas, ctx, plan, cost, async () => {
+      await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+    });
+  }
+
+  // 5) 目录页内链
+  if (doc.setPage && tocEntries.length) {
+    try {
+      doc.setPage(1);
+      tocEntries.forEach((e) => {
+        doc.link(e.x, e.y, e.w, e.h, { pageNumber: e.pageNumber });
+      });
+    } catch (err) {
+      console.warn('[pdf] add toc links failed', err && err.message);
+    }
+  }
+
+  const buf = doc.output('arraybuffer');
+  return _writeToTempFile(buf, fileName);
+}
+
+module.exports = { exportPlans, exportPlansWithCost, _countCabinets };
