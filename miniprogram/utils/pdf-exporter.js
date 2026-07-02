@@ -514,8 +514,10 @@ function _renderOverviewTable(ctx, plans, options) {
     }
 
     // 内链 hit-box（整行）—— 转 PDF 坐标 (pt) = canvas 坐标 / SCALE
+    // pageNumber 由调用方在真正渲染每个方案时填入（避免预估页数错位）。
     entries.push({
-      pageNumber: plan._tocPage,
+      planId: plan.id,
+      pageNumber: 0,
       x: tableX / SCALE,
       y: ry / SCALE,
       w: tableW / SCALE,
@@ -1065,33 +1067,34 @@ async function exportPlans({ canvas, plans, fileName }) {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   let isFirst = true;
 
-  // 预计算每个方案在 PDF 里的起始页号：
-  // 目录页 = 1；之后每个方案 = (separator?) + overview + layout
-  let pageCursor = 1; // 目录页占第 1 页
-  for (let i = 0; i < plans.length; i++) {
-    const p = plans[i];
-    pageCursor += 1; // 该方案的入口页（separator 或 i==0 时的 overview）
-    p._tocPage = pageCursor;
-    // 入口页之后的页数：i==0 时 layout；i>0 时 overview + layout
-    pageCursor += (i === 0 ? 1 : 2);
-  }
-
   // 先渲染总览表格页（占第 1 页）
   const tocEntries = _renderOverviewTable(ctx, plans);
   await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+
+  // 记录每个 plan 的真实入口页号（渲染时填入）
+  const planEntryPage = new Map();
 
   for (let i = 0; i < plans.length; i++) {
     const plan = plans[i];
     if (i > 0) {
       _renderSeparator(ctx, plan, i + 1, plans.length);
       await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+      planEntryPage.set(plan.id, doc.internal.getNumberOfPages());
     }
     await _renderOverview(canvas, ctx, plan);
     await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+    if (i === 0) planEntryPage.set(plan.id, doc.internal.getNumberOfPages());
 
     await _renderLayout(canvas, ctx, plan);
     await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
   }
+
+  // 用真实页号回填 tocEntries.pageNumber
+  tocEntries.forEach((e) => {
+    if (e.planId != null && planEntryPage.has(e.planId)) {
+      e.pageNumber = planEntryPage.get(e.planId);
+    }
+  });
 
   // 回到目录页加内链
   if (doc.setPage && tocEntries.length) {
@@ -1126,26 +1129,15 @@ async function exportPlansWithCost({ canvas, plans, fileName }) {
     costMap.set(p.id, _computeCostFor(p));
   });
 
-  // 2) 预计算每方案在 PDF 里"入口页"号（供总表内链）
-  //    页序：目录页(1) + 每方案 [separator? + overview + layout + costBreakdown pages]
-  //    每方案 costBreakdown 页数不定；分两次遍历不划算，且内链只跳"入口页"（第一个可见页），
-  //    因此先假设每方案 costBreakdown 至少 1 页，剩余多出的页不影响内链跳转。
-  let pageCursor = 1; // 目录占第 1 页
-  for (let i = 0; i < plans.length; i++) {
-    const p = plans[i];
-    pageCursor += 1; // 入口页（i>0 是 separator，i==0 是 overview）
-    p._tocPage = pageCursor;
-    // 之后 layout + 至少 1 页 costBreakdown（若 > 1 页，不影响内链跳到第一个）
-    pageCursor += (i === 0 ? 1 : 2);
-    pageCursor += 1; // 至少 1 页 costBreakdown
-  }
-
-  // 3) 渲染总表
+  // 2) 渲染总表
   const tocEntries = _renderOverviewTable(ctx, plans, {
     showCostColumn: true,
     costMap,
   });
   await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+
+  // 3) 记录每个 plan 的真实入口页号（渲染时填入）
+  const planEntryPage = new Map();
 
   // 4) 逐方案渲染
   for (let i = 0; i < plans.length; i++) {
@@ -1155,21 +1147,27 @@ async function exportPlansWithCost({ canvas, plans, fileName }) {
     if (i > 0) {
       _renderSeparator(ctx, plan, i + 1, plans.length);
       await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+      planEntryPage.set(plan.id, doc.internal.getNumberOfPages());
     }
     await _renderOverview(canvas, ctx, plan);
     await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+    if (i === 0) planEntryPage.set(plan.id, doc.internal.getNumberOfPages());
 
     await _renderLayout(canvas, ctx, plan);
     await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
 
     // 成本透视：可能 1..N 页
-    // _renderCostBreakdown 内部 finalize 前每页画在同一个 canvas 上，
-    // 但由于我们一次只有一个 canvas，需要在每"页"绘制完后立刻 _addCanvasPage。
-    // 因此改造：让 _renderCostBreakdown 每完成一页就调用回调。
     await _renderAndFlushCostBreakdown(canvas, ctx, plan, cost, async () => {
       await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
     });
   }
+
+  // 5) 用真实页号回填 tocEntries.pageNumber
+  tocEntries.forEach((e) => {
+    if (e.planId != null && planEntryPage.has(e.planId)) {
+      e.pageNumber = planEntryPage.get(e.planId);
+    }
+  });
 
   // 5) 目录页内链
   if (doc.setPage && tocEntries.length) {
