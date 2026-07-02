@@ -1,7 +1,7 @@
 // PDF 导出（canvas 渲染版）：用 2d canvas 把每一页画成 JPEG，再用 jsPDF.addImage 拼成 PDF。
 // 这样中文走系统字体，不用打包字体文件，主包体积不爆。
 const jspdfModule = require('../vendor/jspdf.min.js');
-const costEngine = require('../cabinet/utils/cost-engine.js');
+const costEngine = require('./cost-engine.js');
 const jsPDF = jspdfModule.jsPDF || jspdfModule;
 
 const A4_W_PT = 595.28;
