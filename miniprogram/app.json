@@ -11,6 +11,18 @@
         "pages/materials/index",
         "pages/cost/index"
       ]
+    },
+    {
+      "root": "pdf-a/",
+      "pages": [
+        "pages/index/index"
+      ]
+    },
+    {
+      "root": "pdf-b/",
+      "pages": [
+        "pages/index/index"
+      ]
     }
   ],
   "preloadRule": {
