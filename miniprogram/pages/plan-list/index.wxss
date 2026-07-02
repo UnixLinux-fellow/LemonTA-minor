@@ -1,76 +1,86 @@
-.page {
-  min-height: 100vh;
-  background: #f6f6f6;
-  padding-bottom: 120rpx;
+/* plan-list 页面样式 —— 与 home/knowledge/profile 一致的 iOS 外壳 */
+
+.design-content {
+  position: relative;
+  z-index: 1;
+  padding: 20rpx 32rpx 220rpx;
 }
 
-.hero {
-  background: linear-gradient(135deg, #fff7c2 0%, #fde68a 100%);
-  padding: 64rpx 40rpx 80rpx;
-}
-
-.hero-title {
-  font-size: 52rpx;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 8rpx;
-}
-
-.hero-sub {
-  font-size: 26rpx;
-  color: #6b7280;
+.design-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: 40rpx;
+  padding: 0 8rpx;
 }
 
-.start-btn {
+.eyebrow {
+  margin-bottom: 20rpx;
+}
+
+.h1-title {
+  margin-bottom: 20rpx;
+}
+
+.subtitle-lead {
+  margin-top: 4rpx;
+}
+
+/* 新建 CTA */
+.cta-block {
+  padding: 8rpx 8rpx 40rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.cta-block .btn-primary {
   width: 100%;
-  background: #1f2937;
-  color: #fff7c2;
-  font-size: 32rpx;
-  font-weight: 500;
-  border-radius: 999rpx;
-  padding: 24rpx 0;
-  border: none;
+  text-align: center;
 }
 
-.start-btn::after {
-  border: none;
+/* 已保存方案区 */
+.saved-section {
+  margin-bottom: 32rpx;
 }
 
-.list-wrap {
-  padding: 32rpx 32rpx 0;
+.saved-heading {
+  font-size: 26rpx;
+  color: #6e6e73;
+  font-weight: 700;
+  letter-spacing: 0.4rpx;
+  margin-bottom: 20rpx;
+  padding: 0 8rpx;
 }
 
-.list-title {
-  font-size: 28rpx;
-  color: #6b7280;
-  margin-bottom: 16rpx;
+.saved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
 }
 
 .plan-item {
-  background: #fff;
-  border-radius: 18rpx;
   padding: 28rpx 28rpx;
-  margin-bottom: 20rpx;
   display: flex;
   align-items: center;
-  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04);
 }
 
 .plan-main {
   flex: 1;
+  min-width: 0;
 }
 
 .plan-name {
   font-size: 32rpx;
-  color: #1f2937;
-  font-weight: 500;
-  margin-bottom: 10rpx;
+  color: #1d1d1f;
+  font-weight: 700;
+  letter-spacing: -0.3rpx;
+  margin-bottom: 8rpx;
+  display: block;
 }
 
 .plan-meta {
   font-size: 24rpx;
-  color: #9ca3af;
+  color: #86868b;
 }
 
 .plan-meta .dot {
@@ -82,113 +92,59 @@
   height: 60rpx;
   line-height: 60rpx;
   text-align: center;
-  color: #d1d5db;
+  color: #c7c7cc;
   font-size: 32rpx;
+  flex-shrink: 0;
 }
 
+/* 空态 */
 .empty {
-  margin: 120rpx 32rpx;
-  background: #fff;
-  border-radius: 18rpx;
-  padding: 80rpx 0;
+  padding: 80rpx 40rpx;
   text-align: center;
-}
-
-.empty-text {
-  font-size: 30rpx;
-  color: #6b7280;
-  margin-bottom: 12rpx;
-}
-
-.empty-tip {
-  font-size: 26rpx;
-  color: #9ca3af;
-}
-
-.modal {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-}
-
-.modal-mask {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.modal-card {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 560rpx;
-  background: #fff;
-  border-radius: 24rpx;
-  padding: 48rpx 40rpx 32rpx;
-  text-align: center;
-}
-
-.modal-title {
-  font-size: 34rpx;
-  font-weight: 500;
-  margin-bottom: 16rpx;
-}
-
-.modal-body {
-  font-size: 28rpx;
-  color: #6b7280;
   margin-bottom: 32rpx;
 }
 
-.modal-actions {
-  display: flex;
-  gap: 24rpx;
-}
-
-.modal-btn {
-  flex: 1;
-  padding: 22rpx 0;
-  border-radius: 999rpx;
-  background: #f3f4f6;
-  color: #4b5563;
+.empty-text {
+  display: block;
   font-size: 30rpx;
+  color: #6e6e73;
+  margin-bottom: 12rpx;
+  font-weight: 600;
 }
 
-.modal-btn.primary {
-  background: #1f2937;
-  color: #fff7c2;
+.empty-tip {
+  display: block;
+  font-size: 26rpx;
+  color: #86868b;
 }
 
+/* 导出按钮 */
 .export-btn-wrap {
-  padding: 16rpx 32rpx 40rpx;
   display: flex;
   gap: 20rpx;
+  padding: 16rpx 0 20rpx;
 }
+
+.export-btn-wrap-cost {
+  padding: 0 0 40rpx;
+}
+
 .export-btn {
   flex: 1;
-  background: #fff;
-  border: 2rpx solid #1f2937;
-  color: #1f2937;
-  font-size: 30rpx;
-  border-radius: 999rpx;
-  padding: 22rpx 0;
   text-align: center;
+  padding: 22rpx 0;
+  font-size: 30rpx;
 }
-.export-btn:active { background: #f3f4f6; }
 
-/* 离屏 canvas：不让用户看到，但仍在 DOM 内以便 createSelectorQuery 拿到 node */
+.export-btn-wrap-cost .export-btn {
+  width: 100%;
+}
+
+/* 离屏 canvas —— PDF 导出必需 */
 .pdf-canvas {
   position: fixed;
   left: -9999px;
   top: -9999px;
   width: 595px;
   height: 842px;
-}
-
-.export-btn-wrap-cost {
-  padding: 0 32rpx 40rpx;
-}
-.export-btn-wrap-cost .export-btn {
-  width: 100%;
 }

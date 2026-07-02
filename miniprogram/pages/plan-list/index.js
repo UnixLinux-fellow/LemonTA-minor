@@ -29,6 +29,20 @@ Page({
     costExportSelectOpen: false,
     costExportNameOpen: false,
     _costSelectedIds: [],
+    statusBarHeight: 20,
+    navBarHeight: 44,
+  },
+
+  onLoad: function() {
+    try {
+      var sysInfo = wx.getWindowInfo();
+      var menuBtn = wx.getMenuButtonBoundingClientRect();
+      var statusBarHeight = sysInfo.statusBarHeight || 20;
+      var navBarHeight = (menuBtn.top - statusBarHeight) * 2 + menuBtn.height;
+      this.setData({ statusBarHeight: statusBarHeight, navBarHeight: navBarHeight });
+    } catch (e) {
+      this.setData({ statusBarHeight: 20, navBarHeight: 44 });
+    }
   },
 
   onShow() {
