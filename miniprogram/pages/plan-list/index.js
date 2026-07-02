@@ -155,9 +155,8 @@ Page({
           },
         });
       })
-      .catch((err) => {
+      .catch(() => {
         wx.hideLoading();
-        console.error('[plan-list] fetchHardwarePdf failed:', err);
         wx.showModal({
           title: '下载失败',
           content: '请检查网络后重试',

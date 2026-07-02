@@ -19,7 +19,6 @@ async function _run(onProgress) {
   try {
     manifest = await _fetchManifest();
   } catch (err) {
-    console.warn('[hardware-pdf-cloud] manifest fetch failed:', err.message);
     if (_isCachedFileExists()) {
       return _cachedPdfPath();
     }
@@ -37,7 +36,6 @@ async function _run(onProgress) {
     _setCachedVersion(manifest.version);
     return dest;
   } catch (err) {
-    console.warn('[hardware-pdf-cloud] download failed:', err.message);
     if (_isCachedFileExists()) {
       wx.showToast({ title: '更新失败，已打开本地版本', icon: 'none', duration: 2000 });
       return _cachedPdfPath();
