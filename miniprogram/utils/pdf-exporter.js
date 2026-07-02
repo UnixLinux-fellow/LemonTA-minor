@@ -1129,12 +1129,12 @@ async function exportPlans({ canvas, plans, fileName }) {
     }
   });
 
-  // 回到目录页加内链
+  // 回到目录页加内链——跳转目标定位在目标页正中，避免落在纯空白顶部造成突兀
   if (doc.setPage && tocEntries.length) {
     try {
       doc.setPage(1);
       tocEntries.forEach((e) => {
-        doc.link(e.x, e.y, e.w, e.h, { pageNumber: e.pageNumber });
+        doc.link(e.x, e.y, e.w, e.h, { pageNumber: e.pageNumber, top: A4_H_PT / 2 });
       });
     } catch (err) {
       console.warn('[pdf] add toc links failed', err && err.message);
@@ -1202,12 +1202,12 @@ async function exportPlansWithCost({ canvas, plans, fileName }) {
     }
   });
 
-  // 5) 目录页内链
+  // 5) 目录页内链——跳转目标定位在目标页正中，避免落在纯空白顶部造成突兀
   if (doc.setPage && tocEntries.length) {
     try {
       doc.setPage(1);
       tocEntries.forEach((e) => {
-        doc.link(e.x, e.y, e.w, e.h, { pageNumber: e.pageNumber });
+        doc.link(e.x, e.y, e.w, e.h, { pageNumber: e.pageNumber, top: A4_H_PT / 2 });
       });
     } catch (err) {
       console.warn('[pdf] add toc links failed', err && err.message);
