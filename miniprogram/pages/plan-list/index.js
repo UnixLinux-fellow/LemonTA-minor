@@ -1,25 +1,8 @@
 const planStore = require('../../utils/plan-store.js');
 const cloud = require('../../utils/cloud.js');
+const pdfExporter = require('../../utils/pdf-exporter.js');
+const hardwarePdfExporter = require('../../utils/hardware-pdf-exporter.js');
 const filenameCleaner = require('../../utils/filename-cleaner.js');
-
-// pdf-exporter / hardware-pdf-exporter / jspdf 与 4 张五金参考图分别在 pdf-a、pdf-b 分包，
-// cabinet 分包本身回到 ~2 MB 内。preloadRule 总大小上限 2 MB，仅预下 cabinet；
-// pdf-a 通过 require.async 在用户点击导出时按需下载，pdf-b 图片走 img.src URL 解析
-// 触发按需下载（跨分包资源加载无边界限制）。首次点导出会有短暂的分包下载延迟。
-function loadPdfExporter() {
-  return new Promise((resolve, reject) => {
-    require.async('../../pdf-a/utils/pdf-exporter.js')
-      .then((mod) => resolve(mod))
-      .catch((err) => reject(new Error('加载 PDF 导出模块失败: ' + (err && (err.errMsg || err.message)))));
-  });
-}
-function loadHardwarePdfExporter() {
-  return new Promise((resolve, reject) => {
-    require.async('../../pdf-a/utils/hardware-pdf-exporter.js')
-      .then((mod) => resolve(mod))
-      .catch((err) => reject(new Error('加载 PDF 导出模块失败: ' + (err && (err.errMsg || err.message)))));
-  });
-}
 
 function getPdfCanvas(page) {
   return new Promise((resolve, reject) => {
@@ -130,7 +113,6 @@ Page({
 
     wx.showLoading({ title: '正在生成 PDF…', mask: true });
     try {
-      const pdfExporter = await loadPdfExporter();
       const canvas = await getPdfCanvas(this);
       const filePath = await pdfExporter.exportPlans({ canvas, plans, fileName });
       wx.hideLoading();
@@ -167,7 +149,6 @@ Page({
 
     wx.showLoading({ title: '正在生成 PDF…', mask: true });
     try {
-      const hardwarePdfExporter = await loadHardwarePdfExporter();
       const canvas = await getPdfCanvas(this);
       const filePath = await hardwarePdfExporter.exportHardware({ canvas, fileName });
       wx.hideLoading();
