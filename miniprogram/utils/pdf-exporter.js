@@ -447,8 +447,9 @@ function _renderOverviewTable(ctx, plans, options) {
 
   // 数据行
   const startY = tableY + headerH;
-  const maxRows = Math.floor((CANVAS_H - startY - MARGIN) / rowH);
-  const visible = plans.slice(0, maxRows);
+  const reservedRows = showCost ? 1 : 0; // 为总计行预留 1 行
+  const maxRows = Math.floor((CANVAS_H - startY - MARGIN) / rowH) - reservedRows;
+  const visible = plans.slice(0, Math.max(0, maxRows));
   const entries = [];
 
   visible.forEach((plan, i) => {
@@ -552,10 +553,11 @@ function _renderOverviewTable(ctx, plans, options) {
   if (plans.length > visible.length) {
     ctx.fillStyle = '#9ca3af';
     ctx.font = (12 * SCALE) + 'px sans-serif';
+    const noticeBaseRows = visible.length + (showCost ? 1 : 0);
     ctx.fillText(
       `… 还有 ${plans.length - visible.length} 个方案未在表格中列出`,
       MARGIN,
-      startY + visible.length * rowH + 10 * SCALE
+      startY + noticeBaseRows * rowH + 10 * SCALE
     );
   }
 
