@@ -57,13 +57,6 @@
     bind:confirm="onExportNameConfirm">
   </filename-input-modal>
 
-  <filename-input-modal
-    visible="{{hardwareExportNameOpen}}"
-    defaultValue="五金尺寸参考.pdf"
-    bind:cancel="onHardwareExportNameCancel"
-    bind:confirm="onHardwareExportNameConfirm">
-  </filename-input-modal>
-
   <canvas type="2d" id="pdf-canvas" class="pdf-canvas"></canvas>
 
   <cabinet-toast text="{{toast}}"></cabinet-toast>

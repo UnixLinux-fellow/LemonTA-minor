@@ -1,7 +1,7 @@
 const planStore = require('../../utils/plan-store.js');
 const cloud = require('../../utils/cloud.js');
 const pdfExporter = require('../../utils/pdf-exporter.js');
-const hardwarePdfExporter = require('../../utils/hardware-pdf-exporter.js');
+const hardwarePdfCloud = require('../../utils/hardware-pdf-cloud.js');
 const filenameCleaner = require('../../utils/filename-cleaner.js');
 
 function getPdfCanvas(page) {
@@ -26,7 +26,6 @@ Page({
     exportSelectOpen: false,
     exportNameOpen: false,
     _selectedExportIds: [],
-    hardwareExportNameOpen: false,
   },
 
   onShow() {
@@ -136,39 +135,35 @@ Page({
   },
 
   onTapExportHardware() {
-    this.setData({ hardwareExportNameOpen: true });
-  },
-
-  onHardwareExportNameCancel() {
-    this.setData({ hardwareExportNameOpen: false });
-  },
-
-  async onHardwareExportNameConfirm(e) {
-    const fileName = filenameCleaner.cleanFileName(e.detail.value);
-    this.setData({ hardwareExportNameOpen: false });
-
-    wx.showLoading({ title: '正在生成 PDF…', mask: true });
-    try {
-      const canvas = await getPdfCanvas(this);
-      const filePath = await hardwarePdfExporter.exportHardware({ canvas, fileName });
-      wx.hideLoading();
-      wx.openDocument({
-        filePath,
-        fileType: 'pdf',
-        showMenu: true,
-        fail: (err) => {
-          wx.showModal({
-            title: '预览失败',
-            content: 'PDF 已生成在 ' + filePath + '\n错误: ' + (err && err.errMsg),
-            showCancel: false,
-          });
-        },
+    wx.showLoading({ title: '正在下载文档…', mask: true });
+    hardwarePdfCloud
+      .fetchHardwarePdf({
+        onProgress: (p) => wx.showLoading({ title: '正在下载 ' + p + '%', mask: true }),
+      })
+      .then((filePath) => {
+        wx.hideLoading();
+        wx.openDocument({
+          filePath,
+          fileType: 'pdf',
+          showMenu: true,
+          fail: (err) => {
+            wx.showModal({
+              title: '预览失败',
+              content: 'PDF 已下载到 ' + filePath + '\n错误: ' + (err && err.errMsg),
+              showCancel: false,
+            });
+          },
+        });
+      })
+      .catch((err) => {
+        wx.hideLoading();
+        console.error('[plan-list] fetchHardwarePdf failed:', err);
+        wx.showModal({
+          title: '下载失败',
+          content: '请检查网络后重试',
+          showCancel: false,
+        });
       });
-    } catch (err) {
-      wx.hideLoading();
-      console.error('exportHardware failed:', err);
-      wx.showToast({ title: '生成失败', icon: 'none', duration: 3000 });
-    }
   },
 
   showToast(msg) {
