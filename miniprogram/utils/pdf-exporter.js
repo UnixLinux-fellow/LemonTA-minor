@@ -596,12 +596,33 @@ async function _renderCostBreakdown(canvas, ctx, plan, cost) {
   const contentW = CANVAS_W - MARGIN * 2;
   const cardGap = 20 * SCALE;
 
+  const panelCols = [
+    { title: '名称', ratio: 0.24 },
+    { title: '尺寸', ratio: 0.24 },
+    { title: '面积', ratio: 0.20 },
+    { title: '单价', ratio: 0.16 },
+    { title: '小计', ratio: 0.16 },
+  ];
+  const hardwareCols = [
+    { title: '部件', ratio: 0.28 },
+    { title: '规格', ratio: 0.16 },
+    { title: '数量', ratio: 0.16 },
+    { title: '单价', ratio: 0.20 },
+    { title: '小计', ratio: 0.20 },
+  ];
+
   const modules = (cost.modules || []);
   for (let i = 0; i < modules.length; i++) {
     const m = modules[i];
-    const cardH = 36 * SCALE + 60 * SCALE; // 卡头 + 4 格
-    mgr.addBlock(cardH + cardGap, (y) => {
-      _drawCabinetCard(ctx, m, contentX, y, contentW);
+    const gap = 8 * SCALE;
+    const cardBlockH = _cabinetCardTotalHeight(m) + cardGap;
+    mgr.addBlock(cardBlockH, (y) => {
+      let cy = y;
+      const cardH = _drawCabinetCard(ctx, m, contentX, cy, contentW);
+      cy += cardH + gap;
+      const panelH = _drawDetailTable(ctx, panelCols, _panelDetailRows(m), contentX, cy, contentW);
+      cy += panelH + gap;
+      _drawDetailTable(ctx, hardwareCols, _hardwareDetailRows(m), contentX, cy, contentW);
     });
   }
 
@@ -726,6 +747,94 @@ function _drawCabinetCard(ctx, module_, x, y, w) {
 
   ctx.textBaseline = 'top';
   return totalH;
+}
+
+// 通用 5 列表格绘制：
+//   columns: [{ title, ratio }] 5 项
+//   rows: [[cellText, ...5]]
+//   起始 y，返回渲染高度。
+function _drawDetailTable(ctx, columns, rows, x, y, w) {
+  const headerH = 26 * SCALE;
+  const rowH = 22 * SCALE;
+  const padX = 8 * SCALE;
+
+  // 计算列 x
+  const colX = [];
+  let cx = x;
+  for (let i = 0; i < columns.length; i++) {
+    colX.push(cx);
+    cx += w * columns[i].ratio;
+  }
+
+  // 表头
+  ctx.fillStyle = '#374151';
+  ctx.fillRect(x, y, w, headerH);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold ' + (11 * SCALE) + 'px sans-serif';
+  ctx.textBaseline = 'middle';
+  const headerCenterY = y + headerH / 2;
+  columns.forEach((col, i) => {
+    ctx.fillText(col.title, colX[i] + padX, headerCenterY);
+  });
+
+  // 空行占位
+  const useRows = (Array.isArray(rows) && rows.length) ? rows : [['无数据', '', '', '', '']];
+
+  // 行
+  const startY = y + headerH;
+  useRows.forEach((row, i) => {
+    const ry = startY + i * rowH;
+    if (i % 2 === 1) {
+      ctx.fillStyle = '#f9fafb';
+      ctx.fillRect(x, ry, w, rowH);
+    }
+    ctx.fillStyle = '#1f2937';
+    ctx.font = (11 * SCALE) + 'px sans-serif';
+    ctx.textBaseline = 'middle';
+    const cellY = ry + rowH / 2;
+    for (let c = 0; c < columns.length; c++) {
+      const text = row[c] == null ? '' : String(row[c]);
+      ctx.fillText(text, colX[c] + padX, cellY);
+    }
+  });
+
+  ctx.textBaseline = 'top';
+  return headerH + useRows.length * rowH;
+}
+
+function _panelDetailRows(module_) {
+  const panels = (module_.detail && module_.detail.panels) || [];
+  return panels.map((p) => [
+    p.name || '',
+    p.size || '',
+    (p.area != null ? p.area + '㎡' : '') + (p.qty != null ? '×' + p.qty : ''),
+    p.unit != null ? _formatCurrency(p.unit) : '',
+    p.total != null ? _formatCurrency(p.total) : '',
+  ]);
+}
+
+function _hardwareDetailRows(module_) {
+  const hardware = (module_.detail && module_.detail.hardware) || [];
+  return hardware.map((h) => [
+    h.name || '',
+    '数量',
+    h.qty != null ? String(h.qty) : '',
+    h.unit != null ? _formatCurrency(h.unit) : '',
+    h.total != null ? _formatCurrency(h.total) : '',
+  ]);
+}
+
+function _cabinetCardTotalHeight(module_) {
+  const headH = 36 * SCALE;
+  const gridH = 60 * SCALE;
+  const gap = 8 * SCALE;
+  const panelHeaderH = 26 * SCALE;
+  const panelRowH = 22 * SCALE;
+  const panelRows = ((module_.detail && module_.detail.panels) || []).length || 1;
+  const hardwareRows = ((module_.detail && module_.detail.hardware) || []).length || 1;
+  const panelTableH = panelHeaderH + panelRows * panelRowH;
+  const hardwareTableH = panelHeaderH + hardwareRows * panelRowH;
+  return headH + gridH + gap + panelTableH + gap + hardwareTableH;
 }
 
 function _captureJpeg(canvas) {
