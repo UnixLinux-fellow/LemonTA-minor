@@ -41,7 +41,7 @@
 
   <view class="export-btn-wrap">
     <view class="export-btn" bindtap="onTapExport">导出方案信息</view>
-    <view class="export-btn export-btn-hardware" bindtap="onTapExportHardware">导出五金/尺寸</view>
+    <view class="export-btn export-btn-hardware" bindtap="onTapExportHardware">导出拆单规范</view>
   </view>
 
   <view class="export-btn-wrap-cost">
