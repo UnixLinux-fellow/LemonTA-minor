@@ -57,6 +57,13 @@ function _wrapText(ctx, text, maxWidth) {
   return lines;
 }
 
+function _formatCurrency(n) {
+  if (typeof n !== 'number' || !isFinite(n)) return '';
+  const parts = n.toFixed(2).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return '¥' + parts.join('.');
+}
+
 function _drawImageContain(canvas, ctx, src, dx, dy, dw, dh, fallback) {
   return new Promise((resolve) => {
     if (!src) { _drawPlaceholder(ctx, dx, dy, dw, dh, fallback); resolve(); return; }
@@ -389,7 +396,9 @@ function _renderSeparator(ctx, plan, idx, total) {
 
 // 方案总览表格页：4 列表格（方案名称 | 空间尺寸 | 普通衣柜个数 | 加高衣柜个数），
 // 整行可点击跳转。返回每行在 PDF 坐标系中的位置（pt），供调用方加内链。
-function _renderOverviewTable(ctx, plans) {
+function _renderOverviewTable(ctx, plans, options) {
+  const showCost = !!(options && options.showCostColumn);
+  const costMap = (options && options.costMap) || new Map();
   _resetCanvas(ctx);
 
   // 标题
@@ -408,8 +417,10 @@ function _renderOverviewTable(ctx, plans) {
   const headerH = 30 * SCALE;
   const rowH = 36 * SCALE;
 
-  // 4 列宽度
-  const colRatios = [0.32, 0.24, 0.22, 0.22];
+  // 列宽度
+  const colRatios = showCost
+    ? [0.26, 0.20, 0.18, 0.18, 0.18]
+    : [0.32, 0.24, 0.22, 0.22];
   const colX = [];
   let cx = tableX;
   for (let i = 0; i < colRatios.length; i++) {
@@ -427,7 +438,9 @@ function _renderOverviewTable(ctx, plans) {
   ctx.textBaseline = 'middle';
   const headerCenterY = tableY + headerH / 2;
   const headerPadX = 12 * SCALE;
-  const headers = ['方案名称', '空间尺寸', '普通衣柜个数', '加高衣柜个数'];
+  const headers = showCost
+    ? ['方案名称', '空间尺寸', '普通衣柜个数', '加高衣柜个数', '方案成本']
+    : ['方案名称', '空间尺寸', '普通衣柜个数', '加高衣柜个数'];
   headers.forEach((label, i) => {
     ctx.fillText(label, colX[i] + headerPadX, headerCenterY);
   });
@@ -474,6 +487,17 @@ function _renderOverviewTable(ctx, plans) {
     ctx.fillText(String(counts.regular), colX[2] + headerPadX, cellCenterY);
     ctx.fillText(String(counts.raise), colX[3] + headerPadX, cellCenterY);
 
+    if (showCost) {
+      const cost = costMap.get(plan.id);
+      if (cost && typeof cost.grandTotal === 'number') {
+        ctx.fillStyle = '#1f2937';
+        ctx.fillText(_formatCurrency(cost.grandTotal), colX[4] + headerPadX, cellCenterY);
+      } else {
+        ctx.fillStyle = '#9ca3af';
+        ctx.fillText('未算成本', colX[4] + headerPadX, cellCenterY);
+      }
+    }
+
     // 内链 hit-box（整行）—— 转 PDF 坐标 (pt) = canvas 坐标 / SCALE
     entries.push({
       pageNumber: plan._tocPage,
@@ -486,6 +510,43 @@ function _renderOverviewTable(ctx, plans) {
 
   // 还原 baseline
   ctx.textBaseline = 'top';
+
+  if (showCost) {
+    const totalRowY = startY + visible.length * rowH;
+    // 总计行深底 + 白字
+    ctx.fillStyle = '#1f2937';
+    ctx.fillRect(tableX, totalRowY, tableW, rowH);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold ' + (14 * SCALE) + 'px sans-serif';
+    ctx.textBaseline = 'middle';
+    const totalCenterY = totalRowY + rowH / 2;
+    const totalLabel = `总计（共 ${visible.length} 个方案）`;
+    ctx.fillText(totalLabel, colX[0] + headerPadX, totalCenterY);
+
+    let sum = 0;
+    let counted = 0;
+    let missing = 0;
+    visible.forEach((p) => {
+      const c = costMap.get(p.id);
+      if (c && typeof c.grandTotal === 'number') {
+        sum += c.grandTotal;
+        counted += 1;
+      } else {
+        missing += 1;
+      }
+    });
+    let totalCellText;
+    if (counted === 0) {
+      totalCellText = '—';
+    } else if (missing > 0) {
+      totalCellText = _formatCurrency(sum) + ' (不含未算 ' + missing + ' 个)';
+    } else {
+      totalCellText = _formatCurrency(sum);
+    }
+    ctx.font = 'bold ' + (14 * SCALE) + 'px sans-serif';
+    ctx.fillText(totalCellText, colX[4] + headerPadX, totalCenterY);
+    ctx.fillStyle = '#1f2937';
+  }
 
   // 截断提示
   if (plans.length > visible.length) {
