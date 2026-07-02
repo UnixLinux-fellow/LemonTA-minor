@@ -14,7 +14,63 @@ function fetchHardwarePdf() {
 }
 
 async function _run() {
-  throw new Error('not implemented');
+  let manifest;
+  try {
+    manifest = await _fetchManifest();
+  } catch (err) {
+    console.warn('[hardware-pdf-cloud] manifest fetch failed:', err.message);
+    if (_isCachedFileExists()) {
+      return _cachedPdfPath();
+    }
+    throw err;
+  }
+
+  const cachedVersion = _getCachedVersion();
+  if (manifest.version === cachedVersion && _isCachedFileExists()) {
+    return _cachedPdfPath();
+  }
+
+  // Task 3 实现下载
+  throw new Error('download not implemented yet; version=' + manifest.version + ' cached=' + cachedVersion);
+}
+
+function _fetchManifest() {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: MANIFEST_URL,
+      method: 'GET',
+      dataType: 'json',
+      success: (res) => {
+        if (res.statusCode !== 200 || !res.data || !res.data.version || !res.data.url) {
+          reject(new Error('manifest invalid: ' + res.statusCode));
+          return;
+        }
+        resolve({ version: String(res.data.version), url: String(res.data.url) });
+      },
+      fail: (err) => reject(new Error('manifest request failed: ' + (err && err.errMsg))),
+    });
+  });
+}
+
+function _cachedPdfPath() {
+  return wx.env.USER_DATA_PATH + '/' + CACHE_FILE_NAME;
+}
+
+function _isCachedFileExists() {
+  try {
+    wx.getFileSystemManager().accessSync(_cachedPdfPath());
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function _getCachedVersion() {
+  try {
+    return wx.getStorageSync(CACHE_VERSION_KEY) || '';
+  } catch (e) {
+    return '';
+  }
 }
 
 module.exports = { fetchHardwarePdf };
