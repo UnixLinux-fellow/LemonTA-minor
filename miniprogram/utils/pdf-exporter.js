@@ -100,22 +100,16 @@ function _drawImageContain(canvas, ctx, src, dx, dy, dw, dh, fallback) {
 
 async function _renderOverview(canvas, ctx, plan) {
   _resetCanvas(ctx);
-  // 方案名居中大字（与 _renderSeparator 视觉一致，保证 TOC 跳转 top=0 时方案名在屏幕中央）
   ctx.fillStyle = '#1f2937';
-  ctx.font = 'bold ' + (48 * SCALE) + 'px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(plan.name || '', CANVAS_W / 2, CANVAS_H / 2 - 30 * SCALE);
+  ctx.font = 'bold ' + (28 * SCALE) + 'px sans-serif';
+  ctx.fillText(plan.name || '', MARGIN, MARGIN);
 
   ctx.fillStyle = '#6b7280';
   ctx.font = (14 * SCALE) + 'px sans-serif';
   const wall = plan.wall || {};
   const cornerLabel = plan.cornerLabel || '';
   const sub = `${wall.w || '?'} × ${wall.h || '?'} cm · ${cornerLabel}` + (plan.hasRaise ? ' · 加高' : '');
-  ctx.fillText(sub, CANVAS_W / 2, CANVAS_H / 2 + 30 * SCALE);
-
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
+  ctx.fillText(sub, MARGIN, MARGIN + 46 * SCALE);
 
   const photoY = MARGIN + 100 * SCALE;
   const photoW = (CANVAS_W - MARGIN * 2) * 0.45;
@@ -1110,8 +1104,12 @@ async function exportPlans({ canvas, plans, fileName }) {
   const tocEntries = _renderOverviewTable(ctx, plans);
   await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
 
-  // 记录每个 plan 的真实入口页号（overview 和 separator 都把方案名画在页中，跳到页顶即居中）
+  // 记录每个 plan 的真实入口页号（渲染时填入）
+  // 记录每个 plan 的真实入口页号和跳转 y 偏移
+  //  - 首方案入口页是 overview（方案名在 PDF 坐标约 40pt），top 用 20pt
+  //  - 后续方案入口页是 separator（方案名居中偏上，PDF 坐标约 391pt），top 用 370pt
   const planEntryPage = new Map();
+  const planEntryTop = new Map();
 
   for (let i = 0; i < plans.length; i++) {
     const plan = plans[i];
@@ -1119,10 +1117,14 @@ async function exportPlans({ canvas, plans, fileName }) {
       _renderSeparator(ctx, plan, i + 1, plans.length);
       await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
       planEntryPage.set(plan.id, doc.internal.getNumberOfPages());
+      planEntryTop.set(plan.id, 370);
     }
     await _renderOverview(canvas, ctx, plan);
     await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
-    if (i === 0) planEntryPage.set(plan.id, doc.internal.getNumberOfPages());
+    if (i === 0) {
+      planEntryPage.set(plan.id, doc.internal.getNumberOfPages());
+      planEntryTop.set(plan.id, 20);
+    }
 
     await _renderLayout(canvas, ctx, plan);
     await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
@@ -1132,15 +1134,16 @@ async function exportPlans({ canvas, plans, fileName }) {
   tocEntries.forEach((e) => {
     if (e.planId != null && planEntryPage.has(e.planId)) {
       e.pageNumber = planEntryPage.get(e.planId);
+      e.top = planEntryTop.get(e.planId);
     }
   });
 
-  // 回到目录页加内链——跳到入口页页顶；入口页方案名居中，屏幕中央即方案名
+  // 回到目录页加内链——跳转到方案名位置
   if (doc.setPage && tocEntries.length) {
     try {
       doc.setPage(1);
       tocEntries.forEach((e) => {
-        doc.link(e.x, e.y, e.w, e.h, { pageNumber: e.pageNumber, top: 0 });
+        doc.link(e.x, e.y, e.w, e.h, { pageNumber: e.pageNumber, top: e.top != null ? e.top : 20 });
       });
     } catch (err) {
       console.warn('[pdf] add toc links failed', err && err.message);
@@ -1175,8 +1178,11 @@ async function exportPlansWithCost({ canvas, plans, fileName }) {
   });
   await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
 
-  // 3) 记录每个 plan 的真实入口页号（overview 和 separator 都把方案名画在页中，跳到页顶即居中）
+  // 3) 记录每个 plan 的真实入口页号和跳转 y 偏移（渲染时填入）
+  //    - 首方案入口页是 overview（方案名在 PDF 坐标约 40pt），top 用 20pt
+  //    - 后续方案入口页是 separator（方案名居中偏上，PDF 坐标约 391pt），top 用 370pt
   const planEntryPage = new Map();
+  const planEntryTop = new Map();
 
   // 4) 逐方案渲染
   for (let i = 0; i < plans.length; i++) {
@@ -1187,10 +1193,14 @@ async function exportPlansWithCost({ canvas, plans, fileName }) {
       _renderSeparator(ctx, plan, i + 1, plans.length);
       await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
       planEntryPage.set(plan.id, doc.internal.getNumberOfPages());
+      planEntryTop.set(plan.id, 370);
     }
     await _renderOverview(canvas, ctx, plan);
     await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
-    if (i === 0) planEntryPage.set(plan.id, doc.internal.getNumberOfPages());
+    if (i === 0) {
+      planEntryPage.set(plan.id, doc.internal.getNumberOfPages());
+      planEntryTop.set(plan.id, 20);
+    }
 
     await _renderLayout(canvas, ctx, plan, { cost });
     await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
@@ -1205,15 +1215,16 @@ async function exportPlansWithCost({ canvas, plans, fileName }) {
   tocEntries.forEach((e) => {
     if (e.planId != null && planEntryPage.has(e.planId)) {
       e.pageNumber = planEntryPage.get(e.planId);
+      e.top = planEntryTop.get(e.planId);
     }
   });
 
-  // 6) 目录页内链——跳到入口页页顶；入口页方案名居中，屏幕中央即方案名
+  // 6) 目录页内链——跳转到方案名位置
   if (doc.setPage && tocEntries.length) {
     try {
       doc.setPage(1);
       tocEntries.forEach((e) => {
-        doc.link(e.x, e.y, e.w, e.h, { pageNumber: e.pageNumber, top: 0 });
+        doc.link(e.x, e.y, e.w, e.h, { pageNumber: e.pageNumber, top: e.top != null ? e.top : 20 });
       });
     } catch (err) {
       console.warn('[pdf] add toc links failed', err && err.message);
