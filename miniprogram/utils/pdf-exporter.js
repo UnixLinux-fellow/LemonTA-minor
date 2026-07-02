@@ -626,7 +626,17 @@ async function _renderCostBreakdown(canvas, ctx, plan, cost) {
     });
   }
 
-  // 收口条 + 总计（Task 6 会替换）
+  if (cost.sk) {
+    const skH = 36 * SCALE + 30 * SCALE + cardGap;
+    mgr.addBlock(skH, (y) => {
+      _drawSkCard(ctx, cost.sk, contentX, y, contentW);
+    });
+  }
+  const grandH = 60 * SCALE + cardGap;
+  mgr.addBlock(grandH, (y) => {
+    _drawGrandTotalCard(ctx, cost.grandTotal, contentX, y, contentW);
+  });
+
   return mgr.finalize();
 }
 
@@ -822,6 +832,44 @@ function _hardwareDetailRows(module_) {
     h.unit != null ? _formatCurrency(h.unit) : '',
     h.total != null ? _formatCurrency(h.total) : '',
   ]);
+}
+
+function _drawSkCard(ctx, sk, x, y, w) {
+  const headH = 36 * SCALE;
+  const bodyH = 30 * SCALE;
+  ctx.fillStyle = '#fef3c7';
+  ctx.fillRect(x, y, w, headH);
+  ctx.fillStyle = '#1f2937';
+  ctx.font = 'bold ' + (14 * SCALE) + 'px sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(sk.label || '收口条', x + 12 * SCALE, y + headH / 2);
+  const priceText = _formatCurrency(sk.total || 0);
+  const priceW = ctx.measureText(priceText).width;
+  ctx.fillText(priceText, x + w - priceW - 12 * SCALE, y + headH / 2);
+
+  ctx.fillStyle = '#6b7280';
+  ctx.font = (12 * SCALE) + 'px sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.fillText('面积 ' + sk.area + '㎡ × 单价 ' + _formatCurrency(sk.unit || 0),
+    x + 12 * SCALE, y + headH + 8 * SCALE);
+  return headH + bodyH;
+}
+
+function _drawGrandTotalCard(ctx, grandTotal, x, y, w) {
+  const h = 60 * SCALE;
+  ctx.fillStyle = '#1f2937';
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#fff7c2';
+  ctx.font = (14 * SCALE) + 'px sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('总成本预估', x + 20 * SCALE, y + h / 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold ' + (22 * SCALE) + 'px sans-serif';
+  const priceText = _formatCurrency(grandTotal || 0);
+  const priceW = ctx.measureText(priceText).width;
+  ctx.fillText(priceText, x + w - priceW - 20 * SCALE, y + h / 2);
+  ctx.textBaseline = 'top';
+  return h;
 }
 
 function _cabinetCardTotalHeight(module_) {
