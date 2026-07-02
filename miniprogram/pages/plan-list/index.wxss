@@ -185,3 +185,10 @@
   width: 595px;
   height: 842px;
 }
+
+.export-btn-wrap-cost {
+  padding: 0 32rpx 40rpx;
+}
+.export-btn-wrap-cost .export-btn {
+  width: 100%;
+}

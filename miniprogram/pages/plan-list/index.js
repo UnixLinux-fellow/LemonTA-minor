@@ -26,6 +26,9 @@ Page({
     exportSelectOpen: false,
     exportNameOpen: false,
     _selectedExportIds: [],
+    costExportSelectOpen: false,
+    costExportNameOpen: false,
+    _costSelectedIds: [],
   },
 
   onShow() {
@@ -163,6 +166,59 @@ Page({
           showCancel: false,
         });
       });
+  },
+
+  onTapExportCost() {
+    if (!this.data.plans.length) return;
+    this.setData({ costExportSelectOpen: true });
+  },
+
+  onCostExportSelectCancel() {
+    this.setData({ costExportSelectOpen: false });
+  },
+
+  onCostExportSelectConfirm(e) {
+    this.setData({
+      costExportSelectOpen: false,
+      costExportNameOpen: true,
+      _costSelectedIds: e.detail.ids || [],
+    });
+  },
+
+  onCostExportNameCancel() {
+    this.setData({ costExportNameOpen: false, _costSelectedIds: [] });
+  },
+
+  async onCostExportNameConfirm(e) {
+    const fileName = filenameCleaner.cleanFileName(e.detail.value);
+    const ids = this.data._costSelectedIds || [];
+    this.setData({ costExportNameOpen: false, _costSelectedIds: [] });
+    if (!ids.length) return;
+
+    const plans = ids.map((id) => planStore.get(id)).filter(Boolean);
+
+    wx.showLoading({ title: '正在生成 PDF…', mask: true });
+    try {
+      const canvas = await getPdfCanvas(this);
+      const filePath = await pdfExporter.exportPlansWithCost({ canvas, plans, fileName });
+      wx.hideLoading();
+      wx.openDocument({
+        filePath,
+        fileType: 'pdf',
+        showMenu: true,
+        fail: (err) => {
+          wx.showModal({
+            title: '预览失败',
+            content: 'PDF 已生成在 ' + filePath + '\n错误: ' + (err && err.errMsg),
+            showCancel: false,
+          });
+        },
+      });
+    } catch (err) {
+      wx.hideLoading();
+      console.error('exportPlansWithCost failed:', err);
+      wx.showToast({ title: '生成失败', icon: 'none', duration: 3000 });
+    }
   },
 
   showToast(msg) {

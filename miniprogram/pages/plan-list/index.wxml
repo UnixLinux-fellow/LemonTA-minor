@@ -44,6 +44,10 @@
     <view class="export-btn export-btn-hardware" bindtap="onTapExportHardware">导出五金/尺寸</view>
   </view>
 
+  <view class="export-btn-wrap-cost">
+    <view class="export-btn" bindtap="onTapExportCost">导出方案成本</view>
+  </view>
+
   <plan-select-modal
     visible="{{exportSelectOpen}}"
     plans="{{plans}}"
@@ -55,6 +59,20 @@
     visible="{{exportNameOpen}}"
     bind:cancel="onExportNameCancel"
     bind:confirm="onExportNameConfirm">
+  </filename-input-modal>
+
+  <plan-select-modal
+    visible="{{costExportSelectOpen}}"
+    plans="{{plans}}"
+    bind:cancel="onCostExportSelectCancel"
+    bind:confirm="onCostExportSelectConfirm">
+  </plan-select-modal>
+
+  <filename-input-modal
+    visible="{{costExportNameOpen}}"
+    defaultValue="方案成本.pdf"
+    bind:cancel="onCostExportNameCancel"
+    bind:confirm="onCostExportNameConfirm">
   </filename-input-modal>
 
   <canvas type="2d" id="pdf-canvas" class="pdf-canvas"></canvas>
