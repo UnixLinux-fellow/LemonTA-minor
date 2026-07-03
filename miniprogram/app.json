@@ -1,8 +1,8 @@
 {
   "pages": [
+    "pages/home/home",
     "pages/plan-list/index",
     "pages/space-setup/index",
-    "pages/home/home",
     "pages/knowledge/knowledge",
     "pages/knowledge/detail/detail",
     "pages/knowledge/budget/budget",
