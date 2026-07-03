@@ -1,6 +1,6 @@
 /* pages/knowledge/move/move.wxss */
 
-.container {
+.page-container {
   min-height: 100vh;
   position: relative;
 }
