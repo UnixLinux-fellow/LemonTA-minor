@@ -110,6 +110,14 @@ var SHARE_MAP = {
     title: '柠檬塔门店验收对照表｜开业前自查',
     path: '/pages/knowledge/inspect/inspect'
   },
+  move: {
+    title: '搬家核对清单 · 从准备到入住',
+    path: '/pages/knowledge/move/move'
+  },
+  checklist: {
+    title: '新家物品清单 · 106项零遗漏',
+    path: '/pages/knowledge/checklist/checklist'
+  },
 
   // 个人中心子页：转发统一回首页（这些页面对外没传播价值）
   feedback:  { title: DEFAULT_TITLE, path: '/pages/home/home' },
