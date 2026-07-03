@@ -63,6 +63,22 @@ Page({
       return;
     }
 
+    // 搬家核对清单
+    if (type === 'move') {
+      wx.navigateTo({
+        url: '/pages/knowledge/move/move'
+      });
+      return;
+    }
+
+    // 新家物品清单
+    if (type === 'checklist') {
+      wx.navigateTo({
+        url: '/pages/knowledge/checklist/checklist'
+      });
+      return;
+    }
+
     // 图片类型：预览大图（带缓存）
     if (type === 'image') {
       var imageUrl = dataset.imageurl || dataset.imageUrl;
