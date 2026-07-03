@@ -49,7 +49,9 @@ App({
       { id: 0, title: '柠檬塔快速预算', subtitle: '输入面积，一键测算全屋成本', type: 'budget' },
       { id: 10, title: '柠檬塔需求匹配表', subtitle: '场景化需求梳理 · 精准落地', type: 'needs' },
       { id: 12, title: '快速验收', subtitle: '清单式验收 · 零遗漏', type: 'inspect' },
-      { id: 13, title: '全屋水路设备图', subtitle: '净水系统 · 走管参考图', type: 'image', imageUrl: 'cloud://cloud1-5gbuna7d27dafeba.636c-cloud1-5gbuna7d27dafeba-1417087823/downloads/全屋净水-水路设备图.png' }
+      { id: 13, title: '全屋水路设备图', subtitle: '净水系统 · 走管参考图', type: 'image', imageUrl: 'cloud://cloud1-5gbuna7d27dafeba.636c-cloud1-5gbuna7d27dafeba-1417087823/downloads/全屋净水-水路设备图.png' },
+      { id: 14, title: '搬家核对清单', subtitle: '从准备到入住 · 逐项核对零遗漏', type: 'move' },
+      { id: 15, title: '新家物品清单', subtitle: '106项物品核对 · 采购与签收跟踪', type: 'checklist' }
     ]
   },
 
