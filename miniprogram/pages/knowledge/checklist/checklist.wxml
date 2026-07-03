@@ -18,7 +18,7 @@
     return 'dot-' + status;
   }
 </wxs>
-<view class="container">
+<view class="page-container">
   <image class="bg-image" src="{{assets.bg('T2')}}" mode="aspectFill" lazy-load />
 
   <!-- 自定义导航栏 -->
