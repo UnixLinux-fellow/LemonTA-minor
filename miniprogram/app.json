@@ -8,6 +8,8 @@
     "pages/knowledge/budget/budget",
     "pages/knowledge/needs/needs",
     "pages/knowledge/inspect/inspect",
+    "pages/knowledge/move/move",
+    "pages/knowledge/checklist/checklist",
     "pages/profile/profile",
     "pages/profile/contact/contact",
     "pages/profile/feedback/feedback",
