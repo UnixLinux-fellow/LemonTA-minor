@@ -43,6 +43,8 @@
           <text wx:if="{{item.type === 'needs'}}">📋</text>
           <text wx:if="{{item.type === 'inspect'}}">✅</text>
           <text wx:if="{{item.type === 'image'}}">🗺️</text>
+          <text wx:if="{{item.type === 'move'}}">🚛</text>
+          <text wx:if="{{item.type === 'checklist'}}">🏠</text>
         </view>
 
         <view class="article-info">
