@@ -244,6 +244,18 @@ function replaceLast(state, { code, size }) {
   return { ok: false, message: '未找到可替换的标准模块' };
 }
 
+// 替换最后一个非标柜（定制尺寸柜）的模型 code。
+// 宽度不变，位置不变，isFull 不变。仅改 code。
+function replaceNonStandard(state, { code }) {
+  for (let i = state.items.length - 1; i >= 0; i--) {
+    const it = state.items[i];
+    if (it.kind !== 'nonstandard') continue;
+    it.code = code;
+    return { ok: true };
+  }
+  return { ok: false, message: '当前布局无定制尺寸柜可替换' };
+}
+
 // 当前布局是否处于"仅首块"状态：只有自动放置的首个标准模块、未布满
 // （转角/收口不算 standard，所以左转角场景下也能正确识别）
 function isOnlyFirstCabinet(state) {
@@ -434,6 +446,7 @@ module.exports = {
   removeLast,
   replaceFirst,
   replaceLast,
+  replaceNonStandard,
   isOnlyFirstCabinet,
   applyColor,
   toggleDoor,
