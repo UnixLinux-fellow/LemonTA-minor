@@ -386,12 +386,32 @@ Page({
     const idx = e.currentTarget.dataset.idx;
     const m = this.data.modelList[idx];
     if (!m) return;
+    const state = this._state;
+
+    // 布满态且存在非标柜 → 只改非标柜 code
+    if (state.meta.isFull) {
+      const ns = state.items.find((it) => it.kind === 'nonstandard');
+      if (ns) {
+        const r = layoutEngine.replaceNonStandard(state, { code: m.code });
+        if (!r.ok) {
+          this.showToast(r.message || '替换失败');
+          return;
+        }
+        this.setData({ selectedModelIdx: idx });
+        this.recompute();
+        return;
+      }
+      // 布满但无非标柜（罕见）→ picker 本来也是隐藏的，理论上到不了这里
+      return;
+    }
+
+    // 非布满态：原有逻辑
     // 左转角场景下，初始 state 没有任何 standard，replaceLast 会失败；
     // 此时点 picker 的语义应当是"放第一个标准柜"，退化为 addNext。
-    const hasStandard = this._state.items.some((it) => it.kind === 'standard');
+    const hasStandard = state.items.some((it) => it.kind === 'standard');
     const r = hasStandard
-      ? layoutEngine.replaceLast(this._state, { code: m.code, size: this.data.sizeTab })
-      : layoutEngine.addNext(this._state, { code: m.code, size: this.data.sizeTab });
+      ? layoutEngine.replaceLast(state, { code: m.code, size: this.data.sizeTab })
+      : layoutEngine.addNext(state, { code: m.code, size: this.data.sizeTab });
     if (!r.ok) {
       this.showToast(r.message || '替换失败');
       return;
