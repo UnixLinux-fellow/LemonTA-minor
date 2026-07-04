@@ -308,22 +308,8 @@ Page({
     let show100 = true;
     let sizeTab = this.data.sizeTab;
     if (state.meta.isFull) {
-      // 布满态：若存在非标柜，picker 保持显示并锁 sizeTab；否则维持原「隐藏 picker」行为
-      const ns = state.items.find((it) => it.kind === 'nonstandard');
-      if (ns) {
-        if (ns.w < 60) {
-          show50 = true;
-          show100 = false;
-          sizeTab = 50;
-        } else {
-          show50 = false;
-          show100 = true;
-          sizeTab = 100;
-        }
-      } else {
-        show50 = false;
-        show100 = false;
-      }
+      show50 = false;
+      show100 = false;
     } else if (remaining < 100) {
       // 末块若是 50 且换 100 后仍能装下，则允许 100cm tab
       const replaceTo100Ok = last && (state.meta.standardUsed - last.w + 100) <= state.meta.standardWidth;
@@ -336,12 +322,9 @@ Page({
     const prevModelKey = (this.data.modelList || []).map((m) => m.name).join('|');
     const nextModelKey = list.map((m) => m.name).join('|');
     const modelListChanged = prevModelKey !== nextModelKey;
-    // B-On：picker 高亮跟随末块。布满态下末块指非标柜，用 nonstandard code 反查。
+    // B-On：picker 高亮跟随末块
     let selIdx = -1;
-    if (state.meta.isFull) {
-      const ns = state.items.find((it) => it.kind === 'nonstandard');
-      if (ns) selIdx = list.findIndex((m) => m.code === ns.code);
-    } else if (last && last.w === sizeTab) {
+    if (last && last.w === sizeTab) {
       selIdx = list.findIndex((m) => m.code === last.code);
     }
     this.setData({
@@ -386,32 +369,12 @@ Page({
     const idx = e.currentTarget.dataset.idx;
     const m = this.data.modelList[idx];
     if (!m) return;
-    const state = this._state;
-
-    // 布满态且存在非标柜 → 只改非标柜 code
-    if (state.meta.isFull) {
-      const ns = state.items.find((it) => it.kind === 'nonstandard');
-      if (ns) {
-        const r = layoutEngine.replaceNonStandard(state, { code: m.code });
-        if (!r.ok) {
-          this.showToast(r.message || '替换失败');
-          return;
-        }
-        this.setData({ selectedModelIdx: idx });
-        this.recompute();
-        return;
-      }
-      // 布满但无非标柜（罕见）→ picker 本来也是隐藏的，理论上到不了这里
-      return;
-    }
-
-    // 非布满态：原有逻辑
     // 左转角场景下，初始 state 没有任何 standard，replaceLast 会失败；
     // 此时点 picker 的语义应当是"放第一个标准柜"，退化为 addNext。
-    const hasStandard = state.items.some((it) => it.kind === 'standard');
+    const hasStandard = this._state.items.some((it) => it.kind === 'standard');
     const r = hasStandard
-      ? layoutEngine.replaceLast(state, { code: m.code, size: this.data.sizeTab })
-      : layoutEngine.addNext(state, { code: m.code, size: this.data.sizeTab });
+      ? layoutEngine.replaceLast(this._state, { code: m.code, size: this.data.sizeTab })
+      : layoutEngine.addNext(this._state, { code: m.code, size: this.data.sizeTab });
     if (!r.ok) {
       this.showToast(r.message || '替换失败');
       return;
