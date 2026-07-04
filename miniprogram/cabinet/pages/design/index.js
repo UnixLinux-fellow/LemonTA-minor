@@ -308,8 +308,22 @@ Page({
     let show100 = true;
     let sizeTab = this.data.sizeTab;
     if (state.meta.isFull) {
-      show50 = false;
-      show100 = false;
+      // 布满态：若存在非标柜，picker 保持显示并锁 sizeTab；否则维持原「隐藏 picker」行为
+      const ns = state.items.find((it) => it.kind === 'nonstandard');
+      if (ns) {
+        if (ns.w < 60) {
+          show50 = true;
+          show100 = false;
+          sizeTab = 50;
+        } else {
+          show50 = false;
+          show100 = true;
+          sizeTab = 100;
+        }
+      } else {
+        show50 = false;
+        show100 = false;
+      }
     } else if (remaining < 100) {
       // 末块若是 50 且换 100 后仍能装下，则允许 100cm tab
       const replaceTo100Ok = last && (state.meta.standardUsed - last.w + 100) <= state.meta.standardWidth;
@@ -322,9 +336,12 @@ Page({
     const prevModelKey = (this.data.modelList || []).map((m) => m.name).join('|');
     const nextModelKey = list.map((m) => m.name).join('|');
     const modelListChanged = prevModelKey !== nextModelKey;
-    // B-On：picker 高亮跟随末块
+    // B-On：picker 高亮跟随末块。布满态下末块指非标柜，用 nonstandard code 反查。
     let selIdx = -1;
-    if (last && last.w === sizeTab) {
+    if (state.meta.isFull) {
+      const ns = state.items.find((it) => it.kind === 'nonstandard');
+      if (ns) selIdx = list.findIndex((m) => m.code === ns.code);
+    } else if (last && last.w === sizeTab) {
       selIdx = list.findIndex((m) => m.code === last.code);
     }
     this.setData({
