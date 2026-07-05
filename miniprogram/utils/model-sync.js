@@ -116,6 +116,31 @@ function _resolveHttpsURL(fileID) {
   });
 }
 
+function _downloadHttpsToTemp(url) {
+  return new Promise((resolve, reject) => {
+    if (!isWx() || !wx.downloadFile) {
+      reject(new Error('download_fail'));
+      return;
+    }
+    wx.downloadFile({
+      url: url,
+      success: (res) => {
+        if (res && res.statusCode === 200 && res.tempFilePath) {
+          resolve(res.tempFilePath);
+        } else {
+          const code = res && res.statusCode;
+          console.warn('[model-sync] downloadFile bad status', url, code);
+          reject(new Error('http_' + (code || 'unknown')));
+        }
+      },
+      fail: (err) => {
+        console.warn('[model-sync] downloadFile fail', url, err && err.errMsg);
+        reject(new Error('download_fail'));
+      },
+    });
+  });
+}
+
 // ---- 下载单文件（tempFile → .download → 原子 rename → 最终 path）----
 function downloadOne(entry) {
   const target = localFilePath(entry);
@@ -377,4 +402,5 @@ module.exports = {
   // 内部实现，仅用于测试
   downloadOne,
   _resolveHttpsURL,
+  _downloadHttpsToTemp,
 };

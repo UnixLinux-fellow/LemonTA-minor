@@ -80,4 +80,37 @@ describe('model-sync downloadOne (two-step)', () => {
     await expect(ms._resolveHttpsURL('cloud://a/x.glb'))
       .rejects.toThrow('temp_url_fail');
   });
+
+  test('_downloadHttpsToTemp: resolves tempFilePath on 200', async () => {
+    installWxMock({
+      downloadFile: ({ success }) => {
+        setImmediate(() => success({ statusCode: 200, tempFilePath: 'wxfile://tmp/x.glb' }));
+      },
+    });
+    const ms = require('../miniprogram/utils/model-sync.js');
+    await expect(ms._downloadHttpsToTemp('https://cdn/x.glb'))
+      .resolves.toBe('wxfile://tmp/x.glb');
+  });
+
+  test('_downloadHttpsToTemp: rejects http_<code> on non-200', async () => {
+    installWxMock({
+      downloadFile: ({ success }) => {
+        setImmediate(() => success({ statusCode: 403, tempFilePath: '' }));
+      },
+    });
+    const ms = require('../miniprogram/utils/model-sync.js');
+    await expect(ms._downloadHttpsToTemp('https://cdn/x.glb'))
+      .rejects.toThrow('http_403');
+  });
+
+  test('_downloadHttpsToTemp: rejects download_fail on fail callback', async () => {
+    installWxMock({
+      downloadFile: ({ fail }) => {
+        setImmediate(() => fail({ errMsg: 'network down' }));
+      },
+    });
+    const ms = require('../miniprogram/utils/model-sync.js');
+    await expect(ms._downloadHttpsToTemp('https://cdn/x.glb'))
+      .rejects.toThrow('download_fail');
+  });
 });
