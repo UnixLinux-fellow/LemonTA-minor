@@ -49,9 +49,17 @@ function key(entry) {
 function ensureDirsSync() {
   if (!isWx()) return;
   const fs = wx.getFileSystemManager();
+  // 微信 USER_DATA_PATH (http://usr) 本身已存在——不需要 recursive；
+  // 且 recursive:true 尝试创建 http://usr 时会抛无 errMsg 的错，触发误报警。
+  // 顺序建：rootDir 的父 = USER_DATA_PATH（已存在）；subdirs 的父 = rootDir（上一步建）。
   const mk = (p) => {
-    try { fs.mkdirSync(p, true); } catch (e) {
-      if (!/exist/i.test(e && e.errMsg || '')) console.warn('[model-sync] mkdir', p, e && e.errMsg);
+    try { fs.accessSync(p); return; } catch (e) { /* 不存在，继续建 */ }
+    try {
+      fs.mkdirSync(p);
+    } catch (e) {
+      const msg = (e && (e.errMsg || e.message)) || String(e);
+      if (/exist|already/i.test(msg)) return;
+      console.warn('[model-sync] mkdir fail', p, msg);
     }
   };
   mk(rootDir());
