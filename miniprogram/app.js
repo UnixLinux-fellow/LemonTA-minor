@@ -68,6 +68,16 @@ App({
       console.warn('[cloud] init failed:', e && e.errMsg);
     }
 
+    // 柜体 GLB 模型云存储同步：不 await，后台跑
+    try {
+      var modelSync = require('./cabinet/utils/model-sync.js');
+      modelSync.syncOnLaunch().catch(function (err) {
+        console.warn('[model-sync] launch sync failed:', err);
+      });
+    } catch (e) {
+      console.warn('[model-sync] init failed:', e);
+    }
+
     // 读取本地缓存的用户信息（首次为空 —— profile 显示"未登录"外壳）
     var userInfo = wx.getStorageSync('userInfo');
     if (userInfo) {
