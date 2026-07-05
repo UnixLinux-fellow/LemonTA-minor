@@ -1109,6 +1109,84 @@ class ThreeRenderer {
     return modelSync.getLocalPath(target);
   }
 
+  // 订阅同 target 的 ready 事件：download 完成后触发 hot-replace
+  _subscribeHotReplace(it) {
+    const target = this._resolveTarget(it);
+    if (!target) return;
+    const modelSync = require('./model-sync.js');
+    let called = false;
+    const unsub = modelSync.onModelReady(target.subdir, target.name, () => {
+      if (called) return;
+      called = true;
+      unsub();
+      // 清模块级/renderer 级缓存里的旧 buffer/scene，让下次 _loadItemMesh 真正重新 parse
+      const stalePath = modelSync.getLocalPath(target);
+      if (stalePath) {
+        delete GLB_BUFFER_CACHE[stalePath];
+        delete GLB_BUFFER_PROMISES[stalePath];
+        if (this._loaderCache) delete this._loaderCache[stalePath];
+      }
+      // preview 与 room 走不同替换路径
+      if (this._isPreview) this._replacePreview(it);
+      else this._replaceCabinet(it);
+    });
+  }
+
+  // 找到 room 场景里匹配 it 的柜体 group，重新加载 mesh，保留 group.position/rotation/scale
+  _replaceCabinet(it) {
+    if (!this._cabinets || !this._roomGroup) return;
+    const match = this._cabinets.find((c) => c.item === it
+      || (c.item && c.item.code === it.code && c.item.w === it.w
+          && c.item.h === it.h && c.item.kind === it.kind));
+    if (!match) return;
+    const oldGroup = match.mesh;
+    this._loadItemMesh(match.item).then((mesh) => {
+      if (!mesh) return;
+      const THREE = this.THREE;
+      const wrap = new THREE.Group();
+      wrap.add(mesh);
+      // 复制原 group 的空间变换
+      wrap.position.copy(oldGroup.position);
+      wrap.rotation.copy(oldGroup.rotation);
+      wrap.scale.copy(oldGroup.scale);
+      // 重跑几何清洗 + 材质 + 边线（按 room 模式对应的 fit-scale 逻辑）
+      const CABINET_DEPTH_CM = 60;
+      const bbox = new THREE.Box3().setFromObject(mesh);
+      const size = new THREE.Vector3();
+      bbox.getSize(size);
+      const sx = size.x > 0.001 ? match.item.w / size.x : 1;
+      const sy = size.y > 0.001 ? match.item.h / size.y : 1;
+      const isCornerLike =
+        match.item.kind === 'corner' ||
+        (match.item.kind === 'raise' && (match.item.code === 'yg' || match.item.code === 'zg'));
+      const targetDepth = isCornerLike ? 110 : CABINET_DEPTH_CM;
+      const sz = size.z > 0.001 ? targetDepth / size.z : 1;
+      mesh.scale.set(sx, sy, sz);
+      const bbox2 = new THREE.Box3().setFromObject(mesh);
+      mesh.position.y -= bbox2.min.y;
+      mesh.position.x -= (bbox2.min.x + bbox2.max.x) / 2;
+      mesh.position.z -= (bbox2.min.z + bbox2.max.z) / 2;
+      wrap.traverse((n) => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } });
+      this._stripNonGeometryNodes(wrap);
+      this._normalizeMaterials(wrap);
+      this._applyMaterial(wrap, this._color, match.item);
+      this._applyEdges(wrap);
+      this._applyDoorVisibility(wrap);
+      // 替换
+      this._roomGroup.remove(oldGroup);
+      this._roomGroup.add(wrap);
+      match.mesh = wrap;
+    });
+  }
+
+  // preview 模式：直接重跑 renderSingle
+  _replacePreview(it) {
+    if (!this._previewGroup) return;
+    const colorId = this._color;
+    // renderSingle 会先 _clearPreviewCabinet 再加载
+    this.renderSingle(it, colorId);
+  }
+
   _loadItemMesh(it) {
     const THREE = this.THREE;
     if (it.kind === 'sk') {
@@ -1125,6 +1203,7 @@ class ThreeRenderer {
     }
     const path = this._resolveModelPath(it);
     if (!path) {
+      this._subscribeHotReplace(it);
       return Promise.resolve(this._fallbackBox(it));
     }
     // 命中本 renderer 自己的 parse 缓存：走 root.clone(true)（renderer 内 geo/mat 共享安全）
