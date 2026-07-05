@@ -1077,28 +1077,36 @@ class ThreeRenderer {
     }
   }
 
-  _resolveModelPath(it) {
+  // 把 it 归一化到 { subdir, name } —— hot-replace 订阅与 getLocalPath 都用它
+  _resolveTarget(it) {
     const code = (it.code || '').toLowerCase();
     if (it.kind === 'standard' || it.kind === 'nonstandard') {
       const w = it.w >= 75 ? 100 : 50;
       let realCode = code;
       if (code === 'e1' || code === 'e2') realCode = 'a';
       const letter = realCode.charAt(0);
-      return `/cabinet/utils/cabinet-model/${w}${letter.toUpperCase()}.glb`;
+      return { subdir: w === 50 ? '50cm' : '100cm', name: `${w}${letter.toUpperCase()}.glb` };
     }
     if (it.kind === 'corner') {
-      if (code === 'y') return '/cabinet/utils/cabinet-model/Y-110-230.glb';
-      if (code === 'z') return '/cabinet/utils/cabinet-model/Z-110-230.glb';
+      if (code === 'y') return { subdir: 'zj', name: 'Y-110-230.glb' };
+      if (code === 'z') return { subdir: 'zj', name: 'Z-110-230.glb' };
       return null;
     }
-    if (code === 'yg') return '/cabinet/utils/cabinet-model/YG-110-230G1.glb';
-    if (code === 'zg') return '/cabinet/utils/cabinet-model/ZG-110-230G1.glb';
+    if (code === 'yg') return { subdir: 'zj', name: 'YG-110-230G1.glb' };
+    if (code === 'zg') return { subdir: 'zj', name: 'ZG-110-230G1.glb' };
     if (code === 'g' || code === 'g1' || code === 'g2') {
       const w = it.w >= 75 ? 100 : 50;
       const variant = code === 'g2' ? 'G2' : 'G1';
-      return `/cabinet/utils/cabinet-model/${w}${variant}.glb`;
+      return { subdir: w === 50 ? '50cm' : '100cm', name: `${w}${variant}.glb` };
     }
     return null;
+  }
+
+  _resolveModelPath(it) {
+    const target = this._resolveTarget(it);
+    if (!target) return null;
+    const modelSync = require('./model-sync.js');
+    return modelSync.getLocalPath(target);
   }
 
   _loadItemMesh(it) {
