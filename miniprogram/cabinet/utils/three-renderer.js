@@ -1169,8 +1169,9 @@ class ThreeRenderer {
     });
   }
 
-  // 优先用 wx.getFileSystemManager().readFile 读包内文件；
-  // 失败时回退到 wx.request 请求本地（仅在开发者工具/部分环境有效）。
+  // 优先用 wx.getFileSystemManager().readFile 读文件；
+  // - 包内路径（不以 wxfile:// 或 USER_DATA_PATH 开头）失败时降级去掉前导 /
+  // - USER_DATA_PATH / wxfile:// 路径不做降级
   // 模块级 buffer 缓存：同 path 跨 renderer 只读一次 disk。
   _readGlb(path) {
     if (GLB_BUFFER_CACHE[path]) {
@@ -1179,14 +1180,20 @@ class ThreeRenderer {
     if (GLB_BUFFER_PROMISES[path]) {
       return GLB_BUFFER_PROMISES[path];
     }
+    const userDataPrefix = (typeof wx !== 'undefined' && wx.env && wx.env.USER_DATA_PATH) || '';
+    const isUserData = (userDataPrefix && path.indexOf(userDataPrefix) === 0)
+                    || path.indexOf('wxfile://') === 0;
     const promise = new Promise((resolve, reject) => {
       const fs = wx.getFileSystemManager();
       fs.readFile({
         filePath: path,
         success: (res) => resolve(res.data),
         fail: (err) => {
+          if (isUserData) {
+            console.warn('[3D] readFile fail (userdata)', path, err && err.errMsg);
+            return reject(err);
+          }
           console.warn('[3D] readFile fail, try without leading slash', path, err && err.errMsg);
-          // 部分基础库需要不带前导 /
           fs.readFile({
             filePath: path.replace(/^\//, ''),
             success: (res) => resolve(res.data),
