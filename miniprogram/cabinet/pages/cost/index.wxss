@@ -1,11 +1,16 @@
 .page {
   min-height: 100vh;
-  background: #f6f6f6;
+  position: relative;
   padding-bottom: 320rpx;
+  overflow-x: hidden;
 }
 
 .section {
-  background: #fff;
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: saturate(180%) blur(30px);
+  -webkit-backdrop-filter: saturate(180%) blur(30px);
   margin: 16rpx 0;
   padding: 28rpx;
 }

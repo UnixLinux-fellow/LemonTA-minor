@@ -1,11 +1,14 @@
 .page {
   min-height: 100vh;
-  background: #f6f6f6;
+  position: relative;
   padding-bottom: 200rpx;
+  overflow-x: hidden;
 }
 
 .preview-wireframe {
-  background: linear-gradient(180deg, #fff7c2 0%, #fde68a 100%);
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(255, 247, 194, 0.85) 0%, rgba(253, 230, 138, 0.85) 100%);
   padding: 24rpx 28rpx 32rpx;
 }
 
@@ -95,7 +98,11 @@
 }
 
 .space-info {
-  background: #fff;
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: saturate(180%) blur(30px);
+  -webkit-backdrop-filter: saturate(180%) blur(30px);
   padding: 28rpx;
 }
 
@@ -112,7 +119,11 @@
 }
 
 .section {
-  background: #fff;
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: saturate(180%) blur(30px);
+  -webkit-backdrop-filter: saturate(180%) blur(30px);
   margin-top: 16rpx;
   padding: 28rpx;
 }
