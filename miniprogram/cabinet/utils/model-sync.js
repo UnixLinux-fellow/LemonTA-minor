@@ -20,6 +20,7 @@ let _manifestReady = false;             // 是否有过至少一份可用 manife
 let _manifestReadyPromise = null;       // onManifestReady 等待队列
 let _manifestReadyResolve = null;
 let _manifestReadyReject = null;
+let _manifestReadyError = null;         // sticky failure: reject later subscribers
 let _syncPromise = null;                // syncOnLaunch 去重
 let _downloadPromises = {};             // fileID -> Promise，同 fileID 并发下载去重
 let _listeners = {};                    // key -> [cb, cb, ...]
@@ -262,11 +263,13 @@ function markReady() {
   if (_manifestReadyResolve) { _manifestReadyResolve(); _manifestReadyResolve = null; _manifestReadyReject = null; }
 }
 function markReadyFail(err) {
-  if (_manifestReadyReject) { _manifestReadyReject(err); _manifestReadyResolve = null; _manifestReadyReject = null; }
+  _manifestReadyError = err || new Error('manifest_unavailable');
+  if (_manifestReadyReject) { _manifestReadyReject(_manifestReadyError); _manifestReadyResolve = null; _manifestReadyReject = null; }
 }
 
 function onManifestReady() {
   if (_manifestReady) return Promise.resolve();
+  if (_manifestReadyError) return Promise.reject(_manifestReadyError);
   if (_manifestReadyPromise) return _manifestReadyPromise;
   _manifestReadyPromise = new Promise((resolve, reject) => {
     _manifestReadyResolve = resolve;
