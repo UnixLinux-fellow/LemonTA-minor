@@ -186,20 +186,24 @@ group('model-sync-diff.buildManifest updated 保留旧值 + pending', () => {
 });
 
 // ---- model ----
-group('cabinet-model', () => {
-  const all = model.localModels();
-  truthy(all.length >= 13, '至少 13 个本地模型（自动扫描，新增 glb 自动识别）');
-  const grouped = model.categorize(all);
-  eq(grouped.s50.filter((m) => /^[a-d]$/.test(m.code)).length, 4, '50cm a/b/c/d 各一');
-  eq(grouped.s100.filter((m) => /^[a-d]$/.test(m.code)).length, 4, '100cm a/b/c/d 各一');
-  truthy(grouped.s100.some((m) => m.code === 'h'), '100cm 含 H 型柜');
-  truthy(grouped.s100.some((m) => m.code === 'k'), '100cm 含 K 型柜（自动检测到 100K.glb）');
-  eq(grouped.raise.length, 4, '加高 g1/g2 各两个共 4');
-  // 文件名
-  truthy(all.some((m) => m.file === '50A.glb'), '存在 50A.glb');
-  truthy(all.some((m) => m.file === '100H.glb'), '存在 100H.glb');
-  truthy(all.some((m) => m.file === '100K.glb'), '存在 100K.glb');
-  truthy(all.some((m) => m.file === '100G2.glb'), '存在 100G2.glb');
+group('cabinet-model.parse', () => {
+  eq(model.parse('50A.glb'), { w: 50, h: 230, d: 600, code: 'a' }, '50A.glb 短命名');
+  eq(model.parse('100G1.glb'), { w: 100, h: 300, d: 600, code: 'g1' }, '100G1.glb 加高短命名');
+  eq(model.parse('50-230-600-a'), { w: 50, h: 230, d: 600, code: 'a' }, '完整命名解析');
+});
+
+group('cabinet-model.categorize 按 subdir 归类', () => {
+  const all = [
+    { subdir: '50cm', name: '50A.glb', w: 50, code: 'a', kind: 'standard' },
+    { subdir: '100cm', name: '100A.glb', w: 100, code: 'a', kind: 'standard' },
+    { subdir: '100cm', name: '100G1.glb', w: 100, code: 'g1', kind: 'raise' },
+    { subdir: 'zj', name: 'Y-110-230.glb', w: 110, code: 'y', kind: 'corner' },
+  ];
+  const g = model.categorize(all);
+  eq(g.s50.length, 1, 's50=1');
+  eq(g.s100.length, 1, 's100=1');
+  eq(g.raise.length, 1, 'raise=1');
+  eq(g.corner.length, 1, 'corner=1');
 });
 
 // ---- layout-engine ----
