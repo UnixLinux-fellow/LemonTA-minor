@@ -111,6 +111,23 @@ group('model-sync-diff.diff md5 未变 → kept', () => {
   eq(r.removed.length, 0, 'removed 空');
 });
 
+group('model-sync-diff.diff kept 保留 local.pending 不置空', () => {
+  const local = [
+    {
+      subdir: '50cm', name: '50A.glb', fileID: 'cloud://a1', md5: 'aa', size: 100,
+      downloaded: true, downloadedAt: 1,
+      pending: { md5: 'bb', fileID: 'cloud://a2', size: 110 },
+    },
+  ];
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a1', md5: 'aa', size: 100 },
+  ];
+  const r = modelSyncDiff.diff(local, remote);
+  eq(r.kept.length, 1, 'kept 1');
+  eq(r.kept[0].pending.md5, 'bb', 'kept 保留 pending.md5');
+  eq(r.kept[0].pending.fileID, 'cloud://a2', 'kept 保留 pending.fileID');
+});
+
 group('model-sync-diff.diff md5 变更 → updated 带 pending', () => {
   const local = [
     { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a1', md5: 'aa', size: 100, downloaded: true, downloadedAt: 1 },

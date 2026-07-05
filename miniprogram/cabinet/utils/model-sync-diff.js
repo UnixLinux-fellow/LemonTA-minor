@@ -13,7 +13,7 @@ function key(entry) {
 // 输出：{ added, updated, removed, kept }
 //   added   - remote 有本地无：新柜型
 //   updated - remote 与 local 同 key 但 md5 不同：内容变更；条目保留旧 md5/fileID/downloaded/downloadedAt
-//             并挂 pending: { md5, fileID }
+//             并挂 pending: { md5, fileID, size }
 //   removed - local 有 remote 无：需要删除本地文件与 manifest 条目
 //   kept    - md5 相同：完全保留旧条目
 function diff(local, remote) {
