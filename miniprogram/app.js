@@ -60,22 +60,12 @@ App({
     try {
       if (wx.cloud) {
         wx.cloud.init({
-          env: 'lemonta-dev-d6ggnte9lb20a40c3',
+          env: 'cloud1-5gbuna7d27dafeba',
           traceUser: true
         });
       }
     } catch (e) {
       console.warn('[cloud] init failed:', e && e.errMsg);
-    }
-
-    // 柜体 GLB 模型云存储同步：不 await，后台跑
-    try {
-      var modelSync = require('./utils/model-sync.js');
-      modelSync.syncOnLaunch().catch(function (err) {
-        console.warn('[model-sync] launch sync failed:', err);
-      });
-    } catch (e) {
-      console.warn('[model-sync] init failed:', e);
     }
 
     // 读取本地缓存的用户信息（首次为空 —— profile 显示"未登录"外壳）
