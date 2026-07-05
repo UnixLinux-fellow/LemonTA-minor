@@ -54,11 +54,19 @@ Page({
     toast: '',
   },
 
-  onLoad() {
+  async onLoad() {
     const plan = getApp().globalData.draftPlan;
     if (!plan) {
       wx.navigateBack();
       return;
+    }
+    const modelSync = require('../../utils/model-sync.js');
+    try {
+      await modelSync.onManifestReady();
+    } catch (e) {
+      console.warn('[design] manifest not ready', e);
+      this.setData({ toast: '模型资源加载失败，请检查网络后重试' });
+      // 不 return —— 允许 UI 显示错误提示，但下面仍尝试初始化（listModels 会返回空）
     }
     const allModels = cabinetModel.localModels();
     const grouped = cabinetModel.categorize(allModels);
