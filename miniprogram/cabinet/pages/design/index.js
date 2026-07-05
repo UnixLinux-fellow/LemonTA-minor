@@ -60,33 +60,52 @@ Page({
       wx.navigateBack();
       return;
     }
-    const allModels = cabinetModel.localModels();
-    const grouped = cabinetModel.categorize(allModels);
-    this._allModels = allModels;
-    this._grouped = grouped;
+    // 微信框架不会 await 异步 onLoad —— onReady 会紧接着触发。用一个 Promise 桥接：
+    // onReady 里 await this._loadReady 才能保证 this._state / this.data.plan 已就位
+    this._loadReady = (async () => {
+      const modelSync = require('../../../utils/model-sync.js');
+      try {
+        await modelSync.onManifestReady();
+      } catch (e) {
+        console.warn('[design] manifest not ready', e);
+        this.setData({ toast: '模型资源加载失败，请检查网络后重试' });
+      }
+      const allModels = cabinetModel.localModels();
+      const grouped = cabinetModel.categorize(allModels);
+      this._allModels = allModels;
+      this._grouped = grouped;
 
-    const state = layoutEngine.init({
-      wall: plan.wall,
-      cornerType: plan.cornerType,
-      hasRaise: plan.hasRaise,
-    });
-    this._state = state;
+      const state = layoutEngine.init({
+        wall: plan.wall,
+        cornerType: plan.cornerType,
+        hasRaise: plan.hasRaise,
+      });
+      this._state = state;
 
-    this.setData({
-      plan,
-      cornerLabel: CORNER_LABEL[plan.cornerType],
-      modelList: grouped.s50,
-      items: state.items,
-      meta: state.meta,
-      standardWidth: state.meta.standardWidth,
-      standardUsed: state.meta.standardUsed,
-      nonStandardWidth: state.meta.nonStandardWidth,
-    }, () => {
-      this._updateScrollIndicator();
+      await new Promise((resolve) => {
+        this.setData({
+          plan,
+          cornerLabel: CORNER_LABEL[plan.cornerType],
+          modelList: grouped.s50,
+          items: state.items,
+          meta: state.meta,
+          standardWidth: state.meta.standardWidth,
+          standardUsed: state.meta.standardUsed,
+          nonStandardWidth: state.meta.nonStandardWidth,
+        }, () => {
+          this._updateScrollIndicator();
+          resolve();
+        });
+      });
+    })().catch((err) => {
+      console.error('[design] onLoad failed', err);
     });
   },
 
-  onReady() {
+  async onReady() {
+    if (this._loadReady) {
+      try { await this._loadReady; } catch (e) { /* onLoad 已 warn */ }
+    }
     const plan = this.data.plan;
     if (!plan) return;
     let ThreeRendererCls;

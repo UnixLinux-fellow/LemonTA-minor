@@ -7,6 +7,7 @@ const cost = require(path.resolve(__dirname, '../miniprogram/utils/cost-engine.j
 const model = require(path.resolve(__dirname, '../miniprogram/cabinet/utils/cabinet-model.js'));
 const planStore = require(path.resolve(__dirname, '../miniprogram/utils/plan-store.js'));
 const pdfExporter = require(path.resolve(__dirname, '../miniprogram/utils/pdf-exporter.js'));
+const modelSyncDiff = require(path.resolve(__dirname, '../miniprogram/utils/model-sync-diff.js'));
 
 let passed = 0;
 let failed = 0;
@@ -82,21 +83,128 @@ group('rules.computeStandardRange', () => {
   eq(r3.valid, false, 'W=44 无可摆放');
 });
 
+// ---- model-sync-diff ----
+group('model-sync-diff.diff 首次同步（local 为空）', () => {
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a', md5: 'aa', size: 100 },
+    { subdir: 'zj',   name: 'Y-110-230.glb', fileID: 'cloud://y', md5: 'yy', size: 200 },
+  ];
+  const r = modelSyncDiff.diff([], remote);
+  eq(r.added.map((m) => m.name), ['50A.glb', 'Y-110-230.glb'], 'added 全部');
+  eq(r.updated.length, 0, 'updated 空');
+  eq(r.removed.length, 0, 'removed 空');
+  eq(r.kept.length, 0, 'kept 空');
+});
+
+group('model-sync-diff.diff md5 未变 → kept', () => {
+  const local = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a', md5: 'aa', size: 100, downloaded: true, downloadedAt: 1 },
+  ];
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a', md5: 'aa', size: 100 },
+  ];
+  const r = modelSyncDiff.diff(local, remote);
+  eq(r.kept.length, 1, 'kept 1');
+  eq(r.kept[0].downloaded, true, 'kept 保留 downloaded 字段');
+  eq(r.added.length, 0, 'added 空');
+  eq(r.updated.length, 0, 'updated 空');
+  eq(r.removed.length, 0, 'removed 空');
+});
+
+group('model-sync-diff.diff kept 保留 local.pending 不置空', () => {
+  const local = [
+    {
+      subdir: '50cm', name: '50A.glb', fileID: 'cloud://a1', md5: 'aa', size: 100,
+      downloaded: true, downloadedAt: 1,
+      pending: { md5: 'bb', fileID: 'cloud://a2', size: 110 },
+    },
+  ];
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a1', md5: 'aa', size: 100 },
+  ];
+  const r = modelSyncDiff.diff(local, remote);
+  eq(r.kept.length, 1, 'kept 1');
+  eq(r.kept[0].pending.md5, 'bb', 'kept 保留 pending.md5');
+  eq(r.kept[0].pending.fileID, 'cloud://a2', 'kept 保留 pending.fileID');
+});
+
+group('model-sync-diff.diff md5 变更 → updated 带 pending', () => {
+  const local = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a1', md5: 'aa', size: 100, downloaded: true, downloadedAt: 1 },
+  ];
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a2', md5: 'bb', size: 110 },
+  ];
+  const r = modelSyncDiff.diff(local, remote);
+  eq(r.updated.length, 1, 'updated 1');
+  eq(r.updated[0].md5, 'aa', '旧 md5 保留');
+  eq(r.updated[0].pending.md5, 'bb', 'pending 保留新 md5');
+  eq(r.updated[0].pending.fileID, 'cloud://a2', 'pending 保留新 fileID');
+  eq(r.updated[0].downloaded, true, '旧文件仍可用');
+});
+
+group('model-sync-diff.diff 云上删除 → removed', () => {
+  const local = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a', md5: 'aa', size: 100, downloaded: true, downloadedAt: 1 },
+    { subdir: '50cm', name: '50B.glb', fileID: 'cloud://b', md5: 'bb', size: 100, downloaded: true, downloadedAt: 1 },
+  ];
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a', md5: 'aa', size: 100 },
+  ];
+  const r = modelSyncDiff.diff(local, remote);
+  eq(r.removed.map((m) => m.name), ['50B.glb'], 'removed = [50B]');
+  eq(r.kept.map((m) => m.name), ['50A.glb'], 'kept = [50A]');
+});
+
+group('model-sync-diff.buildManifest 首次全 added', () => {
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a', md5: 'aa', size: 100 },
+  ];
+  const diff = modelSyncDiff.diff([], remote);
+  const m = modelSyncDiff.buildManifest(diff, 1720000000000);
+  eq(m.version, 1, 'version=1');
+  eq(m.syncedAt, 1720000000000, 'syncedAt 写入');
+  eq(m.models.length, 1, 'models 1');
+  eq(m.models[0].downloaded, false, 'added 未下载');
+  eq(m.models[0].pending, null, 'added 无 pending');
+});
+
+group('model-sync-diff.buildManifest updated 保留旧值 + pending', () => {
+  const local = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a1', md5: 'aa', size: 100, downloaded: true, downloadedAt: 1 },
+  ];
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a2', md5: 'bb', size: 110 },
+  ];
+  const diff = modelSyncDiff.diff(local, remote);
+  const m = modelSyncDiff.buildManifest(diff, 2);
+  eq(m.models[0].md5, 'aa', '主字段仍是旧 md5');
+  eq(m.models[0].fileID, 'cloud://a1', '主字段仍是旧 fileID');
+  eq(m.models[0].downloaded, true, '主字段 downloaded=true');
+  eq(m.models[0].pending.md5, 'bb', 'pending 新 md5');
+  eq(m.models[0].pending.fileID, 'cloud://a2', 'pending 新 fileID');
+});
+
 // ---- model ----
-group('cabinet-model', () => {
-  const all = model.localModels();
-  truthy(all.length >= 13, '至少 13 个本地模型（自动扫描，新增 glb 自动识别）');
-  const grouped = model.categorize(all);
-  eq(grouped.s50.filter((m) => /^[a-d]$/.test(m.code)).length, 4, '50cm a/b/c/d 各一');
-  eq(grouped.s100.filter((m) => /^[a-d]$/.test(m.code)).length, 4, '100cm a/b/c/d 各一');
-  truthy(grouped.s100.some((m) => m.code === 'h'), '100cm 含 H 型柜');
-  truthy(grouped.s100.some((m) => m.code === 'k'), '100cm 含 K 型柜（自动检测到 100K.glb）');
-  eq(grouped.raise.length, 4, '加高 g1/g2 各两个共 4');
-  // 文件名
-  truthy(all.some((m) => m.file === '50A.glb'), '存在 50A.glb');
-  truthy(all.some((m) => m.file === '100H.glb'), '存在 100H.glb');
-  truthy(all.some((m) => m.file === '100K.glb'), '存在 100K.glb');
-  truthy(all.some((m) => m.file === '100G2.glb'), '存在 100G2.glb');
+group('cabinet-model.parse', () => {
+  eq(model.parse('50A.glb'), { w: 50, h: 230, d: 600, code: 'a' }, '50A.glb 短命名');
+  eq(model.parse('100G1.glb'), { w: 100, h: 300, d: 600, code: 'g1' }, '100G1.glb 加高短命名');
+  eq(model.parse('50-230-600-a'), { w: 50, h: 230, d: 600, code: 'a' }, '完整命名解析');
+});
+
+group('cabinet-model.categorize 按 subdir 归类', () => {
+  const all = [
+    { subdir: '50cm', name: '50A.glb', w: 50, code: 'a', kind: 'standard' },
+    { subdir: '100cm', name: '100A.glb', w: 100, code: 'a', kind: 'standard' },
+    { subdir: '100cm', name: '100G1.glb', w: 100, code: 'g1', kind: 'raise' },
+    { subdir: 'zj', name: 'Y-110-230.glb', w: 110, code: 'y', kind: 'corner' },
+  ];
+  const g = model.categorize(all);
+  eq(g.s50.length, 1, 's50=1');
+  eq(g.s100.length, 1, 's100=1');
+  eq(g.raise.length, 1, 'raise=1');
+  eq(g.corner.length, 1, 'corner=1');
+  eq(model.categorize([{ subdir: 'zj', code: 'x', w: 90 }]).corner.length, 1, 'zj subdir 强制 corner，即使 code 不匹配 y/z/yg/zg');
 });
 
 // ---- layout-engine ----

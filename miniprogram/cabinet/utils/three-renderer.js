@@ -1077,28 +1077,119 @@ class ThreeRenderer {
     }
   }
 
-  _resolveModelPath(it) {
+  // 把 it 归一化到 { subdir, name } —— hot-replace 订阅与 getLocalPath 都用它
+  _resolveTarget(it) {
     const code = (it.code || '').toLowerCase();
     if (it.kind === 'standard' || it.kind === 'nonstandard') {
       const w = it.w >= 75 ? 100 : 50;
       let realCode = code;
       if (code === 'e1' || code === 'e2') realCode = 'a';
       const letter = realCode.charAt(0);
-      return `/cabinet/utils/cabinet-model/${w}${letter.toUpperCase()}.glb`;
+      return { subdir: w === 50 ? '50cm' : '100cm', name: `${w}${letter.toUpperCase()}.glb` };
     }
     if (it.kind === 'corner') {
-      if (code === 'y') return '/cabinet/utils/cabinet-model/Y-110-230.glb';
-      if (code === 'z') return '/cabinet/utils/cabinet-model/Z-110-230.glb';
+      if (code === 'y') return { subdir: 'zj', name: 'Y-110-230.glb' };
+      if (code === 'z') return { subdir: 'zj', name: 'Z-110-230.glb' };
       return null;
     }
-    if (code === 'yg') return '/cabinet/utils/cabinet-model/YG-110-230G1.glb';
-    if (code === 'zg') return '/cabinet/utils/cabinet-model/ZG-110-230G1.glb';
+    if (code === 'yg') return { subdir: 'zj', name: 'YG-110-230G1.glb' };
+    if (code === 'zg') return { subdir: 'zj', name: 'ZG-110-230G1.glb' };
     if (code === 'g' || code === 'g1' || code === 'g2') {
       const w = it.w >= 75 ? 100 : 50;
       const variant = code === 'g2' ? 'G2' : 'G1';
-      return `/cabinet/utils/cabinet-model/${w}${variant}.glb`;
+      return { subdir: w === 50 ? '50cm' : '100cm', name: `${w}${variant}.glb` };
     }
     return null;
+  }
+
+  _resolveModelPath(it) {
+    const target = this._resolveTarget(it);
+    if (!target) return null;
+    const modelSync = require('../../utils/model-sync.js');
+    return modelSync.getLocalPath(target);
+  }
+
+  // 订阅同 target 的 ready 事件：download 完成后触发 hot-replace
+  _subscribeHotReplace(it) {
+    const target = this._resolveTarget(it);
+    if (!target) return;
+    const modelSync = require('../../utils/model-sync.js');
+    let called = false;
+    const unsub = modelSync.onModelReady(target.subdir, target.name, () => {
+      if (called) return;
+      called = true;
+      unsub();
+      // 清模块级/renderer 级缓存里的旧 buffer/scene，让下次 _loadItemMesh 真正重新 parse
+      const stalePath = modelSync.getLocalPath(target);
+      if (stalePath) {
+        delete GLB_BUFFER_CACHE[stalePath];
+        delete GLB_BUFFER_PROMISES[stalePath];
+        if (this._loaderCache) delete this._loaderCache[stalePath];
+      }
+      // preview 与 room 走不同替换路径
+      if (this._isPreview) this._replacePreview(it);
+      else this._replaceCabinet(it);
+    });
+  }
+
+  // 找到 room 场景里匹配 it 的柜体 group，重新加载 mesh，保留 group.position/rotation/scale
+  _replaceCabinet(it) {
+    if (!this._cabinets || !this._roomGroup) return;
+    const match = this._cabinets.find((c) => c.item === it
+      || (c.item && c.item.code === it.code && c.item.w === it.w
+          && c.item.h === it.h && c.item.kind === it.kind));
+    if (!match) return;
+    const oldGroup = match.mesh;
+    this._loadItemMesh(match.item).then((mesh) => {
+      if (!mesh) return;
+      const THREE = this.THREE;
+      const wrap = new THREE.Group();
+      wrap.add(mesh);
+      // 复制原 group 的空间变换
+      wrap.position.copy(oldGroup.position);
+      wrap.rotation.copy(oldGroup.rotation);
+      wrap.scale.copy(oldGroup.scale);
+      // 重跑几何清洗 + 材质 + 边线（按 room 模式对应的 fit-scale 逻辑）
+      const CABINET_DEPTH_CM = 60;
+      const bbox = new THREE.Box3().setFromObject(mesh);
+      const size = new THREE.Vector3();
+      bbox.getSize(size);
+      const sx = size.x > 0.001 ? match.item.w / size.x : 1;
+      const sy = size.y > 0.001 ? match.item.h / size.y : 1;
+      const isCornerLike =
+        match.item.kind === 'corner' ||
+        (match.item.kind === 'raise' && (match.item.code === 'yg' || match.item.code === 'zg'));
+      const targetDepth = isCornerLike ? 110 : CABINET_DEPTH_CM;
+      const sz = size.z > 0.001 ? targetDepth / size.z : 1;
+      mesh.scale.set(sx, sy, sz);
+      const bbox2 = new THREE.Box3().setFromObject(mesh);
+      mesh.position.y -= bbox2.min.y;
+      mesh.position.x -= (bbox2.min.x + bbox2.max.x) / 2;
+      mesh.position.z -= (bbox2.min.z + bbox2.max.z) / 2;
+      wrap.traverse((n) => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } });
+      this._stripNonGeometryNodes(wrap);
+      this._normalizeMaterials(wrap);
+      this._applyMaterial(wrap, this._color, match.item);
+      this._applyEdges(wrap);
+      this._applyDoorVisibility(wrap);
+      // 替换
+      this._roomGroup.remove(oldGroup);
+      this._roomGroup.add(wrap);
+      match.mesh = wrap;
+    });
+  }
+
+  // preview 模式：仅当"当前正在展示的正是这个 it"时才重跑 renderSingle
+  // 用户已切走的预览不做替换，避免把新选中的柜体清掉
+  _replacePreview(it) {
+    if (!this._previewGroup) return;
+    const stillShown = this._previewGroup.children.find(
+      (g) => g.userData && g.userData._item === it
+    );
+    if (!stillShown) return;
+    Promise.resolve(this.renderSingle(it, this._color)).catch((err) => {
+      console.warn('[3D] hot-replace preview failed', err && err.message);
+    });
   }
 
   _loadItemMesh(it) {
@@ -1117,6 +1208,7 @@ class ThreeRenderer {
     }
     const path = this._resolveModelPath(it);
     if (!path) {
+      this._subscribeHotReplace(it);
       return Promise.resolve(this._fallbackBox(it));
     }
     // 命中本 renderer 自己的 parse 缓存：走 root.clone(true)（renderer 内 geo/mat 共享安全）
@@ -1161,8 +1253,9 @@ class ThreeRenderer {
     });
   }
 
-  // 优先用 wx.getFileSystemManager().readFile 读包内文件；
-  // 失败时回退到 wx.request 请求本地（仅在开发者工具/部分环境有效）。
+  // 优先用 wx.getFileSystemManager().readFile 读文件；
+  // - 包内路径（不以 wxfile:// 或 USER_DATA_PATH 开头）失败时降级去掉前导 /
+  // - USER_DATA_PATH / wxfile:// 路径不做降级
   // 模块级 buffer 缓存：同 path 跨 renderer 只读一次 disk。
   _readGlb(path) {
     if (GLB_BUFFER_CACHE[path]) {
@@ -1171,14 +1264,20 @@ class ThreeRenderer {
     if (GLB_BUFFER_PROMISES[path]) {
       return GLB_BUFFER_PROMISES[path];
     }
+    const userDataPrefix = (typeof wx !== 'undefined' && wx.env && wx.env.USER_DATA_PATH) || '';
+    const isUserData = (userDataPrefix && path.indexOf(userDataPrefix) === 0)
+                    || path.indexOf('wxfile://') === 0;
     const promise = new Promise((resolve, reject) => {
       const fs = wx.getFileSystemManager();
       fs.readFile({
         filePath: path,
         success: (res) => resolve(res.data),
         fail: (err) => {
+          if (isUserData) {
+            console.warn('[3D] readFile fail (userdata)', path, err && err.errMsg);
+            return reject(err);
+          }
           console.warn('[3D] readFile fail, try without leading slash', path, err && err.errMsg);
-          // 部分基础库需要不带前导 /
           fs.readFile({
             filePath: path.replace(/^\//, ''),
             success: (res) => resolve(res.data),

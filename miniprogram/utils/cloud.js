@@ -28,4 +28,5 @@ module.exports = {
   saveMaterials: (planId, materials) => call('saveMaterials', { planId, materials }),
   listPlans: () => call('listPlans'),
   requestDownload: (planId) => call('requestDownload', { planId }),
+  listCabinetModels: () => call('listCabinetModels'),
 };
