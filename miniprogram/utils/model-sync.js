@@ -93,6 +93,29 @@ function deleteFileSync(p) {
   try { fs.unlinkSync(p); } catch (e) { /* 不存在即已完成 */ }
 }
 
+// ---- 云 → HTTPS 临时 URL ----
+function _resolveHttpsURL(fileID) {
+  return new Promise((resolve, reject) => {
+    if (!isWx() || !wx.cloud || !wx.cloud.getTempFileURL) {
+      reject(new Error('temp_url_fail'));
+      return;
+    }
+    wx.cloud.getTempFileURL({ fileList: [fileID] }).then((res) => {
+      const item = res && res.fileList && res.fileList[0];
+      const url = item && item.tempFileURL;
+      if (!url) {
+        console.warn('[model-sync] getTempFileURL empty', fileID, item && item.errMsg);
+        reject(new Error('temp_url_empty'));
+        return;
+      }
+      resolve(url);
+    }).catch((err) => {
+      console.warn('[model-sync] getTempFileURL fail', fileID, err && err.errMsg);
+      reject(new Error('temp_url_fail'));
+    });
+  });
+}
+
 // ---- 下载单文件（tempFile → .download → 原子 rename → 最终 path）----
 function downloadOne(entry) {
   const target = localFilePath(entry);
@@ -353,4 +376,5 @@ module.exports = {
   _getManifest: () => _manifest,
   // 内部实现，仅用于测试
   downloadOne,
+  _resolveHttpsURL,
 };

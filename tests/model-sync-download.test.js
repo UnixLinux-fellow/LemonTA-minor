@@ -50,4 +50,34 @@ describe('model-sync downloadOne (two-step)', () => {
     const ms = require('../miniprogram/utils/model-sync.js');
     expect(typeof ms.downloadOne).toBe('function');
   });
+
+  test('_resolveHttpsURL: returns HTTPS URL on success', async () => {
+    installWxMock({
+      getTempFileURL: ({ fileList }) => Promise.resolve({
+        fileList: [{ fileID: fileList[0], tempFileURL: 'https://cdn/x.glb' }],
+      }),
+    });
+    const ms = require('../miniprogram/utils/model-sync.js');
+    await expect(ms._resolveHttpsURL('cloud://a/x.glb')).resolves.toBe('https://cdn/x.glb');
+  });
+
+  test('_resolveHttpsURL: rejects temp_url_empty when tempFileURL missing', async () => {
+    installWxMock({
+      getTempFileURL: ({ fileList }) => Promise.resolve({
+        fileList: [{ fileID: fileList[0], tempFileURL: '' }],
+      }),
+    });
+    const ms = require('../miniprogram/utils/model-sync.js');
+    await expect(ms._resolveHttpsURL('cloud://a/x.glb'))
+      .rejects.toThrow('temp_url_empty');
+  });
+
+  test('_resolveHttpsURL: rejects temp_url_fail on API failure', async () => {
+    installWxMock({
+      getTempFileURL: () => Promise.reject({ errMsg: 'cloud fail' }),
+    });
+    const ms = require('../miniprogram/utils/model-sync.js');
+    await expect(ms._resolveHttpsURL('cloud://a/x.glb'))
+      .rejects.toThrow('temp_url_fail');
+  });
 });
