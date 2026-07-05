@@ -147,13 +147,12 @@ function downloadOne(entry) {
   const tempName = target + '.download';
   const dlKey = entry.fileID;
   if (_downloadPromises[dlKey]) return _downloadPromises[dlKey];
-  const promise = new Promise((resolve) => {
-    wx.cloud.downloadFile({ fileID: entry.fileID }).then((res) => {
-      const src = res.tempFilePath;
-      if (!src) { resolve({ ok: false, err: 'no_temp_path' }); return; }
+  const promise = _resolveHttpsURL(entry.fileID)
+    .then((url) => _downloadHttpsToTemp(url))
+    .then((tempFilePath) => new Promise((resolve) => {
       const fs = wx.getFileSystemManager();
       fs.saveFile({
-        tempFilePath: src,
+        tempFilePath: tempFilePath,
         filePath: tempName,
         success: () => {
           try { deleteFileSync(target); } catch (e) { /* ignore */ }
@@ -167,14 +166,11 @@ function downloadOne(entry) {
         },
         fail: (err) => {
           console.warn('[model-sync] saveFile fail', target, err && err.errMsg);
-          resolve({ ok: false, err: err && err.errMsg });
+          resolve({ ok: false, err: (err && err.errMsg) || 'save_fail' });
         },
       });
-    }).catch((err) => {
-      console.warn('[model-sync] downloadFile fail', entry.fileID, err && err.errMsg);
-      resolve({ ok: false, err: err && err.errMsg });
-    });
-  });
+    }))
+    .catch((err) => ({ ok: false, err: (err && err.message) || 'unknown' }));
   _downloadPromises[dlKey] = promise;
   promise.then(() => { delete _downloadPromises[dlKey]; });
   return promise;

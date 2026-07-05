@@ -113,4 +113,52 @@ describe('model-sync downloadOne (two-step)', () => {
     await expect(ms._downloadHttpsToTemp('https://cdn/x.glb'))
       .rejects.toThrow('download_fail');
   });
+
+  const entry = { subdir: '50cm', name: '50G1.glb', fileID: 'cloud://x/50G1.glb' };
+
+  test('downloadOne: full happy path', async () => {
+    installWxMock({
+      getTempFileURL: () => Promise.resolve({ fileList: [{ tempFileURL: 'https://cdn/50G1.glb' }] }),
+      downloadFile: ({ success }) => setImmediate(() => success({ statusCode: 200, tempFilePath: 'wxfile://tmp/50G1.glb' })),
+    });
+    const ms = require('../miniprogram/utils/model-sync.js');
+    const res = await ms.downloadOne(entry);
+    expect(res.ok).toBe(true);
+    expect(res.path).toBe('wxfile://usr/cabinet-model/50cm/50G1.glb');
+  });
+
+  test('downloadOne: temp_url_empty propagates', async () => {
+    installWxMock({
+      getTempFileURL: () => Promise.resolve({ fileList: [{ tempFileURL: '' }] }),
+      downloadFile: () => {},
+    });
+    const ms = require('../miniprogram/utils/model-sync.js');
+    const res = await ms.downloadOne(entry);
+    expect(res).toEqual({ ok: false, err: 'temp_url_empty' });
+  });
+
+  test('downloadOne: http_<code> propagates', async () => {
+    installWxMock({
+      getTempFileURL: () => Promise.resolve({ fileList: [{ tempFileURL: 'https://cdn/x.glb' }] }),
+      downloadFile: ({ success }) => setImmediate(() => success({ statusCode: 500, tempFilePath: '' })),
+    });
+    const ms = require('../miniprogram/utils/model-sync.js');
+    const res = await ms.downloadOne(entry);
+    expect(res).toEqual({ ok: false, err: 'http_500' });
+  });
+
+  test('downloadOne: same fileID concurrent calls dedupe', async () => {
+    let tempCalls = 0;
+    let dlCalls = 0;
+    installWxMock({
+      getTempFileURL: () => { tempCalls++; return Promise.resolve({ fileList: [{ tempFileURL: 'https://cdn/x.glb' }] }); },
+      downloadFile: ({ success }) => { dlCalls++; setImmediate(() => success({ statusCode: 200, tempFilePath: 'wxfile://tmp/x.glb' })); },
+    });
+    const ms = require('../miniprogram/utils/model-sync.js');
+    const [a, b] = await Promise.all([ms.downloadOne(entry), ms.downloadOne(entry)]);
+    expect(a.ok).toBe(true);
+    expect(b.ok).toBe(true);
+    expect(tempCalls).toBe(1);
+    expect(dlCalls).toBe(1);
+  });
 });
