@@ -1179,12 +1179,17 @@ class ThreeRenderer {
     });
   }
 
-  // preview 模式：直接重跑 renderSingle
+  // preview 模式：仅当"当前正在展示的正是这个 it"时才重跑 renderSingle
+  // 用户已切走的预览不做替换，避免把新选中的柜体清掉
   _replacePreview(it) {
     if (!this._previewGroup) return;
-    const colorId = this._color;
-    // renderSingle 会先 _clearPreviewCabinet 再加载
-    this.renderSingle(it, colorId);
+    const stillShown = this._previewGroup.children.find(
+      (g) => g.userData && g.userData._item === it
+    );
+    if (!stillShown) return;
+    Promise.resolve(this.renderSingle(it, this._color)).catch((err) => {
+      console.warn('[3D] hot-replace preview failed', err && err.message);
+    });
   }
 
   _loadItemMesh(it) {
