@@ -1,4 +1,5 @@
 const cloud = require("wx-server-sdk");
+const CloudBase = require("@cloudbase/manager-node");
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
 });
@@ -169,6 +170,36 @@ const requestDownload = async (event) => {
   };
 };
 
+// 列 cabinet-model/{50cm,100cm,zj}/ 下全部 glb，供小程序做本地缓存对账
+const listCabinetModels = async () => {
+  const envId = cloud.DYNAMIC_CURRENT_ENV;
+  const app = CloudBase.init({ envId });
+  const subdirs = ["50cm", "100cm", "zj"];
+  const models = [];
+  for (const subdir of subdirs) {
+    let files = [];
+    try {
+      files = await app.storage.listDirectoryFiles(`cabinet-model/${subdir}/`);
+    } catch (e) {
+      console.warn("[listCabinetModels] list fail", subdir, e && e.message);
+      continue;
+    }
+    files.forEach((f) => {
+      const key = f.Key || "";
+      if (!/\.glb$/i.test(key)) return;
+      const name = key.split("/").pop();
+      models.push({
+        subdir,
+        name,
+        fileID: `cloud://${envId}/${key}`,
+        md5: String(f.ETag || "").replace(/^"|"$/g, ""),
+        size: Number(f.Size) || 0,
+      });
+    });
+  }
+  return { success: true, models, serverTime: Date.now() };
+};
+
 exports.main = async (event, context) => {
   switch (event.type) {
     case "getOpenId":
@@ -195,5 +226,7 @@ exports.main = async (event, context) => {
       return await listPlans(event);
     case "requestDownload":
       return await requestDownload(event);
+    case "listCabinetModels":
+      return await listCabinetModels();
   }
 };
