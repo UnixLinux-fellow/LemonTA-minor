@@ -63,7 +63,7 @@ Page({
     // 微信框架不会 await 异步 onLoad —— onReady 会紧接着触发。用一个 Promise 桥接：
     // onReady 里 await this._loadReady 才能保证 this._state / this.data.plan 已就位
     this._loadReady = (async () => {
-      const modelSync = require('../../utils/model-sync.js');
+      const modelSync = require('../../../utils/model-sync.js');
       try {
         await modelSync.onManifestReady();
       } catch (e) {

@@ -1105,7 +1105,7 @@ class ThreeRenderer {
   _resolveModelPath(it) {
     const target = this._resolveTarget(it);
     if (!target) return null;
-    const modelSync = require('./model-sync.js');
+    const modelSync = require('../../utils/model-sync.js');
     return modelSync.getLocalPath(target);
   }
 
@@ -1113,7 +1113,7 @@ class ThreeRenderer {
   _subscribeHotReplace(it) {
     const target = this._resolveTarget(it);
     if (!target) return;
-    const modelSync = require('./model-sync.js');
+    const modelSync = require('../../utils/model-sync.js');
     let called = false;
     const unsub = modelSync.onModelReady(target.subdir, target.name, () => {
       if (called) return;

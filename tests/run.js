@@ -7,7 +7,7 @@ const cost = require(path.resolve(__dirname, '../miniprogram/utils/cost-engine.j
 const model = require(path.resolve(__dirname, '../miniprogram/cabinet/utils/cabinet-model.js'));
 const planStore = require(path.resolve(__dirname, '../miniprogram/utils/plan-store.js'));
 const pdfExporter = require(path.resolve(__dirname, '../miniprogram/utils/pdf-exporter.js'));
-const modelSyncDiff = require(path.resolve(__dirname, '../miniprogram/cabinet/utils/model-sync-diff.js'));
+const modelSyncDiff = require(path.resolve(__dirname, '../miniprogram/utils/model-sync-diff.js'));
 
 let passed = 0;
 let failed = 0;

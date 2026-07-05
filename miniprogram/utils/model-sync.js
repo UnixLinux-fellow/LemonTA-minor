@@ -7,7 +7,7 @@
 // 单例：模块 top-level 状态；wx 环境安全（require 立即返回，懒初始化）；Node 环境无副作用。
 
 const diff = require('./model-sync-diff.js');
-const cloud = require('../../utils/cloud.js');
+const cloud = require('./cloud.js');
 
 const ROOT_DIRNAME = 'cabinet-model';
 const MANIFEST_NAME = 'manifest.json';

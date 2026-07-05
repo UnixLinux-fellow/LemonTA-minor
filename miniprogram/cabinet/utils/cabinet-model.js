@@ -60,7 +60,7 @@ function shortName({ w, code }) {
 // 已缓存到本地的柜型清单：委托给 model-sync。
 // model-sync 在无 wx 环境（Node 测试）时返回空数组 → 测试直接构造数据传给 categorize。
 function localModels() {
-  const modelSync = require('./model-sync.js');
+  const modelSync = require('../../utils/model-sync.js');
   return modelSync.listModels();
 }
 

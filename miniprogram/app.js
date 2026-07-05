@@ -60,7 +60,7 @@ App({
     try {
       if (wx.cloud) {
         wx.cloud.init({
-          env: 'cloud1-5gbuna7d27dafeba',
+          env: 'lemonta-dev-d6ggnte9lb20a40c3',
           traceUser: true
         });
       }
@@ -70,7 +70,7 @@ App({
 
     // 柜体 GLB 模型云存储同步：不 await，后台跑
     try {
-      var modelSync = require('./cabinet/utils/model-sync.js');
+      var modelSync = require('./utils/model-sync.js');
       modelSync.syncOnLaunch().catch(function (err) {
         console.warn('[model-sync] launch sync failed:', err);
       });
