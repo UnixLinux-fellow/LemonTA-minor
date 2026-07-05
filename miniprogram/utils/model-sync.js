@@ -351,4 +351,6 @@ module.exports = {
   getLocalPath,
   onModelReady,
   _getManifest: () => _manifest,
+  // 内部实现，仅用于测试
+  downloadOne,
 };

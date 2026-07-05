@@ -44,4 +44,10 @@ describe('model-sync downloadOne (two-step)', () => {
   test('placeholder — real tests added in later tasks', () => {
     expect(true).toBe(true);
   });
+
+  test('exports downloadOne for testing', () => {
+    installWxMock({});
+    const ms = require('../miniprogram/utils/model-sync.js');
+    expect(typeof ms.downloadOne).toBe('function');
+  });
 });
