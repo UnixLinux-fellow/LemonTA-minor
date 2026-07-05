@@ -7,6 +7,7 @@ const cost = require(path.resolve(__dirname, '../miniprogram/utils/cost-engine.j
 const model = require(path.resolve(__dirname, '../miniprogram/cabinet/utils/cabinet-model.js'));
 const planStore = require(path.resolve(__dirname, '../miniprogram/utils/plan-store.js'));
 const pdfExporter = require(path.resolve(__dirname, '../miniprogram/utils/pdf-exporter.js'));
+const modelSyncDiff = require(path.resolve(__dirname, '../miniprogram/cabinet/utils/model-sync-diff.js'));
 
 let passed = 0;
 let failed = 0;
@@ -80,6 +81,91 @@ group('rules.computeStandardRange', () => {
   // W=44 无转角：[-80, 0] 最大 50 倍数 = 0，但 < lo？
   const r3 = rules.computeStandardRange(44, 'WZJ');
   eq(r3.valid, false, 'W=44 无可摆放');
+});
+
+// ---- model-sync-diff ----
+group('model-sync-diff.diff 首次同步（local 为空）', () => {
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a', md5: 'aa', size: 100 },
+    { subdir: 'zj',   name: 'Y-110-230.glb', fileID: 'cloud://y', md5: 'yy', size: 200 },
+  ];
+  const r = modelSyncDiff.diff([], remote);
+  eq(r.added.map((m) => m.name), ['50A.glb', 'Y-110-230.glb'], 'added 全部');
+  eq(r.updated.length, 0, 'updated 空');
+  eq(r.removed.length, 0, 'removed 空');
+  eq(r.kept.length, 0, 'kept 空');
+});
+
+group('model-sync-diff.diff md5 未变 → kept', () => {
+  const local = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a', md5: 'aa', size: 100, downloaded: true, downloadedAt: 1 },
+  ];
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a', md5: 'aa', size: 100 },
+  ];
+  const r = modelSyncDiff.diff(local, remote);
+  eq(r.kept.length, 1, 'kept 1');
+  eq(r.kept[0].downloaded, true, 'kept 保留 downloaded 字段');
+  eq(r.added.length, 0, 'added 空');
+  eq(r.updated.length, 0, 'updated 空');
+  eq(r.removed.length, 0, 'removed 空');
+});
+
+group('model-sync-diff.diff md5 变更 → updated 带 pending', () => {
+  const local = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a1', md5: 'aa', size: 100, downloaded: true, downloadedAt: 1 },
+  ];
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a2', md5: 'bb', size: 110 },
+  ];
+  const r = modelSyncDiff.diff(local, remote);
+  eq(r.updated.length, 1, 'updated 1');
+  eq(r.updated[0].md5, 'aa', '旧 md5 保留');
+  eq(r.updated[0].pending.md5, 'bb', 'pending 保留新 md5');
+  eq(r.updated[0].pending.fileID, 'cloud://a2', 'pending 保留新 fileID');
+  eq(r.updated[0].downloaded, true, '旧文件仍可用');
+});
+
+group('model-sync-diff.diff 云上删除 → removed', () => {
+  const local = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a', md5: 'aa', size: 100, downloaded: true, downloadedAt: 1 },
+    { subdir: '50cm', name: '50B.glb', fileID: 'cloud://b', md5: 'bb', size: 100, downloaded: true, downloadedAt: 1 },
+  ];
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a', md5: 'aa', size: 100 },
+  ];
+  const r = modelSyncDiff.diff(local, remote);
+  eq(r.removed.map((m) => m.name), ['50B.glb'], 'removed = [50B]');
+  eq(r.kept.map((m) => m.name), ['50A.glb'], 'kept = [50A]');
+});
+
+group('model-sync-diff.buildManifest 首次全 added', () => {
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a', md5: 'aa', size: 100 },
+  ];
+  const diff = modelSyncDiff.diff([], remote);
+  const m = modelSyncDiff.buildManifest(diff, 1720000000000);
+  eq(m.version, 1, 'version=1');
+  eq(m.syncedAt, 1720000000000, 'syncedAt 写入');
+  eq(m.models.length, 1, 'models 1');
+  eq(m.models[0].downloaded, false, 'added 未下载');
+  eq(m.models[0].pending, null, 'added 无 pending');
+});
+
+group('model-sync-diff.buildManifest updated 保留旧值 + pending', () => {
+  const local = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a1', md5: 'aa', size: 100, downloaded: true, downloadedAt: 1 },
+  ];
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://a2', md5: 'bb', size: 110 },
+  ];
+  const diff = modelSyncDiff.diff(local, remote);
+  const m = modelSyncDiff.buildManifest(diff, 2);
+  eq(m.models[0].md5, 'aa', '主字段仍是旧 md5');
+  eq(m.models[0].fileID, 'cloud://a1', '主字段仍是旧 fileID');
+  eq(m.models[0].downloaded, true, '主字段 downloaded=true');
+  eq(m.models[0].pending.md5, 'bb', 'pending 新 md5');
+  eq(m.models[0].pending.fileID, 'cloud://a2', 'pending 新 fileID');
 });
 
 // ---- model ----
