@@ -204,6 +204,7 @@ group('cabinet-model.categorize 按 subdir 归类', () => {
   eq(g.s100.length, 1, 's100=1');
   eq(g.raise.length, 1, 'raise=1');
   eq(g.corner.length, 1, 'corner=1');
+  eq(model.categorize([{ subdir: 'zj', code: 'x', w: 90 }]).corner.length, 1, 'zj subdir 强制 corner，即使 code 不匹配 y/z/yg/zg');
 });
 
 // ---- layout-engine ----
