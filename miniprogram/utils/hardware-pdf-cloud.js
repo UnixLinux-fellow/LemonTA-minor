@@ -1,11 +1,16 @@
-// 五金/尺寸参考 PDF：从腾讯云 COS 拉取，本地缓存 + 版本对比。
+// 拆单规范 PDF：与 GLB 模型共用存储桶，路径 hardware-fittings/split-order-spec.pdf。
+// 通过云函数 listHardwareFittings 拿远端 md5，客户端本地缓存 + md5 对比避免重复下载。
 // 对外仅暴露 fetchHardwarePdf()，返回本地 PDF 文件路径的 Promise。
 
-const MANIFEST_URL = 'https://hardware-fit-1439937513.cos.ap-shanghai.myqcloud.com/hardware-pdf/manifest.json';
+const cloud = require('./cloud.js');
+
+const SPEC_FILE_NAME = 'split-order-spec.pdf';
 const CACHE_FILE_NAME = 'hardware-pdf.pdf';
-const CACHE_VERSION_KEY = 'hardwarePdfCachedVersion';
+const CACHE_MD5_KEY = 'hardwarePdfCachedMd5';
+const LEGACY_VERSION_KEY = 'hardwarePdfCachedVersion';
 
 let _pendingPromise = null;
+let _legacyCleaned = false;
 
 function fetchHardwarePdf(options) {
   if (_pendingPromise) return _pendingPromise;
@@ -15,9 +20,11 @@ function fetchHardwarePdf(options) {
 }
 
 async function _run(onProgress) {
-  let manifest;
+  _cleanupLegacyKey();
+
+  let spec;
   try {
-    manifest = await _fetchManifest();
+    spec = await _fetchRemoteSpec();
   } catch (err) {
     if (_isCachedFileExists()) {
       return _cachedPdfPath();
@@ -25,15 +32,15 @@ async function _run(onProgress) {
     throw err;
   }
 
-  const cachedVersion = _getCachedVersion();
-  if (manifest.version === cachedVersion && _isCachedFileExists()) {
+  const cachedMd5 = _getCachedMd5();
+  if (spec.md5 === cachedMd5 && _isCachedFileExists()) {
     return _cachedPdfPath();
   }
 
   try {
-    const tempPath = await _downloadToTemp(manifest.url, onProgress);
+    const tempPath = await _downloadToTemp(spec.fileID, onProgress);
     const dest = await _persistToCache(tempPath);
-    _setCachedVersion(manifest.version);
+    _setCachedMd5(spec.md5);
     return dest;
   } catch (err) {
     if (_isCachedFileExists()) {
@@ -44,22 +51,69 @@ async function _run(onProgress) {
   }
 }
 
-function _fetchManifest() {
+// 旧 storage key 一次性清理（当前 key 已迁移到 CACHE_MD5_KEY）
+function _cleanupLegacyKey() {
+  if (_legacyCleaned) return;
+  _legacyCleaned = true;
+  try {
+    if (typeof wx !== 'undefined' && wx.removeStorageSync) {
+      wx.removeStorageSync(LEGACY_VERSION_KEY);
+    }
+  } catch (e) { /* ignore */ }
+}
+
+// 调云函数拿 hardware-fittings/ 下 SPEC_FILE_NAME 的 { md5, fileID }
+function _fetchRemoteSpec() {
+  return cloud.listHardwareFittings().then((resp) => {
+    if (!resp || !resp.ok || !resp.data || !resp.data.success) {
+      throw new Error('list_fittings_fail');
+    }
+    const list = resp.data.files || [];
+    const item = list.find((x) => x && x.name === SPEC_FILE_NAME);
+    if (!item || !item.fileID || !item.md5) {
+      throw new Error('spec_not_found');
+    }
+    return { md5: item.md5, fileID: item.fileID };
+  });
+}
+
+// cloud:// fileID → https 临时 URL（对齐 model-sync.js:_resolveHttpsURL）
+function _resolveHttpsURL(fileID) {
   return new Promise((resolve, reject) => {
-    wx.request({
-      url: MANIFEST_URL,
-      method: 'GET',
-      dataType: 'json',
+    if (typeof wx === 'undefined' || !wx.cloud || !wx.cloud.getTempFileURL) {
+      reject(new Error('temp_url_fail'));
+      return;
+    }
+    wx.cloud.getTempFileURL({ fileList: [fileID] }).then((res) => {
+      const item = res && res.fileList && res.fileList[0];
+      const url = item && item.tempFileURL;
+      if (!url) {
+        reject(new Error('temp_url_empty'));
+        return;
+      }
+      resolve(url);
+    }).catch(() => reject(new Error('temp_url_fail')));
+  });
+}
+
+// 下载 PDF 到临时文件；onProgress(percent 0-100)。
+function _downloadToTemp(fileID, onProgress) {
+  return _resolveHttpsURL(fileID).then((url) => new Promise((resolve, reject) => {
+    const task = wx.downloadFile({
+      url,
       success: (res) => {
-        if (res.statusCode !== 200 || !res.data || !res.data.version || !res.data.url) {
-          reject(new Error('manifest invalid: ' + res.statusCode));
+        if (res.statusCode !== 200) {
+          reject(new Error('download bad status: ' + res.statusCode));
           return;
         }
-        resolve({ version: String(res.data.version), url: String(res.data.url) });
+        resolve(res.tempFilePath);
       },
-      fail: (err) => reject(new Error('manifest request failed: ' + (err && err.errMsg))),
+      fail: (err) => reject(new Error('download failed: ' + (err && err.errMsg))),
     });
-  });
+    if (task && task.onProgressUpdate && typeof onProgress === 'function') {
+      task.onProgressUpdate((p) => onProgress(p.progress));
+    }
+  }));
 }
 
 function _cachedPdfPath() {
@@ -75,32 +129,16 @@ function _isCachedFileExists() {
   }
 }
 
-function _getCachedVersion() {
+function _getCachedMd5() {
   try {
-    return wx.getStorageSync(CACHE_VERSION_KEY) || '';
+    return wx.getStorageSync(CACHE_MD5_KEY) || '';
   } catch (e) {
     return '';
   }
 }
 
-// 下载 PDF 到临时文件；onProgress(percent 0-100)。
-function _downloadToTemp(url, onProgress) {
-  return new Promise((resolve, reject) => {
-    const task = wx.downloadFile({
-      url,
-      success: (res) => {
-        if (res.statusCode !== 200) {
-          reject(new Error('download bad status: ' + res.statusCode));
-          return;
-        }
-        resolve(res.tempFilePath);
-      },
-      fail: (err) => reject(new Error('download failed: ' + (err && err.errMsg))),
-    });
-    if (task && task.onProgressUpdate && typeof onProgress === 'function') {
-      task.onProgressUpdate((p) => onProgress(p.progress));
-    }
-  });
+function _setCachedMd5(md5) {
+  try { wx.setStorageSync(CACHE_MD5_KEY, md5); } catch (e) { /* ignore */ }
 }
 
 // 把临时文件复制到 USER_DATA_PATH 下的固定路径，返回目标路径。
@@ -116,10 +154,6 @@ function _persistToCache(tempPath) {
       fail: (err) => reject(new Error('copyFile failed: ' + (err && err.errMsg))),
     });
   });
-}
-
-function _setCachedVersion(v) {
-  try { wx.setStorageSync(CACHE_VERSION_KEY, v); } catch (e) { /* ignore */ }
 }
 
 module.exports = { fetchHardwarePdf };
