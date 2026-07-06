@@ -29,4 +29,5 @@ module.exports = {
   listPlans: () => call('listPlans'),
   requestDownload: (planId) => call('requestDownload', { planId }),
   listCabinetModels: () => call('listCabinetModels'),
+  listHardwareFittings: () => call('listHardwareFittings'),
 };
