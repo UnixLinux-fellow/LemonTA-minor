@@ -213,6 +213,33 @@ const listCabinetModels = async () => {
   return { success: true, models, serverTime: Date.now() };
 };
 
+// 列 hardware-fittings/ 下的 PDF 文件，供小程序拆单规范下载做本地缓存对账
+// 目前实际只有一份 split-order-spec.pdf，但仍返回数组以对齐 listCabinetModels 的结构
+const listHardwareFittings = async () => {
+  const envId = cloud.getWXContext().ENV;
+  const app = CloudBase.init({ envId });
+  let files = [];
+  try {
+    files = await app.storage.listDirectoryFiles("hardware-fittings/");
+  } catch (e) {
+    console.warn("[listHardwareFittings] list fail", e && e.message);
+    return { success: false, errMsg: e && e.message, files: [], serverTime: Date.now() };
+  }
+  const items = [];
+  files.forEach((f) => {
+    const key = f.Key || "";
+    if (!/\.pdf$/i.test(key)) return;
+    const name = key.split("/").pop();
+    items.push({
+      name,
+      fileID: app.storage.cloudPathToFileId(key),
+      md5: String(f.ETag || "").replace(/^"|"$/g, ""),
+      size: Number(f.Size) || 0,
+    });
+  });
+  return { success: true, files: items, serverTime: Date.now() };
+};
+
 exports.main = async (event, context) => {
   switch (event.type) {
     case "getOpenId":
@@ -241,5 +268,7 @@ exports.main = async (event, context) => {
       return await requestDownload(event);
     case "listCabinetModels":
       return await listCabinetModels();
+    case "listHardwareFittings":
+      return await listHardwareFittings();
   }
 };
