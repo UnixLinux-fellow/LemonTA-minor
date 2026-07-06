@@ -27,6 +27,7 @@ async function _run(onProgress) {
     spec = await _fetchRemoteSpec();
   } catch (err) {
     if (_isCachedFileExists()) {
+      console.warn('[hardware-pdf-cloud] remote spec unavailable, using cache', err && err.message);
       return _cachedPdfPath();
     }
     throw err;
@@ -88,11 +89,15 @@ function _resolveHttpsURL(fileID) {
       const item = res && res.fileList && res.fileList[0];
       const url = item && item.tempFileURL;
       if (!url) {
+        console.warn('[hardware-pdf-cloud] getTempFileURL empty', fileID, item && item.errMsg);
         reject(new Error('temp_url_empty'));
         return;
       }
       resolve(url);
-    }).catch(() => reject(new Error('temp_url_fail')));
+    }).catch((err) => {
+      console.warn('[hardware-pdf-cloud] getTempFileURL fail', fileID, err && err.errMsg);
+      reject(new Error('temp_url_fail'));
+    });
   });
 }
 
