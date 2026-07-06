@@ -201,6 +201,14 @@ class ThreeRenderer {
   // item 形如 { code, w, h, kind = 'standard' }
   async renderSingle(item, colorId) {
     if (!this._isPreview) throw new Error('renderSingle only available in preview mode');
+    // picker 传入的 item 来自 model-sync.listModels()，理论上已带 h；
+    // 但历史 manifest 可能缺 h（导致 renderSingle 各处计算出 NaN → 画面空白）。
+    // 就地兜底：加高柜 300cm、其余 230cm，与 cabinet-model.defaultHeightForCode 保持一致。
+    if (!item.h) {
+      const lc = (item.code || '').toLowerCase();
+      const fallbackH = (lc.indexOf('g') === 0 || lc === 'yg' || lc === 'zg') ? 300 : 230;
+      item = Object.assign({}, item, { h: fallbackH });
+    }
     // 记下当前色，配合 _ensureWoodTexture 就绪后重刷预览柜体
     this._color = colorId;
     // edge 线随色变（同 setColor 逻辑）
