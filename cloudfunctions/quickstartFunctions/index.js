@@ -176,9 +176,10 @@ const requestDownload = async (event) => {
 // 假设：单个 subdir 内 glb 数量 << 单次 listDirectoryFiles 分页上限（当前 21 个，上限典型 1000），
 // 未做分页处理。若未来需要，改为循环 marker/nextMarker。
 const listCabinetModels = async () => {
-  // wx-server-sdk 的 DYNAMIC_CURRENT_ENV 是 Symbol/占位符，
-  // 直接用于 CloudBase.init 没问题，但模板插值到 fileID 会变 "Symbol(...)"。
-  // getWXContext().ENV 是当前云函数所在 env 的字符串 ID。
+  // wx-server-sdk 的 DYNAMIC_CURRENT_ENV 是 Symbol/占位符，只能给 CloudBase.init 用；
+  // 用 getWXContext().ENV 拿字符串 envId。
+  // fileID 必须是 `cloud://<envId>.<bucket>/<key>` —— 少了 bucket 段 getTempFileURL 会失败。
+  // 通过 app.storage.cloudPathToFileId(key) 让 SDK 从当前 env 配置里读 Bucket 并拼装，避免手写 bucket。
   const envId = cloud.getWXContext().ENV;
   const app = CloudBase.init({ envId });
   const subdirs = ["50cm", "100cm", "zj"];
@@ -200,7 +201,7 @@ const listCabinetModels = async () => {
       models.push({
         subdir,
         name,
-        fileID: `cloud://${envId}/${key}`,
+        fileID: app.storage.cloudPathToFileId(key),
         md5: String(f.ETag || "").replace(/^"|"$/g, ""),
         size: Number(f.Size) || 0,
       });

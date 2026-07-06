@@ -52,12 +52,14 @@ function diff(local, remote) {
         pending: { md5: r.md5, fileID: r.fileID, size: r.size },
       });
     } else {
+      // fileID 采用 remote：云函数可能修正 fileID 拼装（如补上 bucket 段），
+      // md5 相同代表内容一致但地址表示可能变化，本地存的旧 fileID 可能无法解析。
       kept.push({
         subdir: l.subdir,
         name: l.name,
-        fileID: l.fileID,
+        fileID: r.fileID,
         md5: l.md5,
-        size: l.size,
+        size: r.size,
         downloaded: !!l.downloaded,
         downloadedAt: l.downloadedAt || 0,
         pending: l.pending || null,

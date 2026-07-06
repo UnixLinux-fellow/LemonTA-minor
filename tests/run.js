@@ -111,6 +111,21 @@ group('model-sync-diff.diff md5 未变 → kept', () => {
   eq(r.removed.length, 0, 'removed 空');
 });
 
+group('model-sync-diff.diff md5 未变 但 fileID 变了 → kept 采用 remote fileID', () => {
+  // 场景：老版本云函数拼错了 fileID（缺 bucket 段），本地 manifest 存了残缺 fileID。
+  // 云函数修正后 remote 带来完整 fileID；md5 未变理论上走 kept 分支。
+  // 期望：kept 采用 remote.fileID，让后续下载/临时链接使用完整地址。
+  const local = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://env-only/cabinet-model/50cm/50A.glb', md5: 'aa', size: 100, downloaded: false, downloadedAt: 0 },
+  ];
+  const remote = [
+    { subdir: '50cm', name: '50A.glb', fileID: 'cloud://env-only.bucket/cabinet-model/50cm/50A.glb', md5: 'aa', size: 100 },
+  ];
+  const r = modelSyncDiff.diff(local, remote);
+  eq(r.kept.length, 1, 'kept 1');
+  eq(r.kept[0].fileID, 'cloud://env-only.bucket/cabinet-model/50cm/50A.glb', 'kept 采用 remote 完整 fileID');
+});
+
 group('model-sync-diff.diff kept 保留 local.pending 不置空', () => {
   const local = [
     {

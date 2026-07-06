@@ -290,8 +290,9 @@ function syncOnLaunch() {
         if (anyDownloaded) markReady();
       }
 
-      // 并发下载 added + updated
-      const queue = [].concat(d.added, d.updated);
+      // 并发下载 added + updated + 上次未下完的 kept（例如老版云函数 fileID 拼错导致的 downloaded=false）
+      const keptRetry = d.kept.filter((k) => !k.downloaded);
+      const queue = [].concat(d.added, d.updated, keptRetry);
       await runDownloadQueue(queue);
 
       if (!_manifestReady) {

@@ -143,10 +143,13 @@ class ThreeRenderer {
     const aspect = w / h || 1;
     this.camera = new THREE.PerspectiveCamera(35, aspect, 1, 2000);
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
     renderer.setSize(w, h, false);
     renderer.setPixelRatio(1);
     renderer.setClearColor(0x000000, 0); // 完全透明
+    // preserveDrawingBuffer: true 是 iOS 真机必需：默认 false 时合成一帧后 drawing buffer
+    // 被系统主动清掉。preview 只在 renderSingle 里 render 一帧、不像 room 模式跑 startLoop，
+    // 于是 iOS 上首帧合成完毕立刻变透明，透出 CSS 白底 → 缩略图看起来"一片白"。
     if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
     if (THREE.ACESFilmicToneMapping) renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
@@ -686,7 +689,7 @@ class ThreeRenderer {
     }
   }
 
-  // 懒加载 utils/white1000.png → 仅缓存 Image 对象（不缓存 Texture）。
+  // 懒加载 utils/white.png → 仅缓存 Image 对象（不缓存 Texture）。
   // 原因：Texture.repeat 是材质级状态，每个柜体的 w/h 不同，必须各自一份 Texture
   // 才能独立设 repeat。共享 Image、每柜 new Texture，WebGL 上传层会识别同一 Image
   // 复用 GPU 端的纹理上传，开销可忽略。加载成功后若当前 _color 仍是 white，把所有
@@ -723,7 +726,7 @@ class ThreeRenderer {
         this._whiteImagePromise = null; // 允许下次重试
         resolve(null);
       };
-      img.src = '/cabinet/utils/white1000.png';
+      img.src = '/cabinet/utils/white.png';
     });
     return this._whiteImagePromise;
   }
@@ -929,7 +932,7 @@ class ThreeRenderer {
     return this._floorTexturePromise;
   }
 
-  // 统一柜体着色入口：原木色用 wood.jpg 贴图、白色用 white1000.png 贴图
+  // 统一柜体着色入口：原木色用 wood.jpg 贴图、白色用 white.png 贴图
   // （任一贴图未就绪时回退到对应纯色 hex），其余色用纯色并清掉 map。
   // item: { w, h }，用于按柜体物理尺寸计算 white 贴图的 repeat（每张代表 100cm×100cm）。
   _applyMaterial(group, colorId, item) {
@@ -954,7 +957,7 @@ class ThreeRenderer {
       if (THREE.sRGBEncoding) whiteTex.encoding = THREE.sRGBEncoding;
       const w = (item && item.w) || 100;
       const h = (item && item.h) || 100;
-      // 1 张 white1000.png 代表 100cm × 100cm 真实柜面
+      // 1 张 white.png 代表 100cm × 100cm 真实柜面
       whiteTex.repeat.set(w / 100, h / 100);
       try {
         const maxAniso = this.renderer && this.renderer.capabilities

@@ -60,7 +60,7 @@ App({
     try {
       if (wx.cloud) {
         wx.cloud.init({
-          env: 'lemonta-dev-d6ggnte9lb20a40c3',
+          env: 'cloud1-5gbuna7d27dafeba',
           traceUser: true
         });
       }
