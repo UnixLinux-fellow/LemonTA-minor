@@ -1,10 +1,9 @@
-// 拆单规范 PDF：与 GLB 模型共用存储桶，路径 hardware-fittings/split-order-spec.pdf。
+// 拆单规范 PDF：与 GLB 模型共用存储桶，路径 hardware-fittings/*.pdf（约定该目录下只放一份 PDF）。
 // 通过云函数 listHardwareFittings 拿远端 md5，客户端本地缓存 + md5 对比避免重复下载。
 // 对外仅暴露 fetchHardwarePdf()，返回本地 PDF 文件路径的 Promise。
 
 const cloud = require('./cloud.js');
 
-const SPEC_FILE_NAME = 'split-order-spec.pdf';
 const CACHE_FILE_NAME = 'hardware-pdf.pdf';
 const CACHE_MD5_KEY = 'hardwarePdfCachedMd5';
 const LEGACY_VERSION_KEY = 'hardwarePdfCachedVersion';
@@ -63,15 +62,16 @@ function _cleanupLegacyKey() {
   } catch (e) { /* ignore */ }
 }
 
-// 调云函数拿 hardware-fittings/ 下 SPEC_FILE_NAME 的 { md5, fileID }
+// 调云函数拿 hardware-fittings/ 下第一份 PDF 的 { md5, fileID }
+// （目录约定只放一份拆单规范 PDF；不硬编码文件名，云函数已 filter 到 .pdf）
 function _fetchRemoteSpec() {
   return cloud.listHardwareFittings().then((resp) => {
     if (!resp || !resp.ok || !resp.data || !resp.data.success) {
       throw new Error('list_fittings_fail');
     }
     const list = resp.data.files || [];
-    const item = list.find((x) => x && x.name === SPEC_FILE_NAME);
-    if (!item || !item.fileID || !item.md5) {
+    const item = list.find((x) => x && x.fileID && x.md5);
+    if (!item) {
       throw new Error('spec_not_found');
     }
     return { md5: item.md5, fileID: item.fileID };
