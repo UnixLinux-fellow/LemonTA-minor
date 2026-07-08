@@ -1,7 +1,7 @@
 const costEngine = require('../../../utils/cost-engine.js');
 const cloud = require('../../../utils/cloud.js');
-const planStore = require('../../../utils/plan-store.js');
 const wireframeLabels = require('../../utils/wireframe-labels.js');
+const imgCache = require('../../../utils/img-cache.js');
 
 Page({
   data: {
@@ -21,7 +21,12 @@ Page({
   onLoad(query) {
     const from = query.from || 'design';
     const id = query.id;
-    const plan = (id && planStore.get(id)) || getApp().globalData.currentPlan;
+    const app = getApp();
+    // 优先内存 currentPlan；否则按 id 从 globalData.designs 找
+    let plan = app.globalData.currentPlan;
+    if ((!plan || plan.id !== id) && id) {
+      plan = app.getDesignById(id) || plan;
+    }
     if (!plan) {
       wx.navigateBack();
       return;
@@ -78,12 +83,7 @@ Page({
             canvas,
             fileType: 'png',
             success: (out) => {
-              const updated = Object.assign({}, plan, {
-                wireframeImage: out.tempFilePath,
-                wireframeHasLabels: true,
-              });
-              planStore.upsert(updated);
-              this.setData({ plan: updated });
+              this._persistBakedWireframe(plan, out.tempFilePath);
             },
             fail: (err) => {
               console.warn('[cost] bake wireframe failed:', err && err.errMsg);
@@ -95,6 +95,57 @@ Page({
         };
         img.src = plan.wireframeImage;
       });
+  },
+
+  /**
+   * 烘完带编号的线框图后：上传新 fileID → 更新 designs 文档 → 清旧云文件与本地缓存
+   */
+  _persistBakedWireframe(plan, tempFilePath) {
+    const app = getApp();
+    const oldFileID = plan.wireframeFileID || '';
+
+    const uploadStep = (wx.cloud && wx.cloud.uploadFile)
+      ? wx.cloud.uploadFile({
+          cloudPath: 'designs/' + plan.id + '_' + Date.now() + '_wire.png',
+          filePath: tempFilePath,
+        }).then((res) => (res && res.fileID) || '')
+        .catch((err) => {
+          console.warn('[cost] uploadFile wire 失败:', err && err.errMsg);
+          return '';
+        })
+      : Promise.resolve('');
+
+    uploadStep.then((newFileID) => {
+      if (newFileID) {
+        try { imgCache.register(newFileID, tempFilePath); } catch (e) { /* ignore */ }
+      }
+      const updated = Object.assign({}, plan, {
+        wireframeImage: tempFilePath,
+        wireframeHasLabels: true,
+        wireframeFileID: newFileID || plan.wireframeFileID || '',
+      });
+      this.setData({ plan: updated });
+      app.globalData.currentPlan = updated;
+
+      // 更新云 doc（有 _id 才能 update）
+      if (updated._id && newFileID) {
+        app.saveDesign({
+          _id: updated._id,
+          wireframeFileID: newFileID,
+          wireframeHasLabels: true,
+        }).catch((err) => {
+          console.warn('[cost] saveDesign 更新线框图 fileID 失败:', err);
+        });
+      }
+
+      // 清旧云文件 + 本地缓存
+      if (oldFileID && oldFileID !== newFileID && newFileID && wx.cloud && wx.cloud.deleteFile) {
+        wx.cloud.deleteFile({ fileList: [oldFileID] }).catch((err) => {
+          console.warn('[cost] 清旧线框图失败:', err);
+        });
+        try { imgCache.remove(oldFileID); } catch (e) { /* ignore */ }
+      }
+    });
   },
 
   openDetail(e) {

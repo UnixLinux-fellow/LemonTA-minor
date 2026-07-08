@@ -1,6 +1,3 @@
-const planStore = require('../../../utils/plan-store.js');
-const cloud = require('../../../utils/cloud.js');
-
 const PANEL_OPTIONS = [
   { id: 'E2国产板', name: 'E2 国产板', desc: '性价比之选' },
   { id: '兔宝宝', name: '兔宝宝', desc: '国产环保板材' },
@@ -107,17 +104,25 @@ Page({
     this.setData({ materials: m });
   },
 
-  onCalc() {
+  async onCalc() {
     const plan = Object.assign({}, this.data.plan, {
       materials: this.data.materials,
     });
-    // 保存方案到本地
-    planStore.upsert(plan);
-    if (this.data.from === 'design') {
-      getApp().globalData.draftPlan = plan;
+    const app = getApp();
+    // 已有 _id 才能命中云端 update；没有说明是走 list 场景但缓存里已被替换过（罕见）
+    if (plan._id) {
+      const res = await app.saveDesign(plan);
+      if (!res || !res.success) {
+        wx.showToast({ title: (res && res.msg) || '保存失败', icon: 'none' });
+        return;
+      }
+    } else {
+      console.warn('[materials] plan has no _id, skipping saveDesign');
     }
-    getApp().globalData.currentPlan = plan;
-    cloud.saveMaterials(plan.id, plan.materials);
+    if (this.data.from === 'design') {
+      app.globalData.draftPlan = plan;
+    }
+    app.globalData.currentPlan = plan;
     wx.redirectTo({
       url: '/cabinet/pages/cost/index?from=' + this.data.from + '&id=' + plan.id,
     });

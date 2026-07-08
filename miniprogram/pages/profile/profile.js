@@ -60,7 +60,7 @@ Page({
   // 账户卡点击：未登录则跳转登录页；已登录时不响应（编辑按钮用 catchtap 独立）
   onCardTap: function() {
     if (this.data.isLoggedIn) return;
-    wx.showToast({ title: '登录功能开发中', icon: 'none' });
+    wx.navigateTo({ url: '/packageDesign/register/register' });
   },
 
   // ========== 编辑资料弹窗 ==========
@@ -117,12 +117,32 @@ Page({
     var tempAvatar = self.data.editAvatarTemp;
     var nickName = (self.data.editNickName || '').trim();
 
-    // 头像：若选了新头像用临时路径；否则沿用已有
-    var avatarValue = tempAvatar || self.data.editAvatarUrl || '';
+    // 第 1 步：上传头像（可选）
+    var uploadStep;
+    if (tempAvatar) {
+      // 用 openid + 时间戳做文件名，避免冲突
+      var openid = app.globalData.openid || 'anon';
+      // 从临时路径里提取一个后缀；fallback jpg
+      var ext = 'jpg';
+      var m = tempAvatar.match(/\.([a-zA-Z0-9]+)$/);
+      if (m) ext = m[1].toLowerCase();
+      var cloudPath = 'avatars/' + openid + '_' + Date.now() + '.' + ext;
+      uploadStep = wx.cloud.uploadFile({
+        cloudPath: cloudPath,
+        filePath: tempAvatar
+      }).then(function(res) {
+        return res.fileID;
+      });
+    } else {
+      uploadStep = Promise.resolve(self.data.editAvatarUrl || '');
+    }
 
-    app.saveUserProfile({
-      avatarFileID: avatarValue,
-      nickName: nickName
+    uploadStep.then(function(avatarFileID) {
+      // 第 2 步：写入云数据库
+      return app.saveUserProfile({
+        avatarFileID: avatarFileID || '',
+        nickName: nickName
+      });
     }).then(function(res) {
       self.setData({ saving: false });
       if (res && res.success) {
@@ -130,12 +150,18 @@ Page({
         self.setData({ editVisible: false, editAvatarTemp: '' });
         self._syncLoginState();
       } else {
-        wx.showToast({ title: (res && res.msg) || '保存失败', icon: 'none' });
+        wx.showToast({
+          title: (res && res.msg) || '保存失败',
+          icon: 'none'
+        });
       }
     }).catch(function(err) {
       console.error('[profile] saveProfile 失败:', err);
       self.setData({ saving: false });
-      wx.showToast({ title: (err && err.errMsg) || '保存失败', icon: 'none' });
+      wx.showToast({
+        title: (err && err.errMsg) || '保存失败',
+        icon: 'none'
+      });
     });
   },
 

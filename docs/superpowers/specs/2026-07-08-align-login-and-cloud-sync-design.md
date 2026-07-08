@@ -5,7 +5,7 @@
 
 ## 一句话摘要
 
-**登录/注册模块 100% 与 LemonTA-main 一致**（代码逐字段拷贝）；设计方案的存储范式改为"小程序端直连云数据库 `designs` 集合 + 云存储 fileID"，与 main 同款；minor 独有的所有字段（`wireframeFileID / photoFileID / materials / cabinets / layout` 等）作为 schema 并集全部上云。图片与设计文档在读路径统一走"内存 → 本地缓存 → 云端"三层回退，任何请求先命中本地就不打云。
+**登录/注册模块 100% 与 D:\workspace\LemonTA-main\LemonTA-main 一致**（代码逐字段拷贝）；设计方案的存储范式改为"小程序端直连云数据库 `designs` 集合 + 云存储 fileID"，与 main 同款；minor 独有的所有字段（`wireframeFileID / photoFileID / materials / cabinets / layout` 等）作为 schema 并集全部上云。图片与设计文档在读路径统一走"内存 → 本地缓存 → 云端"三层回退，任何请求先命中本地就不打云。
 
 ## 背景
 

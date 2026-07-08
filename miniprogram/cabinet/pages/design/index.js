@@ -1,7 +1,6 @@
 const cabinetModel = require('../../utils/cabinet-model.js');
 const layoutEngine = require('../../utils/layout-engine.js');
-const planStore = require('../../../utils/plan-store.js');
-const cloud = require('../../../utils/cloud.js');
+const imgCache = require('../../../utils/img-cache.js');
 
 const COLORS = [
   { id: 'white', label: '白色', css: '#f0f0e7' },
@@ -457,6 +456,28 @@ Page({
     this.recompute();
   },
 
+  /**
+   * 上传单张图到云存储；成功后 imgCache.register 挂钩，返回 fileID。
+   * 失败返回 ''。空 wxfile 输入直接 resolve ''。
+   */
+  _uploadDesignImage(wxfilePath, planId, tag, ext) {
+    if (!wxfilePath) return Promise.resolve('');
+    if (!wx.cloud || !wx.cloud.uploadFile) return Promise.resolve('');
+    const cloudPath = 'designs/' + planId + '_' + Date.now() + '_' + tag + '.' + (ext || 'png');
+    return wx.cloud.uploadFile({ cloudPath, filePath: wxfilePath })
+      .then((res) => {
+        const fileID = res && res.fileID;
+        if (fileID) {
+          try { imgCache.register(fileID, wxfilePath); } catch (e) { /* ignore */ }
+        }
+        return fileID || '';
+      })
+      .catch((err) => {
+        console.warn('[design] uploadFile ' + tag + ' 失败:', err && err.errMsg);
+        return '';
+      });
+  },
+
   async onConfirmLayout() {
     const state = this._state;
     const plan = this.data.plan;
@@ -500,6 +521,17 @@ Page({
         console.warn('preview capture failed', e && e.message);
       }
     }
+
+    // 并行上传 3 张图到云存储
+    const app = getApp();
+    const photoExt = (plan.photoPath && (plan.photoPath.match(/\.([a-zA-Z0-9]+)$/) || [])[1]) || 'jpg';
+    const [previewFileID, wireframeFileID, photoFileID] = await Promise.all([
+      this._uploadDesignImage(previewImage,   plan.id, 'preview', 'png'),
+      this._uploadDesignImage(wireframeImage, plan.id, 'wire',    'png'),
+      this._uploadDesignImage(plan.photoPath, plan.id, 'photo',   photoExt.toLowerCase()),
+    ]);
+
+    // 回填内存 plan：既留 FileID 也留本地路径，供本次会话直接渲染，跳过一次云端下载
     const updatedPlan = Object.assign({}, plan, {
       layout: { items: state.items, meta: state.meta },
       cabinets,
@@ -512,11 +544,26 @@ Page({
       previewImage,
       wireframeImage,
       wireframeHasLabels: false,
+      previewFileID: previewFileID || plan.previewFileID || '',
+      wireframeFileID: wireframeFileID || plan.wireframeFileID || '',
+      photoFileID: photoFileID || plan.photoFileID || '',
     });
+
+    // 写入云 designs 集合（app.saveDesign 内部会剔除 wxfile 字段）
+    const saveRes = await app.saveDesign(updatedPlan);
+    if (saveRes && saveRes.success) {
+      updatedPlan._id = saveRes._id || updatedPlan._id;
+    } else {
+      wx.showModal({
+        title: '保存失败',
+        content: (saveRes && saveRes.msg) || '请检查网络后重试',
+        showCancel: false,
+      });
+      return;
+    }
+
     getApp().globalData.draftPlan = updatedPlan;
-    // 即时入库本地方案（仅信息层；materials 后续覆盖）
-    planStore.upsert(updatedPlan);
-    cloud.savePlan(updatedPlan);
+    getApp().globalData.currentPlan = updatedPlan;
     wx.redirectTo({ url: '/cabinet/pages/materials/index?from=design' });
   },
 

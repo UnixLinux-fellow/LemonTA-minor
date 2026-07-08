@@ -24,12 +24,23 @@
         "pages/materials/index",
         "pages/cost/index"
       ]
+    },
+    {
+      "root": "packageDesign",
+      "name": "design-flow",
+      "pages": [
+        "register/register"
+      ]
     }
   ],
   "preloadRule": {
     "pages/plan-list/index": {
       "network": "all",
       "packages": ["cabinet"]
+    },
+    "pages/profile/profile": {
+      "network": "all",
+      "packages": ["design-flow"]
     }
   },
   "window": {

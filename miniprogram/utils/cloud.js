@@ -1,4 +1,5 @@
-// 云函数封装。失败时不阻塞本地存储流程。
+// 服务端上下文云函数封装。设计方案的 CRUD 已改走 db.collection('designs') 直连，
+// 这里只保留对 quickstartFunctions 内"读服务端上下文"类分支的封装。
 
 function call(type, data) {
   return new Promise((resolve) => {
@@ -22,11 +23,7 @@ function call(type, data) {
 }
 
 module.exports = {
-  getOpenId: () => call('getOpenId'),
   getModelInfo: (localList) => call('getModelInfo', { localList }),
-  savePlan: (plan) => call('savePlan', { plan }),
-  saveMaterials: (planId, materials) => call('saveMaterials', { planId, materials }),
-  listPlans: () => call('listPlans'),
   requestDownload: (planId) => call('requestDownload', { planId }),
   listCabinetModels: () => call('listCabinetModels'),
   listHardwareFittings: () => call('listHardwareFittings'),

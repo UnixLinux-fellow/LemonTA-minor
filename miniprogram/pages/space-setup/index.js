@@ -72,8 +72,7 @@ Page({
 
     const draft = getApp().globalData.draftPlan;
     const editingId = draft && draft.id;
-    const existingNames = planStore
-      .list()
+    const existingNames = (getApp().globalData.designs || [])
       .filter((p) => p.id !== editingId)
       .map((p) => p.name);
 
@@ -124,7 +123,7 @@ Page({
   onConfirm() {
     const { name, wallW, wallH, cornerType, hasRaise, photoPath } = this.data;
     if (!this.data.canSubmit) return;
-    if (planStore.isFull()) {
+    if ((getApp().globalData.designs || []).length >= 30) {
       wx.showToast({ title: '设计库已满30条', icon: 'none' });
       return;
     }
