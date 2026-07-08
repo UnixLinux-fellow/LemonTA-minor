@@ -1,7 +1,7 @@
 const pdfExporter = require('../../utils/pdf-exporter.js');
 const hardwarePdfCloud = require('../../utils/hardware-pdf-cloud.js');
 const filenameCleaner = require('../../utils/filename-cleaner.js');
-const imgCache = require('../../utils/img-cache.js');
+const planImageCache = require('../../utils/plan-image-cache.js');
 
 function getPdfCanvas(page) {
   return new Promise((resolve, reject) => {
@@ -18,42 +18,6 @@ function getPdfCanvas(page) {
 }
 
 const MAX_DESIGNS = 30;
-
-/**
- * fileID → 本地路径的四级回退：
- *   1) 字段为空 → 返回空串（pdf-exporter 会渲占位）
- *   2) 内存 plan 已有本地路径（wxfile://）→ 保持不变
- *   3) imgCache 命中且本地文件仍在 → 用缓存路径
- *   4) 都没命中 → getTempFileURL + downloadFile + fm.saveFile（imgCache.resolve 内部完成）
- */
-function _resolveOne(fileID, existingLocal) {
-  if (!fileID) return Promise.resolve(existingLocal || '');
-  if (existingLocal && /^wxfile:\/\//.test(existingLocal)) {
-    // 本会话已烘/上传的临时路径，直接用
-    return Promise.resolve(existingLocal);
-  }
-  return imgCache.resolve(fileID).catch((err) => {
-    console.warn('[export] resolve fileID 失败:', fileID, err && err.errMsg);
-    return '';
-  });
-}
-
-/**
- * 对导出 plans 做前置图片解析（就地修改 plan 的 previewImage / wireframeImage / photoPath）。
- * pdf-exporter 内部读的仍是这三个字段（现在是本地路径），零改动。
- */
-async function _resolvePlanImages(plans) {
-  await Promise.all(plans.map(async (plan) => {
-    const [preview, wire, photo] = await Promise.all([
-      _resolveOne(plan.previewFileID,   plan.previewImage),
-      _resolveOne(plan.wireframeFileID, plan.wireframeImage),
-      _resolveOne(plan.photoFileID,     plan.photoPath),
-    ]);
-    plan.previewImage = preview || '';
-    plan.wireframeImage = wire || '';
-    plan.photoPath = photo || '';
-  }));
-}
 
 Page({
   data: {
@@ -109,9 +73,24 @@ Page({
     const app = getApp();
     const plan = app.getDesignById(id);
     if (!plan) return;
-    app.globalData.currentPlan = plan;
-    wx.navigateTo({
-      url: '/cabinet/pages/materials/index?from=list&id=' + id,
+    // 云端拉回的 plan 只带 previewFileID / wireframeFileID / photoFileID，
+    // 先把三个本地路径字段（materials/cost/space-setup 页 wxml 直接绑的字段）补齐再跳。
+    // 命中 imgCache 时全流程同步可完成 → 不显示 loading；真要下载才 loading。
+    const navigate = () => {
+      app.globalData.currentPlan = plan;
+      wx.navigateTo({
+        url: '/cabinet/pages/materials/index?from=list&id=' + id,
+      });
+    };
+    const report = planImageCache.diagnosePlanImages([plan]);
+    if (!report.ready) {
+      // 真机排查用：哪个字段为什么 not ready 一目了然
+      console.log('[plan-list] onTapItem loading, diagnosis:', report.details);
+      wx.showLoading({ title: '加载中…', mask: true });
+    }
+    planImageCache.resolvePlanImages([plan]).then(() => {
+      if (!report.ready) wx.hideLoading();
+      navigate();
     });
   },
 
@@ -178,7 +157,7 @@ Page({
 
     wx.showLoading({ title: '正在生成 PDF…', mask: true });
     try {
-      await _resolvePlanImages(plans);
+      await planImageCache.resolvePlanImages(plans);
       const canvas = await getPdfCanvas(this);
       const filePath = await pdfExporter.exportPlans({ canvas, plans, fileName });
       wx.hideLoading();
@@ -202,6 +181,32 @@ Page({
   },
 
   onTapExportHardware() {
+    const openPdf = (filePath) => {
+      wx.openDocument({
+        filePath,
+        fileType: 'pdf',
+        showMenu: true,
+        fail: (err) => {
+          wx.showModal({
+            title: '预览失败',
+            content: 'PDF 已下载到 ' + filePath + '\n错误: ' + (err && err.errMsg),
+            showCancel: false,
+          });
+        },
+      });
+    };
+
+    // 本地已有缓存：立即打开，不显示 loading；后台静默拉一次远端更新缓存
+    const cachedPath = hardwarePdfCloud.getCachedPdfPath();
+    if (cachedPath) {
+      openPdf(cachedPath);
+      hardwarePdfCloud.fetchHardwarePdf().catch((err) => {
+        console.warn('[plan-list] background refresh hardware pdf failed:', err);
+      });
+      return;
+    }
+
+    // 无缓存：正常展示 loading + 下载
     wx.showLoading({ title: '正在下载文档…', mask: true });
     hardwarePdfCloud
       .fetchHardwarePdf({
@@ -209,18 +214,7 @@ Page({
       })
       .then((filePath) => {
         wx.hideLoading();
-        wx.openDocument({
-          filePath,
-          fileType: 'pdf',
-          showMenu: true,
-          fail: (err) => {
-            wx.showModal({
-              title: '预览失败',
-              content: 'PDF 已下载到 ' + filePath + '\n错误: ' + (err && err.errMsg),
-              showCancel: false,
-            });
-          },
-        });
+        openPdf(filePath);
       })
       .catch(() => {
         wx.hideLoading();
@@ -264,7 +258,7 @@ Page({
 
     wx.showLoading({ title: '正在生成 PDF…', mask: true });
     try {
-      await _resolvePlanImages(plans);
+      await planImageCache.resolvePlanImages(plans);
       const canvas = await getPdfCanvas(this);
       const filePath = await pdfExporter.exportPlansWithCost({ canvas, plans, fileName });
       wx.hideLoading();

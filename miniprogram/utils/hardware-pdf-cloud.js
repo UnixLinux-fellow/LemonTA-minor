@@ -190,4 +190,10 @@ function _persistToCache(tempPath, name) {
   });
 }
 
-module.exports = { fetchHardwarePdf };
+// 同步查本地缓存 PDF 路径（无缓存返回 null）。
+// 页面命中缓存时可直接 openDocument，避免云函数往返带来的 loading 闪烁。
+function getCachedPdfPath() {
+  return _cachedPdfPathIfExists();
+}
+
+module.exports = { fetchHardwarePdf, getCachedPdfPath };

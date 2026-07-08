@@ -186,6 +186,25 @@ function _download(fileID) {
 }
 
 /**
+ * 同步判断某 fileID 是否有可用的本地缓存文件。
+ * 只查 storage index + accessSync，不做任何异步 IO，可安全在 tap 前用来决定是否显示 loading。
+ * @param {string} fileID
+ * @returns {boolean}
+ */
+function hasReady(fileID) {
+  if (!fileID) return false;
+  var map = _readMap();
+  var entry = map[fileID];
+  if (!entry || !entry.path) return false;
+  try {
+    _getFM().accessSync(entry.path);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
  * 摘掉一条缓存（同时删本地文件）
  * @param {string} fileID
  */
@@ -202,4 +221,4 @@ function remove(fileID) {
   }
 }
 
-module.exports = { resolve: resolve, register: register, remove: remove };
+module.exports = { resolve: resolve, register: register, remove: remove, hasReady: hasReady };
