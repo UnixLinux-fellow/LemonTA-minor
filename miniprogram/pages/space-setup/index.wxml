@@ -1,4 +1,7 @@
+<wxs src="../../utils/assets.wxs" module="assets" />
 <view class="page">
+  <image class="bg-image bg-image-light" src="{{assets.bg('T3')}}" mode="aspectFill" lazy-load />
+
   <view class="section">
     <view class="label">空间照片</view>
     <view class="photo-zone" bindtap="onChoosePhoto">

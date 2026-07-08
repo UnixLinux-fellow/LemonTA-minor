@@ -1,4 +1,5 @@
 {
   "navigationBarTitleText": "成本透视",
-  "usingComponents": {}
+  "usingComponents": {},
+  "navigationStyle": "default"
 }

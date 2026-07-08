@@ -1,4 +1,7 @@
+<wxs src="../../../utils/assets.wxs" module="assets" />
 <view class="page">
+  <image class="bg-image bg-image-light" src="{{assets.bg('T3')}}" mode="aspectFill" lazy-load />
+
   <view class="preview-wireframe">
     <view class="pw-title">空间衣柜布置预览</view>
     <image wx:if="{{plan.previewImage}}"

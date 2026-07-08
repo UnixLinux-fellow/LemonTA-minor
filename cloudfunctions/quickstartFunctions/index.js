@@ -1,4 +1,5 @@
 const cloud = require("wx-server-sdk");
+const CloudBase = require("@cloudbase/manager-node");
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
 });
@@ -169,6 +170,76 @@ const requestDownload = async (event) => {
   };
 };
 
+// 列 cabinet-model/{50cm,100cm,zj}/ 下全部 glb，供小程序做本地缓存对账
+// 注：单一 subdir 失败不阻塞其他 subdir；但如果全部失败，返回 success:false
+// 让客户端走"本地兜底"分支，避免把 models=[] 当成"云上真的一个都没有"→ 误删全部本地缓存
+// 假设：单个 subdir 内 glb 数量 << 单次 listDirectoryFiles 分页上限（当前 21 个，上限典型 1000），
+// 未做分页处理。若未来需要，改为循环 marker/nextMarker。
+const listCabinetModels = async () => {
+  // wx-server-sdk 的 DYNAMIC_CURRENT_ENV 是 Symbol/占位符，只能给 CloudBase.init 用；
+  // 用 getWXContext().ENV 拿字符串 envId。
+  // fileID 必须是 `cloud://<envId>.<bucket>/<key>` —— 少了 bucket 段 getTempFileURL 会失败。
+  // 通过 app.storage.cloudPathToFileId(key) 让 SDK 从当前 env 配置里读 Bucket 并拼装，避免手写 bucket。
+  const envId = cloud.getWXContext().ENV;
+  const app = CloudBase.init({ envId });
+  const subdirs = ["50cm", "100cm", "zj"];
+  const models = [];
+  let anyOk = false;
+  for (const subdir of subdirs) {
+    let files = [];
+    try {
+      files = await app.storage.listDirectoryFiles(`cabinet-model/${subdir}/`);
+      anyOk = true;
+    } catch (e) {
+      console.warn("[listCabinetModels] list fail", subdir, e && e.message);
+      continue;
+    }
+    files.forEach((f) => {
+      const key = f.Key || "";
+      if (!/\.glb$/i.test(key)) return;
+      const name = key.split("/").pop();
+      models.push({
+        subdir,
+        name,
+        fileID: app.storage.cloudPathToFileId(key),
+        md5: String(f.ETag || "").replace(/^"|"$/g, ""),
+        size: Number(f.Size) || 0,
+      });
+    });
+  }
+  if (!anyOk) {
+    return { success: false, errMsg: "list all subdirs failed", models: [], serverTime: Date.now() };
+  }
+  return { success: true, models, serverTime: Date.now() };
+};
+
+// 列 hardware-fittings/ 下的 PDF 文件，供小程序拆单规范下载做本地缓存对账
+// 目前实际只有一份 split-order-spec.pdf，但仍返回数组以对齐 listCabinetModels 的结构
+const listHardwareFittings = async () => {
+  const envId = cloud.getWXContext().ENV;
+  const app = CloudBase.init({ envId });
+  let files = [];
+  try {
+    files = await app.storage.listDirectoryFiles("hardware-fittings/");
+  } catch (e) {
+    console.warn("[listHardwareFittings] list fail", e && e.message);
+    return { success: false, errMsg: e && e.message, files: [], serverTime: Date.now() };
+  }
+  const items = [];
+  files.forEach((f) => {
+    const key = f.Key || "";
+    if (!/\.pdf$/i.test(key)) return;
+    const name = key.split("/").pop();
+    items.push({
+      name,
+      fileID: app.storage.cloudPathToFileId(key),
+      md5: String(f.ETag || "").replace(/^"|"$/g, ""),
+      size: Number(f.Size) || 0,
+    });
+  });
+  return { success: true, files: items, serverTime: Date.now() };
+};
+
 exports.main = async (event, context) => {
   switch (event.type) {
     case "getOpenId":
@@ -195,5 +266,9 @@ exports.main = async (event, context) => {
       return await listPlans(event);
     case "requestDownload":
       return await requestDownload(event);
+    case "listCabinetModels":
+      return await listCabinetModels();
+    case "listHardwareFittings":
+      return await listHardwareFittings();
   }
 };

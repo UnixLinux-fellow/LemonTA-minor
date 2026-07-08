@@ -721,43 +721,15 @@ async function _renderAndFlushCostBreakdown(canvas, ctx, plan, cost, flushPage) 
     y += height;
   }
 
-  const panelCols = [
-    { title: '名称', ratio: 0.24 },
-    { title: '尺寸', ratio: 0.24 },
-    { title: '面积', ratio: 0.20 },
-    { title: '单价', ratio: 0.16 },
-    { title: '小计', ratio: 0.16 },
-  ];
-  const hardwareCols = [
-    { title: '部件', ratio: 0.44 },
-    { title: '数量', ratio: 0.16 },
-    { title: '单价', ratio: 0.20 },
-    { title: '小计', ratio: 0.20 },
-  ];
-
   const modules = (cost.modules || []);
   for (let i = 0; i < modules.length; i++) {
     const m = modules[i];
-    const gap = 8 * SCALE;
-    // 引导块：卡头 + 4 格 + 板材表（通常一页内可放下）
     const headH = 36 * SCALE;
     const gridH = 60 * SCALE;
-    const panelRows = _panelDetailRows(m);
-    const panelTableH = 26 * SCALE + Math.max(1, panelRows.length) * 22 * SCALE;
-    const leadBlockH = headH + gridH + gap + panelTableH + gap;
-    await addBlock(leadBlockH, (yy) => {
-      let cy = yy;
-      const cardH = _drawCabinetCard(ctx, m, contentX, cy, contentW);
-      cy += cardH + gap;
-      _drawDetailTable(ctx, panelCols, panelRows, contentX, cy, contentW);
+    const blockH = headH + gridH + cardGap;
+    await addBlock(blockH, (yy) => {
+      _drawCabinetCard(ctx, m, contentX, yy, contentW);
     });
-    // 五金表：可能很长，按剩余空间跨页写
-    await _drawPagedDetailTable(
-      ctx, hardwareCols, _hardwareDetailRows(m),
-      contentX, contentW, addBlock, endPage, beginPage,
-      () => y, () => pageBottom
-    );
-    y += cardGap;
   }
 
   if (cost.sk) {

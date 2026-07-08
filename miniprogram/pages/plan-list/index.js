@@ -1,8 +1,7 @@
-const planStore = require('../../utils/plan-store.js');
-const cloud = require('../../utils/cloud.js');
 const pdfExporter = require('../../utils/pdf-exporter.js');
 const hardwarePdfCloud = require('../../utils/hardware-pdf-cloud.js');
 const filenameCleaner = require('../../utils/filename-cleaner.js');
+const imgCache = require('../../utils/img-cache.js');
 
 function getPdfCanvas(page) {
   return new Promise((resolve, reject) => {
@@ -18,6 +17,44 @@ function getPdfCanvas(page) {
   });
 }
 
+const MAX_DESIGNS = 30;
+
+/**
+ * fileID → 本地路径的四级回退：
+ *   1) 字段为空 → 返回空串（pdf-exporter 会渲占位）
+ *   2) 内存 plan 已有本地路径（wxfile://）→ 保持不变
+ *   3) imgCache 命中且本地文件仍在 → 用缓存路径
+ *   4) 都没命中 → getTempFileURL + downloadFile + fm.saveFile（imgCache.resolve 内部完成）
+ */
+function _resolveOne(fileID, existingLocal) {
+  if (!fileID) return Promise.resolve(existingLocal || '');
+  if (existingLocal && /^wxfile:\/\//.test(existingLocal)) {
+    // 本会话已烘/上传的临时路径，直接用
+    return Promise.resolve(existingLocal);
+  }
+  return imgCache.resolve(fileID).catch((err) => {
+    console.warn('[export] resolve fileID 失败:', fileID, err && err.errMsg);
+    return '';
+  });
+}
+
+/**
+ * 对导出 plans 做前置图片解析（就地修改 plan 的 previewImage / wireframeImage / photoPath）。
+ * pdf-exporter 内部读的仍是这三个字段（现在是本地路径），零改动。
+ */
+async function _resolvePlanImages(plans) {
+  await Promise.all(plans.map(async (plan) => {
+    const [preview, wire, photo] = await Promise.all([
+      _resolveOne(plan.previewFileID,   plan.previewImage),
+      _resolveOne(plan.wireframeFileID, plan.wireframeImage),
+      _resolveOne(plan.photoFileID,     plan.photoPath),
+    ]);
+    plan.previewImage = preview || '';
+    plan.wireframeImage = wire || '';
+    plan.photoPath = photo || '';
+  }));
+}
+
 Page({
   data: {
     plans: [],
@@ -29,32 +66,50 @@ Page({
     costExportSelectOpen: false,
     costExportNameOpen: false,
     _costSelectedIds: [],
+    statusBarHeight: 20,
+    navBarHeight: 44,
+  },
+
+  onLoad: function() {
+    try {
+      var sysInfo = wx.getWindowInfo();
+      var menuBtn = wx.getMenuButtonBoundingClientRect();
+      var statusBarHeight = sysInfo.statusBarHeight || 20;
+      var navBarHeight = (menuBtn.top - statusBarHeight) * 2 + menuBtn.height;
+      this.setData({ statusBarHeight: statusBarHeight, navBarHeight: navBarHeight });
+    } catch (e) {
+      this.setData({ statusBarHeight: 20, navBarHeight: 44 });
+    }
   },
 
   onShow() {
-    const plans = planStore.list();
-    this.setData({ plans });
-    cloud.listPlans().then((res) => {
-      if (res.ok && res.data && res.data.success) {
-        // 简单合并：以本地为主
-      }
+    const app = getApp();
+    // 先渲染内存里的（冷启动来自本地缓存；热切回来是云端最新）
+    this.setData({ plans: app.globalData.designs || [] });
+    // 异步拉云端覆盖；失败静默保留本地兜底
+    app.refreshDesigns().then((designs) => {
+      this.setData({ plans: designs || [] });
+    }).catch((err) => {
+      console.warn('[plan-list] refreshDesigns 失败:', err);
     });
   },
 
   onTapStart() {
-    if (planStore.isFull()) {
+    const app = getApp();
+    if ((app.globalData.designs || []).length >= MAX_DESIGNS) {
       this.showToast('设计库已满30条，需删除部分设计后新建');
       return;
     }
-    getApp().globalData.draftPlan = null;
+    app.globalData.draftPlan = null;
     wx.navigateTo({ url: '/pages/space-setup/index' });
   },
 
   onTapItem(e) {
     const id = e.currentTarget.dataset.id;
-    const plan = planStore.get(id);
+    const app = getApp();
+    const plan = app.getDesignById(id);
     if (!plan) return;
-    getApp().globalData.currentPlan = plan;
+    app.globalData.currentPlan = plan;
     wx.navigateTo({
       url: '/cabinet/pages/materials/index?from=list&id=' + id,
     });
@@ -62,9 +117,10 @@ Page({
 
   onAskDelete(e) {
     const id = e.currentTarget.dataset.id;
-    const plan = planStore.get(id);
+    const app = getApp();
+    const plan = app.getDesignById(id);
     if (!plan) return;
-    this.setData({ confirmDelete: { id, name: plan.name } });
+    this.setData({ confirmDelete: { id: plan._id || id, name: plan.name } });
   },
 
   onConfirmDeleteCancel() {
@@ -73,13 +129,19 @@ Page({
 
   onConfirmDeleteOk() {
     const id = this.data.confirmDelete && this.data.confirmDelete.id;
-    if (id) {
-      planStore.remove(id);
-      this.setData({
-        plans: planStore.list(),
-        confirmDelete: null,
-      });
-    }
+    if (!id) return;
+    const app = getApp();
+    app.deleteDesignById(id).then((res) => {
+      if (res && res.success) {
+        this.setData({
+          plans: app.globalData.designs || [],
+          confirmDelete: null,
+        });
+      } else {
+        this.setData({ confirmDelete: null });
+        wx.showToast({ title: '删除失败', icon: 'none' });
+      }
+    });
   },
 
   onTapExport() {
@@ -109,12 +171,14 @@ Page({
     this.setData({ exportNameOpen: false, _selectedExportIds: [] });
     if (!ids.length) return;
 
+    const app = getApp();
     const plans = ids
-      .map((id) => planStore.get(id))
+      .map((id) => app.getDesignById(id))
       .filter(Boolean);
 
     wx.showLoading({ title: '正在生成 PDF…', mask: true });
     try {
+      await _resolvePlanImages(plans);
       const canvas = await getPdfCanvas(this);
       const filePath = await pdfExporter.exportPlans({ canvas, plans, fileName });
       wx.hideLoading();
@@ -195,10 +259,12 @@ Page({
     this.setData({ costExportNameOpen: false, _costSelectedIds: [] });
     if (!ids.length) return;
 
-    const plans = ids.map((id) => planStore.get(id)).filter(Boolean);
+    const app = getApp();
+    const plans = ids.map((id) => app.getDesignById(id)).filter(Boolean);
 
     wx.showLoading({ title: '正在生成 PDF…', mask: true });
     try {
+      await _resolvePlanImages(plans);
       const canvas = await getPdfCanvas(this);
       const filePath = await pdfExporter.exportPlansWithCost({ canvas, plans, fileName });
       wx.hideLoading();

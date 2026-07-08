@@ -143,10 +143,13 @@ class ThreeRenderer {
     const aspect = w / h || 1;
     this.camera = new THREE.PerspectiveCamera(35, aspect, 1, 2000);
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
     renderer.setSize(w, h, false);
     renderer.setPixelRatio(1);
     renderer.setClearColor(0x000000, 0); // 完全透明
+    // preserveDrawingBuffer: true 是 iOS 真机必需：默认 false 时合成一帧后 drawing buffer
+    // 被系统主动清掉。preview 只在 renderSingle 里 render 一帧、不像 room 模式跑 startLoop，
+    // 于是 iOS 上首帧合成完毕立刻变透明，透出 CSS 白底 → 缩略图看起来"一片白"。
     if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
     if (THREE.ACESFilmicToneMapping) renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
@@ -198,6 +201,14 @@ class ThreeRenderer {
   // item 形如 { code, w, h, kind = 'standard' }
   async renderSingle(item, colorId) {
     if (!this._isPreview) throw new Error('renderSingle only available in preview mode');
+    // picker 传入的 item 来自 model-sync.listModels()，理论上已带 h；
+    // 但历史 manifest 可能缺 h（导致 renderSingle 各处计算出 NaN → 画面空白）。
+    // 就地兜底：加高柜 300cm、其余 230cm，与 cabinet-model.defaultHeightForCode 保持一致。
+    if (!item.h) {
+      const lc = (item.code || '').toLowerCase();
+      const fallbackH = (lc.indexOf('g') === 0 || lc === 'yg' || lc === 'zg') ? 300 : 230;
+      item = Object.assign({}, item, { h: fallbackH });
+    }
     // 记下当前色，配合 _ensureWoodTexture 就绪后重刷预览柜体
     this._color = colorId;
     // edge 线随色变（同 setColor 逻辑）
@@ -686,7 +697,7 @@ class ThreeRenderer {
     }
   }
 
-  // 懒加载 utils/white1000.png → 仅缓存 Image 对象（不缓存 Texture）。
+  // 懒加载 utils/white.png → 仅缓存 Image 对象（不缓存 Texture）。
   // 原因：Texture.repeat 是材质级状态，每个柜体的 w/h 不同，必须各自一份 Texture
   // 才能独立设 repeat。共享 Image、每柜 new Texture，WebGL 上传层会识别同一 Image
   // 复用 GPU 端的纹理上传，开销可忽略。加载成功后若当前 _color 仍是 white，把所有
@@ -723,7 +734,7 @@ class ThreeRenderer {
         this._whiteImagePromise = null; // 允许下次重试
         resolve(null);
       };
-      img.src = '/cabinet/utils/white1000.png';
+      img.src = '/cabinet/utils/white.png';
     });
     return this._whiteImagePromise;
   }
@@ -929,7 +940,7 @@ class ThreeRenderer {
     return this._floorTexturePromise;
   }
 
-  // 统一柜体着色入口：原木色用 wood.jpg 贴图、白色用 white1000.png 贴图
+  // 统一柜体着色入口：原木色用 wood.jpg 贴图、白色用 white.png 贴图
   // （任一贴图未就绪时回退到对应纯色 hex），其余色用纯色并清掉 map。
   // item: { w, h }，用于按柜体物理尺寸计算 white 贴图的 repeat（每张代表 100cm×100cm）。
   _applyMaterial(group, colorId, item) {
@@ -954,7 +965,7 @@ class ThreeRenderer {
       if (THREE.sRGBEncoding) whiteTex.encoding = THREE.sRGBEncoding;
       const w = (item && item.w) || 100;
       const h = (item && item.h) || 100;
-      // 1 张 white1000.png 代表 100cm × 100cm 真实柜面
+      // 1 张 white.png 代表 100cm × 100cm 真实柜面
       whiteTex.repeat.set(w / 100, h / 100);
       try {
         const maxAniso = this.renderer && this.renderer.capabilities
@@ -1077,28 +1088,119 @@ class ThreeRenderer {
     }
   }
 
-  _resolveModelPath(it) {
+  // 把 it 归一化到 { subdir, name } —— hot-replace 订阅与 getLocalPath 都用它
+  _resolveTarget(it) {
     const code = (it.code || '').toLowerCase();
     if (it.kind === 'standard' || it.kind === 'nonstandard') {
       const w = it.w >= 75 ? 100 : 50;
       let realCode = code;
       if (code === 'e1' || code === 'e2') realCode = 'a';
       const letter = realCode.charAt(0);
-      return `/cabinet/utils/cabinet-model/${w}${letter.toUpperCase()}.glb`;
+      return { subdir: w === 50 ? '50cm' : '100cm', name: `${w}${letter.toUpperCase()}.glb` };
     }
     if (it.kind === 'corner') {
-      if (code === 'y') return '/cabinet/utils/cabinet-model/Y-110-230.glb';
-      if (code === 'z') return '/cabinet/utils/cabinet-model/Z-110-230.glb';
+      if (code === 'y') return { subdir: 'zj', name: 'Y-110-230.glb' };
+      if (code === 'z') return { subdir: 'zj', name: 'Z-110-230.glb' };
       return null;
     }
-    if (code === 'yg') return '/cabinet/utils/cabinet-model/YG-110-230G1.glb';
-    if (code === 'zg') return '/cabinet/utils/cabinet-model/ZG-110-230G1.glb';
+    if (code === 'yg') return { subdir: 'zj', name: 'YG-110-230G1.glb' };
+    if (code === 'zg') return { subdir: 'zj', name: 'ZG-110-230G1.glb' };
     if (code === 'g' || code === 'g1' || code === 'g2') {
       const w = it.w >= 75 ? 100 : 50;
       const variant = code === 'g2' ? 'G2' : 'G1';
-      return `/cabinet/utils/cabinet-model/${w}${variant}.glb`;
+      return { subdir: w === 50 ? '50cm' : '100cm', name: `${w}${variant}.glb` };
     }
     return null;
+  }
+
+  _resolveModelPath(it) {
+    const target = this._resolveTarget(it);
+    if (!target) return null;
+    const modelSync = require('../../utils/model-sync.js');
+    return modelSync.getLocalPath(target);
+  }
+
+  // 订阅同 target 的 ready 事件：download 完成后触发 hot-replace
+  _subscribeHotReplace(it) {
+    const target = this._resolveTarget(it);
+    if (!target) return;
+    const modelSync = require('../../utils/model-sync.js');
+    let called = false;
+    const unsub = modelSync.onModelReady(target.subdir, target.name, () => {
+      if (called) return;
+      called = true;
+      unsub();
+      // 清模块级/renderer 级缓存里的旧 buffer/scene，让下次 _loadItemMesh 真正重新 parse
+      const stalePath = modelSync.getLocalPath(target);
+      if (stalePath) {
+        delete GLB_BUFFER_CACHE[stalePath];
+        delete GLB_BUFFER_PROMISES[stalePath];
+        if (this._loaderCache) delete this._loaderCache[stalePath];
+      }
+      // preview 与 room 走不同替换路径
+      if (this._isPreview) this._replacePreview(it);
+      else this._replaceCabinet(it);
+    });
+  }
+
+  // 找到 room 场景里匹配 it 的柜体 group，重新加载 mesh，保留 group.position/rotation/scale
+  _replaceCabinet(it) {
+    if (!this._cabinets || !this._roomGroup) return;
+    const match = this._cabinets.find((c) => c.item === it
+      || (c.item && c.item.code === it.code && c.item.w === it.w
+          && c.item.h === it.h && c.item.kind === it.kind));
+    if (!match) return;
+    const oldGroup = match.mesh;
+    this._loadItemMesh(match.item).then((mesh) => {
+      if (!mesh) return;
+      const THREE = this.THREE;
+      const wrap = new THREE.Group();
+      wrap.add(mesh);
+      // 复制原 group 的空间变换
+      wrap.position.copy(oldGroup.position);
+      wrap.rotation.copy(oldGroup.rotation);
+      wrap.scale.copy(oldGroup.scale);
+      // 重跑几何清洗 + 材质 + 边线（按 room 模式对应的 fit-scale 逻辑）
+      const CABINET_DEPTH_CM = 60;
+      const bbox = new THREE.Box3().setFromObject(mesh);
+      const size = new THREE.Vector3();
+      bbox.getSize(size);
+      const sx = size.x > 0.001 ? match.item.w / size.x : 1;
+      const sy = size.y > 0.001 ? match.item.h / size.y : 1;
+      const isCornerLike =
+        match.item.kind === 'corner' ||
+        (match.item.kind === 'raise' && (match.item.code === 'yg' || match.item.code === 'zg'));
+      const targetDepth = isCornerLike ? 110 : CABINET_DEPTH_CM;
+      const sz = size.z > 0.001 ? targetDepth / size.z : 1;
+      mesh.scale.set(sx, sy, sz);
+      const bbox2 = new THREE.Box3().setFromObject(mesh);
+      mesh.position.y -= bbox2.min.y;
+      mesh.position.x -= (bbox2.min.x + bbox2.max.x) / 2;
+      mesh.position.z -= (bbox2.min.z + bbox2.max.z) / 2;
+      wrap.traverse((n) => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } });
+      this._stripNonGeometryNodes(wrap);
+      this._normalizeMaterials(wrap);
+      this._applyMaterial(wrap, this._color, match.item);
+      this._applyEdges(wrap);
+      this._applyDoorVisibility(wrap);
+      // 替换
+      this._roomGroup.remove(oldGroup);
+      this._roomGroup.add(wrap);
+      match.mesh = wrap;
+    });
+  }
+
+  // preview 模式：仅当"当前正在展示的正是这个 it"时才重跑 renderSingle
+  // 用户已切走的预览不做替换，避免把新选中的柜体清掉
+  _replacePreview(it) {
+    if (!this._previewGroup) return;
+    const stillShown = this._previewGroup.children.find(
+      (g) => g.userData && g.userData._item === it
+    );
+    if (!stillShown) return;
+    Promise.resolve(this.renderSingle(it, this._color)).catch((err) => {
+      console.warn('[3D] hot-replace preview failed', err && err.message);
+    });
   }
 
   _loadItemMesh(it) {
@@ -1117,6 +1219,7 @@ class ThreeRenderer {
     }
     const path = this._resolveModelPath(it);
     if (!path) {
+      this._subscribeHotReplace(it);
       return Promise.resolve(this._fallbackBox(it));
     }
     // 命中本 renderer 自己的 parse 缓存：走 root.clone(true)（renderer 内 geo/mat 共享安全）
@@ -1161,8 +1264,9 @@ class ThreeRenderer {
     });
   }
 
-  // 优先用 wx.getFileSystemManager().readFile 读包内文件；
-  // 失败时回退到 wx.request 请求本地（仅在开发者工具/部分环境有效）。
+  // 优先用 wx.getFileSystemManager().readFile 读文件；
+  // - 包内路径（不以 wxfile:// 或 USER_DATA_PATH 开头）失败时降级去掉前导 /
+  // - USER_DATA_PATH / wxfile:// 路径不做降级
   // 模块级 buffer 缓存：同 path 跨 renderer 只读一次 disk。
   _readGlb(path) {
     if (GLB_BUFFER_CACHE[path]) {
@@ -1171,14 +1275,20 @@ class ThreeRenderer {
     if (GLB_BUFFER_PROMISES[path]) {
       return GLB_BUFFER_PROMISES[path];
     }
+    const userDataPrefix = (typeof wx !== 'undefined' && wx.env && wx.env.USER_DATA_PATH) || '';
+    const isUserData = (userDataPrefix && path.indexOf(userDataPrefix) === 0)
+                    || path.indexOf('wxfile://') === 0;
     const promise = new Promise((resolve, reject) => {
       const fs = wx.getFileSystemManager();
       fs.readFile({
         filePath: path,
         success: (res) => resolve(res.data),
         fail: (err) => {
+          if (isUserData) {
+            console.warn('[3D] readFile fail (userdata)', path, err && err.errMsg);
+            return reject(err);
+          }
           console.warn('[3D] readFile fail, try without leading slash', path, err && err.errMsg);
-          // 部分基础库需要不带前导 /
           fs.readFile({
             filePath: path.replace(/^\//, ''),
             success: (res) => resolve(res.data),
