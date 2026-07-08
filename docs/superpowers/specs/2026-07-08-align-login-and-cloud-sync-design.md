@@ -210,136 +210,441 @@
 
 ### 3.1 冷启动
 
+**目的**：小程序启动瞬间从本地缓存拉起登录态和设计列表，用户看到的第一屏就是有内容的，云端数据在后台异步覆盖。
+
+**流程（箭头链）**：
+
 ```
-onLaunch
-  1. wx.cloud.init(env)                                    // 与 main 一致
-  2. 恢复 storage.userInfo → globalData                    // 与 main 一致
-  3. 【新】恢复 storage.DESIGNS_CACHE → globalData.designs  // 秒渲，无云等待
-  4. 【新】一次性清理 storage.PLAN_LIST（若存在）
-  5. ensureLogin().then(→ loadUserProfile → loadAppConfig → refreshDesigns)
-     .catch(→ loadAppConfig + refreshDesigns，静默)         // 与 main 一致
-  6. 加载 HarmonyOS 字体                                    // 与 main 一致
+wx.cloud.init(env)
+        │
+        ▼
+storage.userInfo ──► globalData.userInfo/openid/nickName/…   （登录态秒恢复）
+        │
+        ▼
+storage.DESIGNS_CACHE ──► globalData.designs   （列表秒填，UI 立即可渲染）
+        │
+        ▼
+清理旧 storage.PLAN_LIST   （一次性迁移，忽略结果）
+        │
+        ▼
+ensureLogin()
+   ├─ 成功 ──► loadUserProfile ──► loadAppConfig ──► refreshDesigns
+   │                                                      │
+   │                                                      ▼
+   │                              globalData.designs & DESIGNS_CACHE 被云端数据覆盖
+   │
+   └─ 失败 ──► loadAppConfig + refreshDesigns（静默，保持本地兜底显示）
+        │
+        ▼
+加载 HarmonyOS 字体（并行，不阻塞上面链路）
 ```
+
+**详细步骤**：
+
+1. `wx.cloud.init({ env, traceUser: true })`（与 main 一致）。
+2. 恢复 `storage.userInfo` 到 `globalData`（与 main 一致）——登录态刷新后仍然存在。
+3. 【新】恢复 `storage.DESIGNS_CACHE.data` 到 `globalData.designs`；同时校验 `cache.openid` 与当前 openid 一致，不一致则丢弃。
+4. 【新】一次性清理旧键 `PLAN_LIST`（`wx.removeStorageSync`），仅第一次升级后生效。
+5. `ensureLogin() → loadUserProfile → loadAppConfig → refreshDesigns`（与 main 一致）；失败分支 `loadAppConfig + refreshDesigns` 静默。
+6. `_loadHarmonyFonts()`（与 main 一致）。
 
 ### 3.2 一键登录（用户走 register 页）
 
-**与 main 100% 一致**（整段拷贝）：
+**目的**：未登录用户从 profile 页点账户卡进入注册页，点一次按钮拿到 openid，回到 profile 页显示身份 ID；登录后自动拉取该用户的历史设计。**与 main 100% 一致**（整段拷贝，本节仅描述而不做任何行为改动）。
+
+**流程（箭头链）**：
 
 ```
-profile.onCardTap → wx.navigateTo('/packageDesign/register/register')
-register.onLogin →
-  app.ensureLogin()
-    → wx.cloud.callFunction('login') → openid
-    → globalData.openid + wx.setStorageSync('userInfo', {...openid, loginTime})
-  → 若无 registerTime → saveUserInfo({registerTime: now})
-  → app.refreshDesigns()
-  → wx.showToast('登录成功') + navigateBack
+profile.onCardTap （未登录）
+        │
+        ▼
+wx.navigateTo('/packageDesign/register/register')
+        │
+        ▼
+register.onLogin
+        │
+        ▼
+app.ensureLogin()
+        │
+        ▼
+wx.cloud.callFunction({ name: 'login' })
+        │
+        ▼
+云函数返回 { openid, appid, unionid }
+        │
+        ▼
+globalData.openid ✔️  +  wx.setStorageSync('userInfo', { openid, loginTime })
+        │
+        ▼
+无 registerTime? ──► saveUserInfo({ registerTime: now })
+        │
+        ▼
+app.refreshDesigns()   （首次登录后立刻拉云端历史）
+        │
+        ▼
+wx.showToast('登录成功')  +  navigateBack →  profile 页 _syncLoginState
 ```
+
+**详细步骤**：
+
+1. Profile 页 `onCardTap` 判断 `isLoggedIn === false`，`wx.navigateTo` 到分包 register 页。
+2. Register 页 `onLogin` 加锁 `loading = true`，调 `app.ensureLogin()`。
+3. `ensureLogin` 内部：若 `_loginPromise` 已在飞，直接复用；否则 `wx.cloud.callFunction({ name: 'login' })`，成功回填 `globalData.openid / isLoggedIn / userInfo` 并 `wx.setStorageSync('userInfo', ...)`；失败清空 `_loginPromise` 允许下次重试。
+4. 若 `userInfo.registerTime` 缺失（新用户），调 `saveUserInfo({ openid, registerTime })` 打点。
+5. 调 `app.refreshDesigns()`，拉取该 openid 的历史设计到 `globalData.designs`。
+6. `wx.showToast({ title: '登录成功', icon: 'success' })`，800 ms 后 `navigateBack`；profile 页 `onShow` 走 `_syncLoginState` 显示 openid 尾 6 位。
 
 ### 3.3 设计保存链路
 
-**space-setup.onConfirm**：与现状一致，仅在内存产生 `draftPlan`，`redirectTo` design。不涉及云。
+**目的**：用户走完 space-setup → design → materials → cost 四步，每一步都把当前状态落到云端 `designs` 集合的同一个文档上；图片全部先上云拿 fileID 再写文档；本地缓存同步更新，保证列表页秒渲。
 
-**design.onConfirmLayout**：
+**跨页流程（箭头链）**：
 
 ```
-1. 现有代码：构造 updatedPlan(带 previewImage/wireframeImage 两个 wxfile 临时路径)
-2. 【新】并行 uploadFile 3 张图：
-     previewFileID   = uploadFile(previewImage,   'designs/{id}_{ts}_preview.png')
-     wireframeFileID = uploadFile(wireframeImage, 'designs/{id}_{ts}_wire.png')
-     photoFileID     = draftPlan.photoPath ? uploadFile(...) : ''
-3. 【新】上传成功 → fm.saveFile 本地拷贝到 img-cache/，写 IMG_CACHE[fileID]
+space-setup 页                design 页                materials 页             cost 页
+ 输入墙面/名称   ─draftPlan─►  摆柜子/换色/截图  ─CurrentPlan─► 选5项材质  ─CurrentPlan─► 计算成本/烘线框图
+     (内存)                  ┌─────────┐               ┌─────────┐              ┌─────────────┐
+                             │onConfirm│               │ onCalc  │              │_maybeBake…  │
+                             │ Layout  │               │         │              │Wireframe    │
+                             └────┬────┘               └────┬────┘              └──────┬──────┘
+                                  ▼                         ▼                          ▼
+                          uploadFile ×3               doc.update                uploadFile ×1
+                          (preview/wire/photo)        (materials)               (wireframe带编号)
+                                  │                         │                          │
+                                  ▼                         ▼                          ▼
+                          designs.add ──► _id       designs.doc(_id).update      designs.doc(_id).update
+                                  │                         │                          │
+                                  ▼                         ▼                          ▼
+                          globalData + DESIGNS_CACHE  globalData + DESIGNS_CACHE  globalData + DESIGNS_CACHE
+                                  │                                                    │
+                                                                                       ▼
+                                                                              旧 wireframeFileID
+                                                                              wx.cloud.deleteFile
+```
+
+**3.3.1 space-setup.onConfirm**
+
+与现状一致。仅在内存产生 `draftPlan`（含 id/name/wall/cornerType/hasRaise/photoPath），`redirectTo` design。**不涉及云**。
+
+**3.3.2 design.onConfirmLayout**
+
+**目的**：把 3D 布局定稿（含预览图 + 无编号线框图 + 墙面照片）作为一条新记录首次写入 `designs` 集合。
+
+**流程（箭头链）**：
+
+```
+_renderer.captureLayoutImage ─► previewImage (wxfile://)
+_renderer.captureWireframeImage ─► wireframeImage (wxfile://)
+draftPlan.photoPath ─► photoPath (wxfile://)
+                │
+                ▼
+        并行 uploadFile ×3
+   ┌────────────┼────────────┐
+   ▼            ▼            ▼
+previewFileID  wireframeFileID  photoFileID
+   │            │            │
+   ▼            ▼            ▼
+      fm.saveFile → img-cache/
+      IMG_CACHE.register(fileID, savedPath)
+                │
+   ┌────────────┴────────────┐
+   ▼                         ▼
+写入云的 doc              回填内存的 plan
+(仅 3 个 FileID)          (FileID + 本地路径都保留)
+   │                         │
+   ▼                         ▼
+app.saveDesign(doc)      globalData.currentPlan = plan
+   │
+   ▼
+designs.add → _id ─► plan._id
+   │
+   ▼
+globalData.designs.unshift + DESIGNS_CACHE 覆盖
+   │
+   ▼
+wx.redirectTo → materials
+```
+
+**详细步骤**：
+
+1. 用现有代码构造 `updatedPlan`，其中 `previewImage / wireframeImage` 为 `_renderer.capture*Image` 返回的 wxfile 临时路径。
+2. 【新】并行 `wx.cloud.uploadFile` 3 张图（`cloudPath` 分别为 `designs/{plan.id}_{ts}_preview.png`、`_wire.png`、`_photo.jpg`；`photoPath` 空则跳过第三张）。
+3. 【新】上传成功后调 `imgCache.register(fileID, wxfilePath)`（内部 `fm.saveFile` 提升到 `img-cache/{md5(fileID)}.{ext}` 并写 storage.IMG_CACHE）。
 4. 分两份对象：
-   - **写入云的 doc**：字段 `previewImage / wireframeImage / photoPath` 移除；
-     只保留 `previewFileID / wireframeFileID / photoFileID`。
-   - **回填内存的 plan**：保留 FileID 字段的**同时**，把 `previewImage / wireframeImage / photoPath`
-     指向刚缓存好的本地路径。这样本会话内的后续渲染（materials 页缩略图 / cost 页导出）
-     无需再走 IMG_CACHE 查询即可直接命中，节省一层查表。
-5. app.saveDesign(doc) → 云端 add，返回 _id → 回填 plan._id
-6. globalData.designs 头部插入；DESIGNS_CACHE 同步覆盖
-7. redirectTo materials
-```
+   - **写入云的 doc**：移除 `previewImage / wireframeImage / photoPath`，只保留 `previewFileID / wireframeFileID / photoFileID`。
+   - **回填内存的 plan**：FileID 字段与本地路径字段并存，供本会话后续渲染直接命中。
+5. `app.saveDesign(doc)` → `db.collection('designs').add`，回填云端 `_id` 到 `plan._id`。
+6. `globalData.designs.unshift(plan)`；`DESIGNS_CACHE.data` 同步整体覆盖。
+7. `wx.redirectTo('/cabinet/pages/materials/index?from=design')`。
 
-**materials.onCalc**：
+**3.3.3 materials.onCalc**
 
-```
-1. plan.materials = 5 项选择
-2. app.saveDesign(plan)  // 内部走 doc(_id).update({ materials, updateTime })
-3. 更新 globalData.designs 对应项 + DESIGNS_CACHE
-4. redirectTo cost
-```
+**目的**：把用户在 materials 页选的 5 项材质（panel / doorPanel / doorCraft / hardware / lighting）作为增量更新写到已有的设计文档上。
 
-**cost._maybeBakeWireframe**：
+**流程（箭头链）**：
 
 ```
-1. canvasToTempFilePath → wxfile 临时路径
-2. uploadFile → new wireframeFileID；fm.saveFile 到 img-cache/，写 IMG_CACHE
-3. app.saveDesign({ ...plan, wireframeFileID, wireframeHasLabels: true })
-4. 若 plan 已有旧 wireframeFileID → wx.cloud.deleteFile 清理，避免云存储垃圾堆积
-   （与 main deleteDesignById 清理 previewFileID 的对称做法；失败仅 warn，不阻断）
-5. 更新 globalData + DESIGNS_CACHE
-6. this.setData({ plan: updated })
+用户选 5 项材质 ─► plan.materials
+        │
+        ▼
+app.saveDesign(plan)
+        │
+        ▼
+db.collection('designs').doc(plan._id).update({ materials, updateTime })
+        │
+        ▼
+globalData.designs 对应项覆盖 + DESIGNS_CACHE 同步
+        │
+        ▼
+wx.redirectTo → cost
 ```
+
+**详细步骤**：
+
+1. 用户点击"计算成本"，`plan.materials = {panel,doorPanel,doorCraft,hardware,lighting}`。
+2. `app.saveDesign(plan)`：内部识别 `plan._id` 存在，走 `doc(_id).update({ materials, updateTime: db.serverDate() })`。
+3. 更新内存与本地缓存。
+4. `wx.redirectTo('/cabinet/pages/cost/index?from=design&id=' + plan.id)`。
+
+**3.3.4 cost._maybeBakeWireframe**
+
+**目的**：cost 页首屏用 canvas 把无编号线框图叠上柜体编号，烘成新 PNG；替换掉原来的 `wireframeFileID`。这是 wireframe 图片的**第二次**上云（第一次在 design 页存的是无编号版）。
+
+**流程（箭头链）**：
+
+```
+plan.wireframeImage + labels ─► canvas 叠字 ─► canvasToTempFilePath
+        │
+        ▼
+wx.cloud.uploadFile ──► new wireframeFileID
+        │
+        ▼
+imgCache.register(new_fileID, wxfilePath)
+        │
+        ▼
+app.saveDesign({ ...plan, wireframeFileID: new_fileID, wireframeHasLabels: true })
+        │
+        ▼
+db.collection('designs').doc(plan._id).update
+        │
+        ▼
+旧 wireframeFileID ─► wx.cloud.deleteFile （避免云存储堆积）
+                     imgCache.remove(旧 fileID)
+        │
+        ▼
+globalData + DESIGNS_CACHE 同步 + this.setData({ plan: updated })
+```
+
+**详细步骤**：
+
+1. `canvasToTempFilePath` 得到叠好编号的 wxfile。
+2. `wx.cloud.uploadFile` 得到新 `wireframeFileID`；调 `imgCache.register` 缓存。
+3. `app.saveDesign({ ...plan, wireframeFileID, wireframeHasLabels: true })` 更新云文档。
+4. 旧 `wireframeFileID` 存在则 `wx.cloud.deleteFile([旧])` + `imgCache.remove(旧)`（与 main `deleteDesignById` 清理 `previewFileID` 对称；失败仅 warn，不阻断）。
+5. 更新 `globalData` 与 `DESIGNS_CACHE`。
+6. `this.setData({ plan: updated })` 让页面立即用新图。
 
 ### 3.4 列表读取（plan-list.onShow）
 
+**目的**：进入设计列表页，先用内存中的 `globalData.designs`（冷启动时来自本地缓存，热切换时可能已是云端最新）秒渲染，再异步用云端刷新覆盖；无网时保留本地兜底不弹错。
+
+**流程（箭头链）**：
+
 ```
-1. this.setData({ plans: globalData.designs })   // 秒渲(可能是本地缓存,可能是刚拉的云)
-2. app.refreshDesigns().then(list =>
-     this.setData({ plans: list })                 // 云端到位后覆盖
-   ).catch(→ 保持本地，silence)
+plan-list.onShow
+        │
+        ▼
+this.setData({ plans: globalData.designs })   （立即渲染，来自内存 / 本地缓存）
+        │
+        ▼
+app.refreshDesigns()
+        │
+        ├─ 成功 ──► globalData.designs 覆盖 + DESIGNS_CACHE 同步 ──► this.setData({ plans })
+        │
+        └─ 失败 ──► 静默，保持已渲染列表
 ```
+
+**详细步骤**：
+
+1. `this.setData({ plans: globalData.designs })` — 从内存直接渲染，可能是冷启动时刚从 DESIGNS_CACHE 恢复的、也可能已是最新云端数据。
+2. `app.refreshDesigns()` — 内部 `db.collection('designs').orderBy('createTime','desc').limit(30).get()`；成功即覆盖 `globalData.designs` 与 `DESIGNS_CACHE`，回到步骤 1 再 setData 一次。
+3. 失败静默 warn，不影响用户看到的列表。
 
 ### 3.5 单条读取（plan-list.onTapItem）
 
+**目的**：用户点列表某条设计进入 materials 页做二次编辑，此时数据完全来自内存，不请求云。
+
+**流程（箭头链）**：
+
 ```
-const design = app.getDesignById(id)   // 直接从 globalData.designs 内存查
-globalData.currentPlan = design
-navigateTo materials(from=list&id=...)
+plan-list.onTapItem(e)
+        │
+        ▼
+app.getDesignById(e.currentTarget.dataset.id)
+        │
+        ▼
+globalData.currentPlan = design    （跨页传递）
+        │
+        ▼
+wx.navigateTo → materials(from=list&id=…)
 ```
 
-**无云请求**。
+**详细步骤**：
+
+1. `app.getDesignById(id)` 从 `globalData.designs` 内存数组查找。
+2. 命中即赋 `globalData.currentPlan`，`wx.navigateTo` 到 materials 页。
+3. **无云请求**。
 
 ### 3.6 删除（plan-list.onConfirmDeleteOk）
 
+**目的**：用户在列表页删除一条设计，同时清理云文档、云存储三张图、本地缓存的对应条目和图片，防止残留。
+
+**流程（箭头链）**：
+
 ```
-app.deleteDesignById(id):
-  1. 找 target 于 globalData.designs
-  2. 先 wx.cloud.deleteFile([previewFileID, wireframeFileID, photoFileID].filter(Boolean))
-  3. db.collection('designs').doc(_id).remove()
-  4. globalData.designs 剔除；DESIGNS_CACHE 同步
-  5. IMG_CACHE 里对应 3 个 fileID 的本地文件 fm.unlink 掉，storage 表移除条目
+plan-list.onConfirmDeleteOk
+        │
+        ▼
+app.deleteDesignById(id)
+        │
+        ▼
+从 globalData.designs 找 target
+        │
+        ▼
+wx.cloud.deleteFile([previewFileID, wireframeFileID, photoFileID].filter(Boolean))
+        │
+        ▼
+db.collection('designs').doc(target._id).remove()
+        │
+        ▼
+globalData.designs 剔除 + DESIGNS_CACHE 同步
+        │
+        ▼
+imgCache.remove(每个 fileID)   （unlink 本地文件 + 摘 storage 条目）
 ```
+
+**详细步骤**：
+
+1. 从 `globalData.designs` 找到 target。
+2. 先 `wx.cloud.deleteFile` 清云存储 3 张图；失败仅 warn。
+3. `db.collection('designs').doc(target._id).remove()` 删云文档。
+4. 剔除 `globalData.designs` 与 `DESIGNS_CACHE` 中对应项。
+5. 对每个 fileID 调 `imgCache.remove(fileID)`：`fm.unlink` 本地文件 + storage.IMG_CACHE 摘除条目。
 
 ### 3.7 导出方案信息 / 导出方案成本
 
-```
-1. 用户选中 ids
-2. plans = ids.map(id => app.getDesignById(id))
-3. 【新】await _resolvePlanImages(plans):
-     for each plan,依次处理以下三个 FileID→本地字段映射：
-       previewFileID   → plan.previewImage
-       wireframeFileID → plan.wireframeImage
-       photoFileID     → plan.photoPath
+**目的**：把 N 条设计打包导出成 PDF。因为图片字段现在存的是 fileID（canvas 不认 `cloud://`），先前置一步把 fileID 解析成本地路径，再交给现有 pdf-exporter 一行不改地渲染。
 
-     每个映射的处理逻辑：
-       if FileID 为空       → 跳过，对应本地字段留空（pdf-exporter 已有"无预览/无照片"占位）
-       elif 内存字段已有值   → 保持不变（本会话保存时已经赋过本地路径）
-       elif IMG_CACHE 命中且 fm.accessSync 通过 → 本地字段 = cachedPath
-       else                 → getTempFileURL → downloadFile → fm.saveFile 到 img-cache/
-                              → register(fileID, savedPath) → 本地字段 = savedPath
-4. 现有 pdf-exporter.exportPlans / exportPlansWithCost 逻辑一行不动
+**流程（箭头链）**：
+
+```
+用户在导出弹窗选中 ids
+        │
+        ▼
+plans = ids.map(id => app.getDesignById(id))   （内存查，零请求）
+        │
+        ▼
+await _resolvePlanImages(plans)   ← 本次改造新增的前置层
+        │
+        ▼
+（对每个 plan 的 previewFileID/wireframeFileID/photoFileID，四级 fallback：见下）
+        │
+        ▼
+pdf-exporter.exportPlans / exportPlansWithCost   ← 一行不动
+        │
+        ▼
+生成 PDF ──► wx.openDocument
 ```
 
-`pdf-exporter.js` 内部读的仍是 `plan.photoPath / previewImage / wireframeImage`（现在是本地路径），完全兼容。
+**四级 fallback 逻辑**（对每张图片独立执行）：
+
+```
+FileID 字段
+     │
+     ├─ 为空 ──► 跳过，pdf-exporter 显示"无预览/无照片"占位
+     │
+     ├─ 内存 plan.previewImage 等已有本地路径 ──► 保持不变
+     │     （本会话保存时已 register 缓存，直接用）
+     │
+     ├─ 查 imgCache.resolve(fileID)：
+     │     命中且 fm.accessSync 通过 ──► 本地字段 = cachedPath
+     │
+     └─ 全部未命中：
+           wx.cloud.getTempFileURL → wx.downloadFile → fm.saveFile 到 img-cache/
+                                                            │
+                                                            ▼
+                                                   imgCache.register(fileID, savedPath)
+                                                            │
+                                                            ▼
+                                                   本地字段 = savedPath
+```
+
+**详细步骤**：
+
+1. 用户在导出选择弹窗确认 ids。
+2. `plans = ids.map(id => app.getDesignById(id)).filter(Boolean)` — 内存直接拿。
+3. `await _resolvePlanImages(plans)`：对每个 plan 的三个字段执行四级 fallback，产出 `plan.previewImage / wireframeImage / photoPath` 三个本地路径。
+4. 调用现有 `pdf-exporter.exportPlans({ canvas, plans, fileName })` 或 `exportPlansWithCost`。**pdf-exporter.js 内部一行不改。**
+5. 生成的 tempFilePath 交 `wx.openDocument` 打开。
+
+`pdf-exporter.js` 内部读的仍是 `plan.photoPath / previewImage / wireframeImage`（现在是本地路径），与旧行为完全兼容。
 
 ### 3.8 导出拆单规范
 
-**完全不动**。`onTapExportHardware → hardware-pdf-cloud.fetchHardwarePdf`，跟 plan 数据无关。
+**目的**：拉一份固定的 `hardware-fittings/*.pdf` 让用户下载查看，跟 plan 数据无关。
 
-### 3.9 用户资料（profile 页）
+**流程（箭头链）**：
 
-**与 main 100% 一致**：`saveProfile` 内部 `wx.cloud.uploadFile` 头像 → `app.saveUserProfile({ avatarFileID, nickName })`。
+```
+plan-list.onTapExportHardware
+        │
+        ▼
+hardware-pdf-cloud.fetchHardwarePdf({ onProgress })
+        │
+        ▼
+（本地 md5 缓存命中 → 直接返回本地路径；否则拉云端）
+        │
+        ▼
+wx.openDocument
+```
+
+**本节完全不动**，仅列出便于理解全景。
+
+### 3.9 用户资料保存（profile 页 saveProfile）
+
+**目的**：用户在 profile 编辑弹窗改头像 + 昵称并保存；头像先上传云存储拿 fileID，再把 fileID + 昵称写入 `users` 集合。**与 main 100% 一致**（整段拷贝）。
+
+**流程（箭头链）**：
+
+```
+profile.saveProfile
+        │
+        ├─ editAvatarTemp 空 ──► 沿用旧 avatarFileID
+        │
+        └─ editAvatarTemp 非空 ──► wx.cloud.uploadFile
+                                    (cloudPath: avatars/{openid}_{ts}.{ext})
+                                    │
+                                    ▼
+                                new avatarFileID
+        │
+        ▼
+app.saveUserProfile({ avatarFileID, nickName })
+        │
+        ▼
+db.collection('users').limit(1).get()
+        │
+        ├─ existing ──► db.collection('users').doc(_id).update
+        │
+        └─ 无 ────────► db.collection('users').add
+        │
+        ▼
+globalData.avatarFileID/nickName 覆盖 + storage.userInfo 同步
+        │
+        ▼
+wx.showToast('已保存') + 关弹窗 + _syncLoginState 刷新
+```
+
+**详细步骤**：与 main `profile.js:saveProfile`（`packageDesign` 之外的 profile 页版本）逐行一致，本节仅描述而不做行为改动。
 
 ## 错误处理
 
