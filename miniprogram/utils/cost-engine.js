@@ -36,12 +36,15 @@ const DOOR_CRAFT_DELTA = {
 };
 
 // 层板数量（按 type，对应 xlsx 数据库!A21:B25）
-const SHELF_COUNT = { a: 2, b: 2, c: 2, d: 3, g: 0 };
+// h：100H"上层板均分下抽屉柜子" —— 层板 5、A 抽 4（"下抽屉"按大抽解释）
+// e：100E —— 层板 6、无抽屉。注意 code 'e' 只在 100E.glb 场景命中；
+//     非标填缝柜 e1/e2 在 calcOne 里被替换成 '__nonstd__'，走裸壳分支。
+const SHELF_COUNT = { a: 2, b: 2, c: 2, d: 3, g: 0, h: 5, e: 6 };
 
 // A 抽屉数量（对应 xlsx 数据库!A28:B32）
-const A_DRAWER = { a: 0, b: 0, c: 2, d: 2, g: 0 };
+const A_DRAWER = { a: 0, b: 0, c: 2, d: 2, g: 0, h: 4, e: 0 };
 // B 抽屉数量（对应 xlsx 数据库!A35:B39）
-const B_DRAWER = { a: 0, b: 0, c: 0, d: 1, g: 0 };
+const B_DRAWER = { a: 0, b: 0, c: 0, d: 1, g: 0, h: 0, e: 0 };
 
 // 五金 — 铰链组（D29..D32 各装饰盖+底座+铰链等）
 // E2:G9 表，按 ROW 偏移 0..3 取 4 行（铰链/一字底座/装饰盖A/装饰盖B 等）
@@ -167,7 +170,12 @@ function calc({ cabinets, materials, wall }) {
 function calcOne(c, cfg) {
   const W = c.w; // 宽度 cm
   const H = c.h; // 高度 cm
-  const TYPE = (c.code || 'a').toLowerCase().charAt(0); // a/b/c/d/g
+  // 非标填缝柜 code 是 e1/e2（layout-engine.chooseNonStandardCode），
+  // 短命名 100E.glb 也解析成 code='e'。两者 charAt(0) 都会撞成 'e'，
+  // 但业务上：100E 是有 6 层板的标准柜，非标填缝仍然是"裸壳"。
+  // 用一个哨兵 code 让非标查表 miss、保持历史 0/0 行为。
+  const codeLc = (c.code || 'a').toLowerCase();
+  const TYPE = (codeLc === 'e1' || codeLc === 'e2') ? '__nonstd__' : codeLc.charAt(0);
   const isG = TYPE === 'g';
   const lightType = cfg.lighting; // 无/国产/进口
 
@@ -326,8 +334,10 @@ function calcOne(c, cfg) {
     pushHw('Ø5mm×12mm 尼龙螺丝预埋颗粒(挂衣杆)', rod2 * 4, tbl[2].unit);
     pushHw('M4×16 深螺纹镀镍螺丝(挂衣杆)', rod2 * 4, tbl[3].unit);
   }
-  // R47 海蒂诗 抽屉滑轨：数量 = type='c' ? 2 : type='d' ? 3 : 0
-  const slideQty = TYPE === 'c' ? 2 : TYPE === 'd' ? 3 : 0;
+  // R47 海蒂诗 抽屉滑轨：数量 = A_DRAWER + B_DRAWER（每只抽屉配 1 副滑轨）
+  // 原表只列了 c=2 / d=3，等价于当时 A_DRAWER[type] + B_DRAWER[type]；
+  // 现在按抽屉总数派生，新加类型（h=4 等）自动跟随。
+  const slideQty = (A_DRAWER[TYPE] || 0) + (B_DRAWER[TYPE] || 0);
   pushHw('海蒂诗 Quadro S 全拉出阻尼滑轨 30KG 500mm /对', slideQty, 60);
   // R48 数量 = R47 * 8 (尼龙螺丝)
   pushHw('Ø5mm×12mm 尼龙螺丝预埋颗粒(滑轨)', slideQty * 8, 0.141);

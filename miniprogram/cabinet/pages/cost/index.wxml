@@ -9,7 +9,10 @@
              src="{{plan.wireframeImage}}"
              mode="widthFix"
              show-menu-by-longpress="{{false}}"></image>
-      <view class="wf-label" wx:for="{{labelPositions}}" wx:key="key"
+      <!-- DOM 编号只在图片本身还没烘编号时补位；一旦成功烘焙（wireframeHasLabels && 版本匹配），
+           图里已经画了一份，就不再叠 DOM，否则同色重叠会显得粗虚 = 视觉"重影"。-->
+      <view wx:if="{{!wireframeReady}}"
+            class="wf-label" wx:for="{{labelPositions}}" wx:key="key"
             style="left: {{item.left}}%; top: {{item.top}}%;">{{item.idx}}</view>
     </view>
   </view>

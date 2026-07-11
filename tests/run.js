@@ -573,6 +573,60 @@ group('layout-engine.renderRows 加高分层', () => {
   eq(layout.renderRows(s2).top.length, 0, '不加高时顶层为空');
 });
 
+// ---- cost-engine 100H：层板 5 / A 抽 4 / 无 B 抽 ----
+group('cost-engine 100H h 型抽屉与层板计入', () => {
+  const out = cost.calc({
+    cabinets: [{ label: '左下1', code: 'h', w: 100, h: 230, kind: 'standard' }],
+    materials: { panel: 'E2国产板', doorPanel: '柜体相同', doorCraft: '无', hardware: '中国品牌', lighting: '无' },
+  });
+  const panels = out.modules[0].detail.panels;
+  const shelf = panels.find((p) => p.name === '层板');
+  const aFace = panels.find((p) => p.name === 'A抽面');
+  const bFace = panels.find((p) => p.name === 'B抽面');
+  eq(shelf.qty, 5, '层板 qty=5');
+  eq(aFace.qty, 4, 'A抽面 qty=4');
+  eq(bFace.qty, 0, 'B抽面 qty=0（全按 A 抽）');
+  // 5 项与 h 抽屉数联动
+  const hw = out.modules[0].detail.hardware;
+  const slide = hw.find((h) => /Quadro/.test(h.name));
+  const trio = hw.find((h) => /三合一/.test(h.name));
+  eq(slide.qty, 4, '滑轨 qty = A+B = 4');
+  eq(trio.qty, 60, '三合一 qty = 滑轨*15 = 60');
+});
+
+// ---- cost-engine 100E：层板 6 / 无抽屉 ----
+group('cost-engine 100E e 型层板计入且无抽屉', () => {
+  const out = cost.calc({
+    cabinets: [{ label: '左下1', code: 'e', w: 100, h: 230, kind: 'standard' }],
+    materials: { panel: 'E2国产板', doorPanel: '柜体相同', doorCraft: '无', hardware: '中国品牌', lighting: '无' },
+  });
+  const panels = out.modules[0].detail.panels;
+  const shelf = panels.find((p) => p.name === '层板');
+  const aFace = panels.find((p) => p.name === 'A抽面');
+  const bFace = panels.find((p) => p.name === 'B抽面');
+  eq(shelf.qty, 6, '层板 qty=6');
+  eq(aFace.qty, 0, 'A抽面 qty=0（100E 无抽屉）');
+  eq(bFace.qty, 0, 'B抽面 qty=0');
+  const hw = out.modules[0].detail.hardware;
+  const slide = hw.find((h) => /Quadro/.test(h.name));
+  truthy(!slide || slide.qty === 0, '无滑轨（qty=0 应被 pushHw 过滤掉，或值为 0）');
+});
+
+// ---- cost-engine 非标 e1/e2 与 100E 隔离：仍是裸壳 ----
+group('cost-engine 非标 e1/e2 不复用 100E 的表', () => {
+  ['e1', 'e2'].forEach((code) => {
+    const out = cost.calc({
+      cabinets: [{ label: '左下1', code, w: 80, h: 230, kind: 'nonstandard' }],
+      materials: { panel: 'E2国产板', doorPanel: '柜体相同', doorCraft: '无', hardware: '中国品牌', lighting: '无' },
+    });
+    const panels = out.modules[0].detail.panels;
+    const shelf = panels.find((p) => p.name === '层板');
+    const aFace = panels.find((p) => p.name === 'A抽面');
+    eq(shelf.qty, 0, code + ' 层板 qty=0（非标裸壳）');
+    eq(aFace.qty, 0, code + ' A抽面 qty=0');
+  });
+});
+
 // ---- cost-engine 带 wall 时应包含 SK 收口 ----
 group('cost-engine SK 收口', () => {
   const out = cost.calc({

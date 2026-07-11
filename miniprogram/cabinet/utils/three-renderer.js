@@ -70,11 +70,19 @@ class ThreeRenderer {
     const aspect = w / h || 1;
     const fov = 45;
     const camera = new THREE.PerspectiveCamera(fov, aspect, 1, 5000);
-    const dist = (this.wall.w / 2) / Math.tan((fov * Math.PI / 180) / 2) + this.wall.h * 0.5;
+    // 相机距离：宽/高各算一次所需距离取较大者，加 10% 边距，保证窄高墙也能露出顶底。
+    // threejs 的 PerspectiveCamera(fov) 是"垂直"视场角；水平视场角要按 aspect 换算，
+    // 否则窄画布 + 宽墙、或竖屏 + 高墙都会裁边。
+    const halfFovV = (fov * Math.PI / 180) / 2;
+    const halfFovH = Math.atan(Math.tan(halfFovV) * aspect);
+    const distW = (this.wall.w / 2) / Math.tan(halfFovH);
+    const distH = (this.wall.h / 2) / Math.tan(halfFovV);
+    const dist = Math.max(distW, distH) * 1.1;
     camera.position.set(0, this.wall.h / 2, dist);
     camera.lookAt(0, this.wall.h / 2, 0);
     this.camera = camera;
     this._cameraDist = dist;
+    this._baseFov = fov; // 缩放通过压 fov 实现，避免"推近相机"导致高瘦墙先裁顶底
 
     // preserveDrawingBuffer: true 是 iOS 真机必需。默认 false 时 iOS 把上一帧
     // 主动清掉后再让 wx.canvasToTempFilePath 读，结果是 null / 黑图，导致
@@ -242,7 +250,7 @@ class ThreeRenderer {
     this._normalizeMaterials(group);
     this._applyMaterial(group, colorId, item);
     // 原木色但贴图还没就绪：触发加载；就绪后 _ensureWoodTexture 会重刷预览
-    if (colorId === 'wood' && !this._woodTexture) {
+    if (colorId === 'wood' && !this._woodImage) {
       this._ensureWoodTexture();
     }
     // 白色但贴图还没就绪：触发加载；就绪后 _ensureWhiteTexture 会重刷预览
@@ -591,7 +599,17 @@ class ThreeRenderer {
         this._roomGroup.rotation.x = this._rotX;
         this._roomGroup.rotation.y = this._rotY;
       }
-      this.camera.position.z = this._cameraDist / this._zoom;
+      // 缩放走 fov 而不是相机 z：真正的等比缩放，画面里宽高同倍放大/缩小。
+      // 之前用 camera.z / zoom 是透视放大，垂直半 fov(22.5°) 比水平半 fov 小（横屏画布下），
+      // 高墙的顶底会先于左右被裁掉——用户看到"顶部和底部看不到"就是这个成因。
+      this.camera.position.z = this._cameraDist;
+      const base = this._baseFov || 45;
+      // fov 缩放公式：tan(newHalfFov) = tan(baseHalfFov) / zoom
+      const newFov = 2 * Math.atan(Math.tan(base * Math.PI / 360) / this._zoom) * 180 / Math.PI;
+      if (this.camera.fov !== newFov) {
+        this.camera.fov = newFov;
+        this.camera.updateProjectionMatrix && this.camera.updateProjectionMatrix();
+      }
       this.camera.lookAt(0, this.wall.h / 2, 0);
       this.renderer.render(this.scene, this.camera);
     };
@@ -688,7 +706,7 @@ class ThreeRenderer {
     // edge 线随色变（白色用更淡的浅灰，避免密集板缝把白柜染灰）
     this._syncEdgeMatToColor(colorId);
     // 切到原木色且贴图还没就绪：把加载顶起来；就绪回调里会再刷一遍
-    if (colorId === 'wood' && !this._woodTexture) {
+    if (colorId === 'wood' && !this._woodImage) {
       this._ensureWoodTexture();
     }
     // 切到白色且贴图还没就绪：同样触发加载
@@ -739,27 +757,22 @@ class ThreeRenderer {
     return this._whiteImagePromise;
   }
 
-  // 懒加载 utils/wood.jpg → THREE.Texture。每个 renderer 各持一份（Texture 与 WebGL
+  // 懒加载 utils/wood.jpg → THREE.Image。每个 renderer 各持一份（Texture 与 WebGL
   // 上下文绑定，跨 renderer 共享会出 GPU 资源串扰）。加载成功后若当前 _color 仍是
   // wood，会把所有已落地的柜体材质重刷一遍把贴图盖上去。
+  // 注意：这里只保留 Image，不共享 Texture。repeat 是 texture 级状态，共享 Texture
+  // 会让不同尺寸柜体之间互相覆盖 repeat；实际 Texture 在 _applyMaterial 里按柜
+  // 尺寸新建（与 white 分支同款结构）。
   _ensureWoodTexture() {
-    if (this._woodTexture) return Promise.resolve(this._woodTexture);
+    if (this._woodImage) return Promise.resolve(this._woodImage);
     if (this._woodTexturePromise) return this._woodTexturePromise;
     if (!this.canvas || !this.THREE || !this.canvas.createImage) {
       return Promise.resolve(null);
     }
-    const THREE = this.THREE;
     this._woodTexturePromise = new Promise((resolve) => {
       const img = this.canvas.createImage();
       img.onload = () => {
-        const tex = new THREE.Texture(img);
-        if (THREE.sRGBEncoding) tex.encoding = THREE.sRGBEncoding;
-        if (THREE.RepeatWrapping) {
-          tex.wrapS = THREE.RepeatWrapping;
-          tex.wrapT = THREE.RepeatWrapping;
-        }
-        tex.needsUpdate = true;
-        this._woodTexture = tex;
+        this._woodImage = img;
         // 就绪后若当前色是原木，把已落地的柜体 & 预览柜体全部重刷一遍
         if (this._color === 'wood') {
           if (this._cabinets && this._cabinets.length) {
@@ -771,7 +784,7 @@ class ThreeRenderer {
             });
           }
         }
-        resolve(tex);
+        resolve(img);
       };
       img.onerror = (e) => {
         console.warn('[3D] wood texture load failed', e && (e.errMsg || e.message));
@@ -783,28 +796,22 @@ class ThreeRenderer {
     return this._woodTexturePromise;
   }
 
-  // 懒加载 utils/wood_NormalMap.jpg → THREE.Texture，作为原木色柜体的法线贴图。
-  // 法线贴图比 bumpMap 能准确表达木纹方向（凹凸 + 光照角度），让木板有真正的浮雕感。
-  // 失败时静默回退（仅 wood map 生效，没有法线浮雕，与未做这一步等价）。
+  // 懒加载 utils/wood_NormalMap.jpg → THREE.Image，作为原木色柜体的凹凸贴图。
+  // 法线贴图比 bumpMap 能准确表达木纹方向（凹凸 + 光照角度），让木板有真正的浮雕感；
+  // 但 threejs-miniprogram 下 GLTF 缺切线 attribute → 走 bumpMap 灰度分支代替。
+  // 与 wood.jpg 同理只保留 Image，Texture 在 _applyMaterial 里按柜尺寸新建。
+  // 失败时静默回退（仅 wood map 生效，没有凹凸浮雕，与未做这一步等价）。
   _ensureWoodNormalTexture() {
-    if (this._woodNormalTexture) return Promise.resolve(this._woodNormalTexture);
+    if (this._woodNormalImage) return Promise.resolve(this._woodNormalImage);
     if (this._woodNormalTexturePromise) return this._woodNormalTexturePromise;
     if (!this.canvas || !this.THREE || !this.canvas.createImage) {
       return Promise.resolve(null);
     }
-    const THREE = this.THREE;
     this._woodNormalTexturePromise = new Promise((resolve) => {
       const img = this.canvas.createImage();
       img.onload = () => {
-        const tex = new THREE.Texture(img);
-        // 法线贴图必须是 linear 空间，不能加 sRGB encoding，否则法线方向被 gamma 曲线扭曲
-        if (THREE.RepeatWrapping) {
-          tex.wrapS = THREE.RepeatWrapping;
-          tex.wrapT = THREE.RepeatWrapping;
-        }
-        tex.needsUpdate = true;
-        this._woodNormalTexture = tex;
-        // 就绪后若当前色是原木，把已落地的柜体 & 预览柜体重刷一遍把 normalMap 盖上去
+        this._woodNormalImage = img;
+        // 就绪后若当前色是原木，把已落地的柜体 & 预览柜体重刷一遍把 bumpMap 盖上去
         if (this._color === 'wood') {
           if (this._cabinets && this._cabinets.length) {
             this._cabinets.forEach((c) => this._applyMaterial(c.mesh, 'wood', c.item));
@@ -818,7 +825,7 @@ class ThreeRenderer {
             }
           }
         }
-        resolve(tex);
+        resolve(img);
       };
       img.onerror = (e) => {
         console.warn('[3D] wood normal map load failed', e && (e.errMsg || e.message));
@@ -946,15 +953,25 @@ class ThreeRenderer {
   _applyMaterial(group, colorId, item) {
     if (!group) return;
     const THREE = this.THREE;
-    const useWood = colorId === 'wood' && !!this._woodTexture;
+    const useWood = colorId === 'wood' && !!this._woodImage;
     const useWhiteTex = colorId === 'white' && !!this._whiteImage;
     const hex = COLOR_HEX[colorId] || COLOR_HEX.white;
     const flatColor = new THREE.Color(hex);
     const whiteTintColor = (useWood || useWhiteTex) ? new THREE.Color(0xffffff) : null;
 
     // 为本次着色构造一份独立 Texture：repeat 是材质级状态，多柜共享会互相覆盖，
-    // 所以每柜（每次 _applyMaterial）都基于共享的 _whiteImage 新建一个 Texture 包装层。
+    // 所以每柜（每次 _applyMaterial）都基于共享 Image 新建一个 Texture 包装层。
     // WebGL 上传层会识别同一 Image，GPU 端只占一份纹理内存。
+    const w = (item && item.w) || 100;
+    const h = (item && item.h) || 100;
+    const maxAniso = (() => {
+      try {
+        return this.renderer && this.renderer.capabilities
+          && this.renderer.capabilities.getMaxAnisotropy
+          && this.renderer.capabilities.getMaxAnisotropy();
+      } catch (e) { return 0; }
+    })();
+
     let whiteTex = null;
     if (useWhiteTex) {
       whiteTex = new THREE.Texture(this._whiteImage);
@@ -963,17 +980,36 @@ class ThreeRenderer {
         whiteTex.wrapT = THREE.RepeatWrapping;
       }
       if (THREE.sRGBEncoding) whiteTex.encoding = THREE.sRGBEncoding;
-      const w = (item && item.w) || 100;
-      const h = (item && item.h) || 100;
-      // 1 张 white.png 代表 100cm × 100cm 真实柜面
       whiteTex.repeat.set(w / 100, h / 100);
-      try {
-        const maxAniso = this.renderer && this.renderer.capabilities
-          && this.renderer.capabilities.getMaxAnisotropy
-          && this.renderer.capabilities.getMaxAnisotropy();
-        if (maxAniso) whiteTex.anisotropy = Math.min(8, maxAniso);
-      } catch (e) { /* ignore */ }
+      if (maxAniso) whiteTex.anisotropy = Math.min(8, maxAniso);
       whiteTex.needsUpdate = true;
+    }
+
+    // 原木色：wood.jpg + wood_NormalMap.jpg 都按"1 张 = 100cm × 100cm"重复。
+    // 之前没设 repeat，一张图被拉伸盖满整个柜面 → 木纹稀疏、模糊、像色块。
+    // 两张贴图共用同一 repeat，纹理与凹凸保持对齐。
+    let woodTex = null, woodBumpTex = null;
+    if (useWood) {
+      woodTex = new THREE.Texture(this._woodImage);
+      if (THREE.sRGBEncoding) woodTex.encoding = THREE.sRGBEncoding;
+      if (THREE.RepeatWrapping) {
+        woodTex.wrapS = THREE.RepeatWrapping;
+        woodTex.wrapT = THREE.RepeatWrapping;
+      }
+      woodTex.repeat.set(w / 100, h / 100);
+      if (maxAniso) woodTex.anisotropy = Math.min(8, maxAniso);
+      woodTex.needsUpdate = true;
+      if (this._woodNormalImage) {
+        woodBumpTex = new THREE.Texture(this._woodNormalImage);
+        // bumpMap 走灰度梯度算法，不加 sRGB encoding，保持 linear
+        if (THREE.RepeatWrapping) {
+          woodBumpTex.wrapS = THREE.RepeatWrapping;
+          woodBumpTex.wrapT = THREE.RepeatWrapping;
+        }
+        woodBumpTex.repeat.set(w / 100, h / 100);
+        if (maxAniso) woodBumpTex.anisotropy = Math.min(8, maxAniso);
+        woodBumpTex.needsUpdate = true;
+      }
     }
 
     group.traverse((node) => {
@@ -985,13 +1021,15 @@ class ThreeRenderer {
       mats.forEach((m) => {
         if (!m) return;
         if (useWood) {
-          if ('map' in m) m.map = this._woodTexture;
+          if ('map' in m) m.map = woodTex;
           // wood_NormalMap.jpg 作为 bumpMap 使用：threejs-miniprogram 下 GLTF 模型缺少
           // 切线 attribute，normalMap 路径会让柜面渲染成全黑。bumpMap 走灰度梯度算法，
-          // 不依赖切线，能稳定表达木纹凹凸。bumpScale 小一些避免凹凸过头。
+          // 不依赖切线，能稳定表达木纹凹凸。
+          // bumpScale 0.9：之前 0.4 配合"1 张贴图撑满整柜"时凹凸太糊；
+          // 改为按 100×100cm 重复后木纹密度已够，凹凸可以适度加强。
           if ('normalMap' in m) m.normalMap = null;
-          if ('bumpMap' in m) m.bumpMap = this._woodNormalTexture || null;
-          if ('bumpScale' in m) m.bumpScale = this._woodNormalTexture ? 0.4 : 0;
+          if ('bumpMap' in m) m.bumpMap = woodBumpTex;
+          if ('bumpScale' in m) m.bumpScale = woodBumpTex ? 0.9 : 0;
           // map 需要 color 为白才不会被反向 tint
           if (m.color) m.color.copy(whiteTintColor);
         } else if (useWhiteTex) {
@@ -1379,7 +1417,9 @@ class ThreeRenderer {
   }
 
   // 把当前主 3D 画面以 jpg 形式保存为微信临时文件，用于 materials 页布局预览。
-  // 截图前临时把视角重置为正面 / zoom=1.5（"3D 空间正面、150%"），截完恢复用户原视角。
+  // 截图前临时把视角重置为正面 / zoom=1（完全可见，宽高不被裁），截完恢复用户原视角。
+  // 之前用 1.5 是想让预览"看上去更满"，但配合 fov-based zoom 就成了物理裁边——
+  // 而截图必须保证整墙完整入镜（下游 wireframe 加编号也依赖完整墙面坐标）。
   // 返回 Promise<tempFilePath | null>。
   captureLayoutImage(quality) {
     if (!this.canvas || !this.renderer || !this.scene || !this.camera) {
@@ -1388,7 +1428,7 @@ class ThreeRenderer {
     const savedRotX = this._rotX;
     const savedRotY = this._rotY;
     const savedZoom = this._zoom;
-    const CAPTURE_ZOOM = 1.5;
+    const CAPTURE_ZOOM = 1;
     this._rotX = 0;
     this._rotY = 0;
     this._zoom = CAPTURE_ZOOM;
@@ -1397,7 +1437,11 @@ class ThreeRenderer {
         this._roomGroup.rotation.x = 0;
         this._roomGroup.rotation.y = 0;
       }
-      this.camera.position.z = this._cameraDist / CAPTURE_ZOOM;
+      // 缩放走 fov（与主循环一致）：保证宽高等比，避免高瘦墙截图裁顶底
+      this.camera.position.z = this._cameraDist;
+      const base = this._baseFov || 45;
+      this.camera.fov = 2 * Math.atan(Math.tan(base * Math.PI / 360) / CAPTURE_ZOOM) * 180 / Math.PI;
+      this.camera.updateProjectionMatrix && this.camera.updateProjectionMatrix();
       this.camera.lookAt(0, this.wall.h / 2, 0);
       this.renderer.render(this.scene, this.camera);
     } catch (e) {
@@ -1416,7 +1460,7 @@ class ThreeRenderer {
 
   // 把当前主 3D 画面"去掉墙体/地板/顶板"后再截图，用作 materials 页的线框图。
   // _roomGroup 里直接挂的 Mesh 都是墙体/地/顶（柜体被包成 Group），临时 visible=false
-  // 即可隐藏。背景换纯白（jpg 不支持透明）。视角同样正面 / zoom=1.5。
+  // 即可隐藏。背景换纯白（jpg 不支持透明）。视角同样正面 / zoom=1（宽高不被裁）。
   captureWireframeImage(quality) {
     if (!this.canvas || !this.renderer || !this.scene || !this.camera || !this._roomGroup) {
       return Promise.resolve(null);
@@ -1425,7 +1469,7 @@ class ThreeRenderer {
     const savedRotY = this._rotY;
     const savedZoom = this._zoom;
     const savedBg = this.scene.background;
-    const CAPTURE_ZOOM = 1.5;
+    const CAPTURE_ZOOM = 1;
     const hidden = [];
     this._roomGroup.children.forEach((child) => {
       if (child.isMesh) {
@@ -1442,7 +1486,11 @@ class ThreeRenderer {
     try {
       this._roomGroup.rotation.x = 0;
       this._roomGroup.rotation.y = 0;
-      this.camera.position.z = this._cameraDist / CAPTURE_ZOOM;
+      // 缩放走 fov（与主循环一致）
+      this.camera.position.z = this._cameraDist;
+      const base = this._baseFov || 45;
+      this.camera.fov = 2 * Math.atan(Math.tan(base * Math.PI / 360) / CAPTURE_ZOOM) * 180 / Math.PI;
+      this.camera.updateProjectionMatrix && this.camera.updateProjectionMatrix();
       this.camera.lookAt(0, this.wall.h / 2, 0);
       this.renderer.render(this.scene, this.camera);
     } catch (e) {

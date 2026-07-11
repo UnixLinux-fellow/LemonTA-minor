@@ -544,6 +544,7 @@ Page({
       previewImage,
       wireframeImage,
       wireframeHasLabels: false,
+      wireframeLabelsVersion: 0, // 原始图，未烘编号；成本页会用当前版本重烘
       previewFileID: previewFileID || plan.previewFileID || '',
       wireframeFileID: wireframeFileID || plan.wireframeFileID || '',
       photoFileID: photoFileID || plan.photoFileID || '',

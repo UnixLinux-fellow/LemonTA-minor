@@ -1,0 +1,87 @@
+{
+  "meta": {
+    "caseId": "56d099e8-0d73-41fd-87bb-736763bac923",
+    "caseName": "测试登录/注册功能",
+    "remarks": "",
+    "version": "0.0.1",
+    "startTime": 1783561126627,
+    "endTime": 1783561164802,
+    "appid": "wxf2357467a5efeeee",
+    "casePath": "",
+    "caseType": "normal",
+    "commonParams": [
+      {
+        "key": "1783561164828",
+        "name": "",
+        "value": ""
+      }
+    ]
+  },
+  "env": {
+    "wxapplibVersion": "3.16.1",
+    "devtoolsVersion": "2.01.2510290",
+    "openid": "o6zAJs2hOkytMBaGWKuoLiPACKDE",
+    "entry": {
+      "query": "",
+      "scene": 1001
+    },
+    "mock": [
+      "none"
+    ],
+    "maxWaitFor": 10000,
+    "ignoreSelectors": [],
+    "mockAPIs": [],
+    "cleanCache": [
+      "none"
+    ],
+    "groupTouch": false,
+    "replaySetting": {
+      "screenshot": "all"
+    },
+    "simulatorType": "wechat",
+    "device": "iPhone 15 Pro Max",
+    "recordAPIs": []
+  },
+  "commands": [
+    {
+      "layer": "tool",
+      "commandType": "operate",
+      "command": "startRecord",
+      "waitfor": 0,
+      "timeStamp": 1783561126627,
+      "desc": ""
+    },
+    {
+      "timeStamp": 18094,
+      "waitfor": 10000,
+      "desc": "",
+      "commandType": "operate",
+      "layer": "native",
+      "command": "switchTab",
+      "text": "设计",
+      "data": {
+        "url": "pages/plan-list/index"
+      }
+    },
+    {
+      "timeStamp": 20605,
+      "waitfor": 2511,
+      "desc": "",
+      "commandType": "operate",
+      "layer": "native",
+      "command": "switchTab",
+      "text": "首页",
+      "data": {
+        "url": "pages/home/home"
+      }
+    },
+    {
+      "timeStamp": 38175,
+      "waitfor": 10000,
+      "desc": "",
+      "layer": "tool",
+      "commandType": "operate",
+      "command": "stopRecord"
+    }
+  ]
+}
