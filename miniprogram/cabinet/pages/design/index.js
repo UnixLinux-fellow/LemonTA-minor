@@ -689,6 +689,8 @@ Page({
           });
         });
         if (!proceed) {
+          // 用户取消入库, 但 COS 上文件已上传成功。留个日志给运维追踪孤儿。
+          console.warn('[design] GLB orphaned on COS after user declined:', uploadedFileID);
           this.setData({ uploadModalVisible: false });
           return;
         }
