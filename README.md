@@ -17,3 +17,14 @@
 "我的设计"页面标题右侧的"上传新模型"按钮支持将 GLB 上传到 `cabinet-model-standard/{50cm,100cm,zj}/`,并将元数据写入云数据库集合 `model_panel_hardware`。命名必须匹配 `50X.glb` / `100X.glb` / `Y*.glb` / `Z*.glb` / `YG*.glb` / `ZG*.glb`(不区分大小写),不匹配将被拒绝上传。
 
 流程:主包 `plan-list` 只做文件选择 + 命名校验,然后把数据放到 `globalData.pendingUpload` 并 `navigateTo` 到分包内的 `cabinet/pages/upload-processor`。上传/解析/入库都在分包里完成(threejs-miniprogram 只装到分包),结束后自动 `navigateBack` 并在 `plan-list.onShow` 弹 toast。上传的模型不会立即出现在设计页 picker 中——picker 仍从旧的 `cabinet-model/` 目录同步。
+
+## 元数据本地缓存
+
+上传成功后,`upload-processor` 会把整份 `meta`(板件尺寸、面积、五金默认清单等)写入 `wx.setStorage` 的 `model_meta_<fileName>` key。后续设计/成本页想复用同一模型的元数据时,可以调 `miniprogram/utils/model-meta-cache.js` 的:
+
+- `peekMeta(fileName)` — 同步读本地,miss 返回 `null`(适合渲染前的乐观读)
+- `getMeta(fileName)` — 优先本地,miss 自动查 `model_panel_hardware` 集合并回填缓存
+- `setMeta(fileName, meta)` — 上传成功时写入
+- `removeMeta(fileName)` — 手工清一条
+
+同一次会话里并发调 `getMeta('X.glb')` 只会查一次库(用 in-flight promise 去重)。目前 cost-engine 还没接上这份缓存,仍走硬编码公式,接线留给下一 PR。

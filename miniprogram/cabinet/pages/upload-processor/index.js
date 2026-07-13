@@ -4,6 +4,7 @@
 // 用户在此页面除等待外无其他交互;成功/失败均会自动跳回。
 
 const glbMetadata = require('../../../utils/glb-metadata.js');
+const modelMetaCache = require('../../../utils/model-meta-cache.js');
 const { createScopedThreejs } = require('threejs-miniprogram');
 const attachGLTFLoader = require('../../vendor/GLTFLoader.js');
 
@@ -149,6 +150,9 @@ Page({
       this.setData({ stageTitle: '写入数据库...' });
       const db = wx.cloud.database();
       await db.collection(MODEL_PANEL_HARDWARE).add({ data: meta });
+
+      // 5) 写本地缓存, 后续设计消费同名模型时直接命中, 不用再查库
+      modelMetaCache.setMeta(file.name, meta);
 
       finishAndBack('上传成功', true);
     } catch (err) {
