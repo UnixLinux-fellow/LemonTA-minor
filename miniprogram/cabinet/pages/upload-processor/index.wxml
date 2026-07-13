@@ -1,0 +1,10 @@
+<view class="up">
+  <!-- 供 createScopedThreejs 用的 1x1 隐藏 webgl canvas -->
+  <canvas type="webgl" id="glb-parse-canvas" class="glb-parse-canvas"></canvas>
+
+  <view class="up-card">
+    <view class="up-title">{{stageTitle}}</view>
+    <view class="up-sub">{{fileName}}</view>
+    <view class="up-hint">请勿返回或关闭页面</view>
+  </view>
+</view>

@@ -22,7 +22,8 @@
       "pages": [
         "pages/design/index",
         "pages/materials/index",
-        "pages/cost/index"
+        "pages/cost/index",
+        "pages/upload-processor/index"
       ]
     },
     {

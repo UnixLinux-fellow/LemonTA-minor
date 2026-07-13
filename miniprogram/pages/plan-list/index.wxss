@@ -173,11 +173,3 @@
   height: 842px;
 }
 
-/* 隐藏 webgl canvas —— 供 GLB 上传时 createScopedThreejs 用, 不显示 */
-.glb-parse-canvas {
-  position: fixed;
-  left: -9999px;
-  top: -9999px;
-  width: 1px;
-  height: 1px;
-}

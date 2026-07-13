@@ -109,9 +109,6 @@
 
   <canvas type="2d" id="pdf-canvas" class="pdf-canvas"></canvas>
 
-  <!-- GLB 元数据解析用的 webgl canvas。不显示不占布局,仅让 GLTFLoader 拿到 scoped THREE -->
-  <canvas type="webgl" id="glb-parse-canvas" class="glb-parse-canvas"></canvas>
-
   <upload-model-modal
     visible="{{uploadModalVisible}}"
     binduploadcancel="onCancelUploadModal"
