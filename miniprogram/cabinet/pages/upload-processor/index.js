@@ -125,19 +125,6 @@ Page({
       );
       meta.cos_path = fileID;
 
-      // 调试:打印解析结果,方便运维核对板件/五金/尺寸
-      console.log('[upload-processor] parsed meta:', JSON.stringify(meta, null, 2));
-      console.log('[upload-processor] meta summary:', {
-        glb_file_name: meta.glb_file_name,
-        model_category: meta.model_category,
-        overall_size: meta.overall_size,
-        board_count: (meta.board_list || []).length,
-        hanging_rail_count: (meta.hanging_rail_list || []).length,
-        total_body_area: meta.total_body_area,
-        total_door_area: meta.total_door_area,
-        total_raw_board_area: meta.total_raw_board_area,
-      });
-
       // 3) overall_size 全 0 时让用户确认
       if (!meta.overall_size ||
           (meta.overall_size.total_width === 0 &&
