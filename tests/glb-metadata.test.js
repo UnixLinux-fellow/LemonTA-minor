@@ -82,3 +82,25 @@ test('expectedWidthCm: 从文件名反推目标宽度', () => {
   assert.equal(glb.expectedWidthCm('YG120.glb'), 110);
   assert.equal(glb.expectedWidthCm('random.glb'), null);
 });
+
+test('_classifyMesh: null/空串归 other', () => {
+  assert.equal(glb._classifyMesh(null), 'other');
+  assert.equal(glb._classifyMesh(''), 'other');
+});
+
+test('_classifyMesh: hanging 单独不算 rail (需含 rail 关键字)', () => {
+  assert.equal(glb._classifyMesh('hanging_organizer'), 'other');
+  assert.equal(glb._classifyMesh('hanging_rail_02'), 'rail');
+});
+
+test('parseSubdir: null/空串返回 null', () => {
+  assert.equal(glb.parseSubdir(null), null);
+  assert.equal(glb.parseSubdir(''), null);
+});
+
+test('DEFAULT_HARDWARE_LIST: 结构完整', () => {
+  // 只做结构烟测,数值已由 hardware_list 端到端测试覆盖
+  assert.equal(typeof glb.DEFAULT_HARDWARE_LIST.hinge, 'number');
+  assert.equal(typeof glb.DEFAULT_HARDWARE_LIST.led_light_strip, 'number');
+  assert.equal(Object.keys(glb.DEFAULT_HARDWARE_LIST).length, 19);
+});

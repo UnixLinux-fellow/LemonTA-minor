@@ -30,7 +30,7 @@ const DEFAULT_HARDWARE_LIST = {
 function _classifyMesh(name) {
   const n = String(name || '').toLowerCase();
   if (n.indexOf('door') >= 0) return 'door';
-  if (n.indexOf('rail') >= 0 || n.indexOf('hanging') >= 0) return 'rail';
+  if (n.indexOf('rail') >= 0) return 'rail';
   const boardKws = ['board', 'shelf', 'vertical', 'top', 'bottom', 'side', 'front', 'back'];
   for (let i = 0; i < boardKws.length; i++) {
     if (n.indexOf(boardKws[i]) >= 0) return 'board';
@@ -52,7 +52,9 @@ function _meshDimsFromSize(size, unitToCm) {
 
 // 面积 = length × width / 10000,保留 4 位小数(m²)
 function _computeArea(length, width) {
-  return Math.round((length * width) / 10000 * 10000) / 10000;
+  // length,width 单位 cm; area 单位 m²; 保留 4 位小数
+  const areaM2 = (length * width) / 10000;
+  return Math.round(areaM2 * 10000) / 10000;
 }
 
 // 文件名 → 子目录归类:'50cm' | '100cm' | 'zj' | null
@@ -60,7 +62,7 @@ function parseSubdir(fileName) {
   const base = String(fileName || '').replace(/\.glb$/i, '');
   if (/^50[A-Za-z]+$/.test(base)) return '50cm';
   if (/^100[A-Za-z]+$/.test(base)) return '100cm';
-  if (/^(Y|Z|YG|ZG)([-_A-Za-z0-9]*)$/i.test(base)) return 'zj';
+  if (/^(YG|ZG|Y|Z)([-_A-Za-z0-9]*)$/i.test(base)) return 'zj';
   return null;
 }
 
