@@ -1,0 +1,28 @@
+<view class="umm" wx:if="{{visible}}">
+  <view class="umm-mask" bindtap="onCancel"></view>
+  <view class="umm-card">
+    <view class="umm-title">上传新模型</view>
+
+    <view class="umm-file" bindtap="onChooseFile">
+      <block wx:if="{{file}}">
+        <view class="umm-file-name">{{file.name}}</view>
+        <view class="umm-file-meta">{{fileSizeText}}</view>
+      </block>
+      <block wx:else>
+        <view class="umm-file-placeholder">+ 选择 GLB 文件</view>
+      </block>
+    </view>
+
+    <view class="umm-row">
+      <view class="umm-row-label">模型类型</view>
+      <picker mode="selector" range="{{categoryLabels}}" value="{{categoryIdx}}" bindchange="onPickCategory">
+        <view class="umm-row-value">{{categoryLabels[categoryIdx]}} ▼</view>
+      </picker>
+    </view>
+
+    <view class="umm-actions">
+      <view class="umm-btn" bindtap="onCancel">取消</view>
+      <view class="umm-btn primary {{file ? '' : 'disabled'}}" bindtap="onConfirm">上传</view>
+    </view>
+  </view>
+</view>
