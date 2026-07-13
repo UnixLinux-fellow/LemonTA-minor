@@ -104,3 +104,84 @@ test('DEFAULT_HARDWARE_LIST: 结构完整', () => {
   assert.equal(typeof glb.DEFAULT_HARDWARE_LIST.led_light_strip, 'number');
   assert.equal(Object.keys(glb.DEFAULT_HARDWARE_LIST).length, 19);
 });
+
+// parse 集成测试:mock 出 GLTFLoader / fs / THREE.Box3,断言输出结构对齐 explain_example
+test('parse: 端到端拼装 (mock deps)', async () => {
+  // 手工构造一棵 scene:2 板件 + 1 衣通 + 1 门板
+  const meshLeft = { name: 'left_vertical_board', isMesh: true };
+  const meshShelf = { name: 'middle_shelf_01', isMesh: true };
+  const meshRail = { name: 'hanging_rail_01', isMesh: true };
+  const meshDoor = { name: 'door_panel', isMesh: true };
+  const fakeRoot = {
+    traverse(cb) { [meshLeft, meshShelf, meshRail, meshDoor].forEach(cb); },
+  };
+
+  // 假 Box3:根据 mesh.name 返回不同尺寸(cm 单位,unitToCm=1)。
+  // root 本身 = 50cm 宽,230cm 高,60cm 深。
+  const sizesByMesh = new Map([
+    [null,       { x: 50, y: 230, z: 60 }],   // root
+    [meshLeft,   { x: 1.8, y: 230, z: 60 }],
+    [meshShelf,  { x: 50, y: 60, z: 1.8 }],
+    [meshRail,   { x: 50, y: 1, z: 1 }],
+    [meshDoor,   { x: 50, y: 230, z: 1.8 }],
+  ]);
+  function makeBox3() {
+    let obj = null;
+    return {
+      setFromObject(o) { obj = o; return this; },
+      getSize(v) {
+        const s = sizesByMesh.get(obj) || sizesByMesh.get(null);
+        v.x = s.x; v.y = s.y; v.z = s.z;
+        return v;
+      },
+    };
+  }
+  const FakeVec3 = function () { this.x = 0; this.y = 0; this.z = 0; };
+  const deps = {
+    THREE: { Box3: function () { return makeBox3(); }, Vector3: FakeVec3 },
+    gltfLoader: {
+      parse(buf, base, onOk) { onOk({ scene: fakeRoot }); },
+    },
+    fs: {
+      readFile({ filePath, success }) {
+        success({ data: new ArrayBuffer(8) });
+      },
+    },
+  };
+  const opts = {
+    filePath: '/tmp/50A.glb',
+    fileName: '50A.glb',
+    modelCategory: 'wardrobe',
+    fileSize: 128000,
+    uploadOpenid: 'oXX',
+    sourceType: 'normal_user',
+  };
+  const meta = await glb.parse(opts, deps);
+  assert.equal(meta.glb_file_name, '50A.glb');
+  assert.equal(meta.model_category, 'wardrobe');
+  assert.equal(meta.platform, 'wechat');
+  assert.equal(meta.file_size, 128000);
+  assert.equal(meta.upload_openid, 'oXX');
+  assert.equal(meta.source_type, 'normal_user');
+  assert.equal(meta.is_online, true);
+  assert.equal(meta.remark, '');
+  assert.equal(meta.overall_size.total_width, 50);
+  assert.equal(meta.overall_size.total_height, 230);
+  assert.equal(meta.overall_size.total_depth, 60);
+  assert.equal(meta.board_list.length, 2);
+  assert.equal(meta.board_list[0].node_name, 'left_vertical_board');
+  assert.equal(meta.hanging_rail_list.length, 1);
+  assert.equal(meta.hanging_rail_list[0].node_name, 'hanging_rail_01');
+  assert.equal(meta.hanging_rail_list[0].length, 50);
+  // total_door_area 应等于门板面积
+  assert.equal(meta.total_door_area, glb._computeArea(230, 50));
+  // total_body_area 应等于两板件面积之和
+  const expBody = glb._computeArea(230, 60) + glb._computeArea(50, 60);
+  assert.equal(meta.total_body_area, Math.round(expBody * 10000) / 10000);
+  // hardware_list 用默认值
+  assert.equal(meta.hardware_list.hinge, 8);
+  assert.equal(meta.hardware_list.slide, 2);
+  // 时间戳
+  assert.ok(meta.create_time);
+  assert.equal(meta.create_time, meta.update_time);
+});
