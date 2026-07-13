@@ -11,3 +11,7 @@
 - [云开发文档](https://developers.weixin.qq.com/miniprogram/dev/wxcloud/basis/getting-started.html)
 
 # LemonTA-minor
+
+## 模型上传
+
+设计页右上角"上传新模型"按钮支持将 GLB 上传到 `cabinet-model-standard/{50cm,100cm,zj}/`,并将元数据写入云数据库集合 `model_panel_hardware`。命名必须匹配 `50X.glb` / `100X.glb` / `Y*.glb` / `Z*.glb` / `YG*.glb` / `ZG*.glb`(不区分大小写),不匹配将被拒绝上传。上传的模型不会立即出现在设计页 picker 中——picker 仍从旧的 `cabinet-model/` 目录同步。
