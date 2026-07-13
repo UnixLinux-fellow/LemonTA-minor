@@ -626,6 +626,9 @@ Page({
     }
 
     // 2) 3D 渲染器必须已初始化,才能拿到 scoped THREE + gltfLoader
+    // 依赖 three-renderer.initRoom() 已完成:那里同步给 this.THREE / this.gltfLoader 赋值。
+    // onReady 里等 _loadReady + initRoom 完成后 this._renderer 才被赋值,所以此处 renderer 存在时,
+    // THREE / gltfLoader 也一定存在;这里的 && 检查纯为防御。
     const renderer = this._renderer;
     if (!renderer || !renderer.THREE || !renderer.gltfLoader) {
       wx.showModal({
@@ -637,16 +640,18 @@ Page({
     }
 
     wx.showLoading({ title: '上传中...', mask: true });
+    let uploadedFileID = '';
     try {
       // 3) 上传到 cabinet-model-standard/{subdir}/{name}
       const cloudPath = `${UPLOAD_ROOT}/${subdir}/${file.name}`;
       const up = await wx.cloud.uploadFile({ cloudPath, filePath: file.path });
       const fileID = up && up.fileID;
       if (!fileID) throw new Error('upload_no_fileID');
+      uploadedFileID = fileID;  // 记住,用于错误区分
 
       // 4) 解析 GLB → 元数据
       const openid = await _getOpenid();
-      const sourceType = ADMIN_OPENIDS.indexOf(openid) >= 0
+      const sourceType = ADMIN_OPENIDS.includes(openid)
         ? 'official_standard'
         : 'normal_user';
       const meta = await glbMetadata.parse(
@@ -666,6 +671,30 @@ Page({
       );
       meta.cos_path = fileID;
 
+      // parse 后校验:overall_size 全 0 意味着 GLB 根节点无几何,兜底 unitToCm=1 后
+      // 尺寸会失真。仍继续入库(便于运维追踪),但先提示用户。
+      if (!meta.overall_size ||
+          (meta.overall_size.total_width === 0 &&
+           meta.overall_size.total_height === 0 &&
+           meta.overall_size.total_depth === 0)) {
+        console.warn('[design] overall_size all zero, GLB may have nested transforms');
+        // wx.showModal 会覆盖 wx.showLoading,先 hide 再弹,用户确认后重新 show
+        wx.hideLoading();
+        const proceed = await new Promise((resolve) => {
+          wx.showModal({
+            title: 'GLB 解析尺寸为 0',
+            content: '模型尺寸解析失败(可能 GLB 结构不标准)。仍继续入库供运维核对?',
+            success: (res) => resolve(res.confirm),
+            fail: () => resolve(false),
+          });
+        });
+        if (!proceed) {
+          this.setData({ uploadModalVisible: false });
+          return;
+        }
+        wx.showLoading({ title: '写入数据库...', mask: true });
+      }
+
       // 5) 写库(集合首次调用时会自动被创建;若权限限制则需要控制台创建)
       const db = wx.cloud.database();
       await db.collection(MODEL_PANEL_HARDWARE).add({ data: meta });
@@ -676,9 +705,13 @@ Page({
     } catch (err) {
       wx.hideLoading();
       console.error('[design] upload model failed', err);
+      const baseMsg = (err && (err.errMsg || err.message)) || '未知错误';
+      const content = uploadedFileID
+        ? `文件已上传但入库失败:${baseMsg}\n\ncos_path: ${uploadedFileID}\n请联系运维处理孤儿文件或重试入库。`
+        : baseMsg;
       wx.showModal({
         title: '上传失败',
-        content: (err && (err.errMsg || err.message)) || '未知错误',
+        content,
         showCancel: false,
       });
     }
