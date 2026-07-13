@@ -57,7 +57,7 @@
                             │ uploadconfirm
                             ▼
 ┌──────────────────────────────────────────────────────────────┐
-│ design/index.js 里的 onConfirmUploadModel                    │
+│ design/index.js 里的 onConfirmUploadModal                    │
 │  1) 二次校验 .glb 扩展 + 文件名规则                            │
 │  2) parseSubdir(name) → '50cm' / '100cm' / 'zj'              │
 │  3) wx.cloud.uploadFile → cabinet-model-standard/{sub}/{name}│
@@ -144,7 +144,7 @@
 <upload-model-modal
   visible="{{uploadModalVisible}}"
   binduploadcancel="onCancelUploadModal"
-  binduploadconfirm="onConfirmUploadModel" />
+  binduploadconfirm="onConfirmUploadModal" />
 ```
 
 **`miniprogram/cabinet/pages/design/index.wxss`**
@@ -175,7 +175,7 @@
 - 新方法：
   - `onOpenUploadModal` — 置 visible
   - `onCancelUploadModal` — 置 visible=false
-  - `onConfirmUploadModel(e)` — 主流程（校验 → 上传 → 解析 → 入库 → toast）
+  - `onConfirmUploadModal(e)` — 主流程（校验 → 上传 → 解析 → 入库 → toast）
   - `_parseSubdir(name)` — 见"命名规则"
   - `_getSourceType(openid)` — `ADMIN_OPENIDS.includes(openid) ? 'official_standard' : 'normal_user'`
 
@@ -289,7 +289,7 @@
 4. 用户选 `model_category` → data 变
 5. 用户点"上传"：
    - Modal 内部 `triggerEvent('confirm', { file, category })`
-   - 页面 `onConfirmUploadModel`：
+   - 页面 `onConfirmUploadModal`：
      a. `_parseSubdir(file.name)` — 失败即 wx.showModal 拒绝
      b. 显示进度态（modal 内部由页面透传 `uploading` prop）——**可选简化：直接用 `wx.showLoading`，MVP 阶段先不接组件内 progress**
      c. `wx.cloud.uploadFile({ cloudPath, filePath })`
@@ -317,7 +317,7 @@
   - `_computeArea` 精度
   - `parse` 端到端：mock GLTFLoader.parse 返回一棵手工构造的 scene，断言输出 JSON 与 `docs/explain_example.json` 结构一致
 
-上传编排（`onConfirmUploadModel`）与组件 UI 因涉及 `wx.chooseMessageFile` / `wx.cloud.uploadFile`，用真机走一遍手工验证：
+上传编排（`onConfirmUploadModal`）与组件 UI 因涉及 `wx.chooseMessageFile` / `wx.cloud.uploadFile`，用真机走一遍手工验证：
 
 - 命名合法 → 成功入库；控制台里能看到 `model_panel_hardware` 新增文档
 - 命名非法 → 拒绝提示

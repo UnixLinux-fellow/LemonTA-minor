@@ -720,7 +720,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
   <upload-model-modal
     visible="{{uploadModalVisible}}"
     binduploadcancel="onCancelUploadModal"
-    binduploadconfirm="onConfirmUploadModel" />
+    binduploadconfirm="onConfirmUploadModal" />
 ```
 
 - [ ] **Step 3: `design/index.wxss`** 调整 info-bar 布局 + 按钮样式
@@ -796,14 +796,14 @@ git commit -m "feat(design): info-bar 右侧加\"上传新模型\"按钮 + modal
 
 - 按钮为绿色胶囊,点击打开 upload-model-modal
 - info-bar 改成 space-between 布局,方案名/尺寸左对齐
-- 目前只挂 UI,onConfirmUploadModel 尚未实现,下一 Task 接上
+- 目前只挂 UI,onConfirmUploadModal 尚未实现,下一 Task 接上
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
 
 ---
 
-## Task 5: 上传编排 `onConfirmUploadModel`
+## Task 5: 上传编排 `onConfirmUploadModal`
 
 **Files:**
 - Modify: `miniprogram/cabinet/pages/design/index.js`
@@ -849,16 +849,16 @@ async function _getOpenid() {
 }
 ```
 
-- [ ] **Step 3: 在 Page 里加 `onConfirmUploadModel`**
+- [ ] **Step 3: 在 Page 里加 `onConfirmUploadModal`**
 
-替换 Task 4 中加的 `onCancelUploadModal` 那一段,把 `onConfirmUploadModel` 加在旁边:
+替换 Task 4 中加的 `onCancelUploadModal` 那一段,把 `onConfirmUploadModal` 加在旁边:
 
 ```javascript
   onCancelUploadModal() {
     this.setData({ uploadModalVisible: false });
   },
 
-  async onConfirmUploadModel(e) {
+  async onConfirmUploadModal(e) {
     const { file, category } = e.detail || {};
     if (!file || !file.name || !file.path) {
       wx.showToast({ title: '未选择文件', icon: 'none' });
@@ -946,7 +946,7 @@ async function _getOpenid() {
 
 ```bash
 git add miniprogram/cabinet/pages/design/index.js
-git commit -m "feat(design): 接上 onConfirmUploadModel 上传编排
+git commit -m "feat(design): 接上 onConfirmUploadModal 上传编排
 
 - 命名校验 → uploadFile → glbMetadata.parse → db add
 - 复用 this._renderer.THREE + gltfLoader

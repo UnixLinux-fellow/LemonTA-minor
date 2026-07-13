@@ -77,7 +77,7 @@
   <upload-model-modal
     visible="{{uploadModalVisible}}"
     binduploadcancel="onCancelUploadModal"
-    binduploadconfirm="onConfirmUploadModel" />
+    binduploadconfirm="onConfirmUploadModal" />
 
   <cabinet-toast text="{{toast}}"></cabinet-toast>
 </view>
