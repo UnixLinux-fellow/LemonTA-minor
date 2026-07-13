@@ -1,0 +1,476 @@
+# GLB 板件名称与尺寸（单位 cm）
+# 数据源：D:\工程\柠檬塔\标准柜\su模型\cabinet-model
+# 尺寸计算：GLB 原生单位 = 米，板件 cm = 原始 AABB × 100，直接反映设计师建模的真实几何尺寸。
+# 列格式：板件名  |  X(宽) × Y(高) × Z(深)  |  排序后 长×宽×厚
+# 共 19 个模型
+
+========================================================================
+[100A.glb]  柜型 code=A  文件名解析: 名义 100(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 100.0 × 229.5 × 60.0 cm (W × H × D)
+  板件数: 13
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_left_side_panel#7_left_side_panel       1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    2  Geom3D_right_side_panel#7_right_side_panel       1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    3  Geom3D_bottom_panel#7_bottom_panel      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    4  Geom3D_top_panel#7_top_panel          96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    5  Geom3D_back_panel#7_back_panel        96.4     220.4       1.8      220.4 ×     96.4 ×      1.8
+    6  Geom3D_toe_kick_front#7_toe_kick_front     100.0       5.5       1.8      100.0 ×      5.5 ×      1.8
+    7  Geom3D_toe_kick_middle#7_toe_kick_middle       1.8       5.5      52.4       52.4 ×      5.5 ×      1.8
+    8  Geom3D_shelf_bottom#7_shelf_bottom      96.4       1.8      56.2       96.4 ×     56.2 ×      1.8
+    9  Geom3D_shelf_top#7_shelf_top          96.4       1.8      56.2       96.4 ×     56.2 ×      1.8
+   10  Geom3D_door_left#7_door_left          49.8     223.6       1.8      223.6 ×     49.8 ×      1.8
+   11  Geom3D_door_right#7_door_right        49.8     223.6       1.8      223.6 ×     49.8 ×      1.8
+   12  Geom3D_hanging_rod_bottom             96.4       2.5       2.5       96.4 ×      2.5 ×      2.5
+   13  Geom3D_hanging_rod_top                96.4       2.5       2.5       96.4 ×      2.5 ×      2.5
+
+========================================================================
+[100B.glb]  柜型 code=B  文件名解析: 名义 100(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 100.0 × 230.0 × 59.8 cm (W × H × D)
+  板件数: 13
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_Kick_Front                    100.0       6.0       1.8      100.0 ×      6.0 ×      1.8
+    2  Geom3D_Kick_Middle                     1.8       6.0      54.4       54.4 ×      6.0 ×      1.8
+    3  Geom3D_Side_Left                       1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    4  Geom3D_Side_Right                      1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    5  Geom3D_Bottom_Plate                   96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    6  Geom3D_Top_Plate                      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    7  Geom3D_Back_Plate                     96.4     220.4       1.8      220.4 ×     96.4 ×      1.8
+    8  Geom3D_Shelf_1                        96.4       1.8      56.2       96.4 ×     56.2 ×      1.8
+    9  Geom3D_Shelf_2                        96.4       1.8      56.2       96.4 ×     56.2 ×      1.8
+   10  Geom3D_Upper_Feature_Back             96.0      20.4       1.8       96.0 ×     20.4 ×      1.8
+   11  Geom3D_Hanging_Rail_2                 96.4       2.5       2.5       96.4 ×      2.5 ×      2.5
+   12  Geom3D_Door_Left                      49.7     223.6       1.8      223.6 ×     49.7 ×      1.8
+   13  Geom3D_Door_Right                     49.7     223.6       1.8      223.6 ×     49.7 ×      1.8
+
+========================================================================
+[100C.glb]  柜型 code=C  文件名解析: 名义 100(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 100.0 × 230.0 × 59.8 cm (W × H × D)
+  板件数: 27
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_Kick_Front#3                  100.0       6.0       1.8      100.0 ×      6.0 ×      1.8
+    2  Geom3D_Kick_Middle#3                   1.8       6.0      54.4       54.4 ×      6.0 ×      1.8
+    3  Geom3D_Side_Left#3                     1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    4  Geom3D_Side_Right#3                    1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    5  Geom3D_Bottom_Plate#3                 96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    6  Geom3D_Top_Plate#3                    96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    7  Geom3D_Back_Plate#3                   96.4     220.4       1.8      220.4 ×     96.4 ×      1.8
+    8  Geom3D_Shelf_1#3                      96.4       1.8      56.2       96.4 ×     56.2 ×      1.8
+    9  Geom3D_Shelf_2#3                      96.4       1.8      56.2       96.4 ×     56.2 ×      1.8
+   10  Geom3D_Upper_Feature_Back#3           96.0      20.4       1.8       96.0 ×     20.4 ×      1.8
+   11  Geom3D_Cabinet_Drawer2_Side_L#3        1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   12  Geom3D_Cabinet_Drawer2_Side_R#3        1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   13  Geom3D_Cabinet_Drawer1_Side_L#3        1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   14  Geom3D_Cabinet_Drawer1_Side_R#3        1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   15  Geom3D_Drawer_Top_Front#2             92.4      16.0       1.8       92.4 ×     16.0 ×      1.8
+   16  Geom3D_Drawer_Top_Side_L#2             1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   17  Geom3D_Drawer_Top_Side_R#2             1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   18  Geom3D_Drawer_Top_Bottom#2            88.8       1.8      45.4       88.8 ×     45.4 ×      1.8
+   19  Geom3D_Drawer_Top_Back#2              88.8       8.9       1.8       88.8 ×      8.9 ×      1.8
+   20  Geom3D_Drawer_Bottom_Front#2          92.4      16.0       1.8       92.4 ×     16.0 ×      1.8
+   21  Geom3D_Drawer_Bottom_Side_L#2          1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   22  Geom3D_Drawer_Bottom_Side_R#2          1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   23  Geom3D_Drawer_Bottom_Bottom#2         88.8       1.8      45.4       88.8 ×     45.4 ×      1.8
+   24  Geom3D_Drawer_Bottom_Back#2           88.8       8.9       1.8       88.8 ×      8.9 ×      1.8
+   25  Geom3D_Hanging_Rail_2#3               96.4       2.5       2.5       96.4 ×      2.5 ×      2.5
+   26  Geom3D_Door_Left                      49.7     223.6       1.8      223.6 ×     49.7 ×      1.8
+   27  Geom3D_Door_Right                     49.7     223.6       1.8      223.6 ×     49.7 ×      1.8
+
+========================================================================
+[100D.glb]  柜型 code=D  文件名解析: 名义 100(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 100.0 × 230.0 × 59.8 cm (W × H × D)
+  板件数: 35
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_Kick_Front#1                  100.0       6.0       1.8      100.0 ×      6.0 ×      1.8
+    2  Geom3D_Kick_Middle#1                   1.8       6.0      54.4       54.4 ×      6.0 ×      1.8
+    3  Geom3D_Side_Left#1                     1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    4  Geom3D_Side_Right#1                    1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    5  Geom3D_Bottom_Plate#1                 96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    6  Geom3D_Top_Plate#1                    96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    7  Geom3D_Back_Plate#1                   96.4     220.4       1.8      220.4 ×     96.4 ×      1.8
+    8  Geom3D_Shelf_1#1                      96.4       1.8      56.2       96.4 ×     56.2 ×      1.8
+    9  Geom3D_Shelf_2#1                      96.4       1.8      56.2       96.4 ×     56.2 ×      1.8
+   10  Geom3D_Shelf_Middle#1                 96.4       1.8      56.2       96.4 ×     56.2 ×      1.8
+   11  Geom3D_Upper_Feature_Back#1           96.0      20.4       1.8       96.0 ×     20.4 ×      1.8
+   12  Geom3D_Cabinet_Drawer2_Side_L          1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   13  Geom3D_Cabinet_Drawer2_Side_R          1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   14  Geom3D_Cabinet_Drawer1_Side_L          1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   15  Geom3D_Cabinet_Drawer1_Side_R          1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   16  Geom3D_Cabinet_Drawer3_Side_L          1.8       7.0      56.2       56.2 ×      7.0 ×      1.8
+   17  Geom3D_Cabinet_Drawer3_Side_R          1.8       7.0      56.2       56.2 ×      7.0 ×      1.8
+   18  Geom3D_Drawer_Top_1_Front             92.4      16.0       1.8       92.4 ×     16.0 ×      1.8
+   19  Geom3D_Drawer_Top_1_Side_L             1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   20  Geom3D_Drawer_Top_1_Side_R             1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   21  Geom3D_Drawer_Top_1_Bottom            88.8       1.8      45.4       88.8 ×     45.4 ×      1.8
+   22  Geom3D_Drawer_Top_1_Back              88.8       8.9       1.8       88.8 ×      8.9 ×      1.8
+   23  Geom3D_Drawer_Top_2_Front             92.4      16.0       1.8       92.4 ×     16.0 ×      1.8
+   24  Geom3D_Drawer_Top_2_Side_L             1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   25  Geom3D_Drawer_Top_2_Side_R             1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   26  Geom3D_Drawer_Top_2_Bottom            88.8       1.8      45.4       88.8 ×     45.4 ×      1.8
+   27  Geom3D_Drawer_Top_2_Back              88.8       8.9       1.8       88.8 ×      8.9 ×      1.8
+   28  Geom3D_Drawer_Bottom_3_Front          92.4       7.0       1.8       92.4 ×      7.0 ×      1.8
+   29  Geom3D_Drawer_Bottom_3_Side_L          1.8       4.0      47.2       47.2 ×      4.0 ×      1.8
+   30  Geom3D_Drawer_Bottom_3_Side_R          1.8       4.0      47.2       47.2 ×      4.0 ×      1.8
+   31  Geom3D_Drawer_Bottom_3_Bottom         88.8       1.8      45.4       88.8 ×     45.4 ×      1.8
+   32  Geom3D_Drawer_Bottom_3_Back           88.8       0.9       1.8       88.8 ×      1.8 ×      0.9
+   33  Geom3D_Hanging_Rail_2#1               96.4       2.5       2.5       96.4 ×      2.5 ×      2.5
+   34  Geom3D_Door_Left#1                    49.7     223.6       1.8      223.6 ×     49.7 ×      1.8
+   35  Geom3D_Door_Right#1                   49.7     223.6       1.8      223.6 ×     49.7 ×      1.8
+
+========================================================================
+[100G1.glb]  柜型 code=G1  文件名解析: 名义 100(W) × 300(H) cm
+  整柜 GLB 原生 AABB: 100.0 × 30.0 × 60.0 cm (W × H × D)
+  板件数: 6
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_Left_Side_Panel                 1.8      30.0      58.0       58.0 ×     30.0 ×      1.8
+    2  Geom3D_Right_Side_Panel                1.8      30.0      58.0       58.0 ×     30.0 ×      1.8
+    3  Geom3D_Bottom_Panel                   96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    4  Geom3D_Top_Panel                      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    5  Geom3D_Back_Panel                     96.4      26.4       1.8       96.4 ×     26.4 ×      1.8
+    6  Geom3D_Flip_Up_Door                   99.6      29.6       1.8       99.6 ×     29.6 ×      1.8
+
+========================================================================
+[100G2.glb]  柜型 code=G2  文件名解析: 名义 100(W) × 300(H) cm
+  整柜 GLB 原生 AABB: 100.0 × 60.0 × 59.8 cm (W × H × D)
+  板件数: 8
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_Side_Panel_Left_ThickX#4_Side_Panel_Left_ThickX       1.8      60.0      58.0       60.0 ×     58.0 ×      1.8
+    2  Geom3D_Side_Panel_Right_ThickX#4_Side_Panel_Right_ThickX       1.8      60.0      58.0       60.0 ×     58.0 ×      1.8
+    3  Geom3D_Bottom_Panel_ThickZ#4_Bottom_Panel_ThickZ      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    4  Geom3D_Top_Panel_ThickZ#4_Top_Panel_ThickZ      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    5  Geom3D_Back_Panel_ThickY#3_Back_Panel_ThickY      96.4      56.4       1.8       96.4 ×     56.4 ×      1.8
+    6  Geom3D_Shelf_Adjustable_ThickZ#1_Shelf_Adjustable_ThickZ      96.4       1.8      46.2       96.4 ×     46.2 ×      1.8
+    7  Geom3D_Door_Left_ThickY#4_Door_Left_ThickY      49.7      59.6       1.8       59.6 ×     49.7 ×      1.8
+    8  Geom3D_Door_Right_ThickY#4_Door_Right_ThickY      49.7      59.6       1.8       59.6 ×     49.7 ×      1.8
+
+========================================================================
+[100H.glb]  柜型 code=H  文件名解析: 名义 100(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 100.0 × 230.0 × 60.0 cm (W × H × D)
+  板件数: 42
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_Kick_Front                    100.0       6.0       1.8      100.0 ×      6.0 ×      1.8
+    2  Geom3D_Kick_Middle                     1.8       6.0      56.2       56.2 ×      6.0 ×      1.8
+    3  Geom3D_Side_Left                       1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    4  Geom3D_Side_Right                      1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    5  Geom3D_Bottom_Plate                   96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    6  Geom3D_Top_Plate                      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    7  Geom3D_Back_Plate                     96.4     220.4       1.8      220.4 ×     96.4 ×      1.8
+    8  Geom3D_Shelf_1                        96.4       1.8      56.2       96.4 ×     56.2 ×      1.8
+    9  Geom3D_Shelf_2                        96.4       1.8      56.2       96.4 ×     56.2 ×      1.8
+   10  Geom3D_Adjustable_Shelf_1             96.4       1.8      55.2       96.4 ×     55.2 ×      1.8
+   11  Geom3D_Adjustable_Shelf_2             96.4       1.8      55.2       96.4 ×     55.2 ×      1.8
+   12  Geom3D_Adjustable_Shelf_3             96.4       1.8      55.2       96.4 ×     55.2 ×      1.8
+   13  Geom3D_Drawer_Indie_Side_Left_1        1.8      19.0      56.2       56.2 ×     19.0 ×      1.8
+   14  Geom3D_Drawer_Indie_Side_Right_1       1.8      19.0      56.2       56.2 ×     19.0 ×      1.8
+   15  Geom3D_Drawer_Face_1                  92.4      19.0       1.8       92.4 ×     19.0 ×      1.8
+   16  Geom3D_Drawer_Box_Back_1              86.2      11.7       1.8       86.2 ×     11.7 ×      1.8
+   17  Geom3D_Drawer_Box_Left_1               1.8      15.0      49.0       49.0 ×     15.0 ×      1.8
+   18  Geom3D_Drawer_Box_Right_1              1.8      15.0      49.0       49.0 ×     15.0 ×      1.8
+   19  Geom3D_Drawer_Box_Bottom_1            86.2       1.8      47.2       86.2 ×     47.2 ×      1.8
+   20  Geom3D_Drawer_Indie_Side_Left_2        1.8      19.0      56.2       56.2 ×     19.0 ×      1.8
+   21  Geom3D_Drawer_Indie_Side_Right_2       1.8      19.0      56.2       56.2 ×     19.0 ×      1.8
+   22  Geom3D_Drawer_Face_2                  92.4      19.0       1.8       92.4 ×     19.0 ×      1.8
+   23  Geom3D_Drawer_Box_Back_2              86.2      11.7       1.8       86.2 ×     11.7 ×      1.8
+   24  Geom3D_Drawer_Box_Left_2               1.8      15.0      49.0       49.0 ×     15.0 ×      1.8
+   25  Geom3D_Drawer_Box_Right_2              1.8      15.0      49.0       49.0 ×     15.0 ×      1.8
+   26  Geom3D_Drawer_Box_Bottom_2            86.2       1.8      47.2       86.2 ×     47.2 ×      1.8
+   27  Geom3D_Drawer_Indie_Side_Left_3        1.8      19.0      56.2       56.2 ×     19.0 ×      1.8
+   28  Geom3D_Drawer_Indie_Side_Right_3       1.8      19.0      56.2       56.2 ×     19.0 ×      1.8
+   29  Geom3D_Drawer_Face_3                  92.4      19.0       1.8       92.4 ×     19.0 ×      1.8
+   30  Geom3D_Drawer_Box_Back_3              86.2      11.7       1.8       86.2 ×     11.7 ×      1.8
+   31  Geom3D_Drawer_Box_Left_3               1.8      15.0      49.0       49.0 ×     15.0 ×      1.8
+   32  Geom3D_Drawer_Box_Right_3              1.8      15.0      49.0       49.0 ×     15.0 ×      1.8
+   33  Geom3D_Drawer_Box_Bottom_3            86.2       1.8      47.2       86.2 ×     47.2 ×      1.8
+   34  Geom3D_Drawer_Indie_Side_Left_4        1.8      19.0      56.2       56.2 ×     19.0 ×      1.8
+   35  Geom3D_Drawer_Indie_Side_Right_4       1.8      19.0      56.2       56.2 ×     19.0 ×      1.8
+   36  Geom3D_Drawer_Face_4                  92.4      19.0       1.8       92.4 ×     19.0 ×      1.8
+   37  Geom3D_Drawer_Box_Back_4              86.2      11.7       1.8       86.2 ×     11.7 ×      1.8
+   38  Geom3D_Drawer_Box_Left_4               1.8      15.0      49.0       49.0 ×     15.0 ×      1.8
+   39  Geom3D_Drawer_Box_Right_4              1.8      15.0      49.0       49.0 ×     15.0 ×      1.8
+   40  Geom3D_Drawer_Box_Bottom_4            86.2       1.8      47.2       86.2 ×     47.2 ×      1.8
+   41  Geom3D_Door_Left                      49.8     223.8       1.8      223.8 ×     49.8 ×      1.8
+   42  Geom3D_Door_Right                     49.8     223.8       1.8      223.8 ×     49.8 ×      1.8
+
+========================================================================
+[50A.glb]  柜型 code=A  文件名解析: 名义 50(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 50.0 × 229.5 × 59.8 cm (W × H × D)
+  板件数: 13
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_Kick_Front                     50.0       5.5       1.8       50.0 ×      5.5 ×      1.8
+    2  Geom3D_Kick_Middle                     1.8       5.5      54.4       54.4 ×      5.5 ×      1.8
+    3  Geom3D_Side_Left                       1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    4  Geom3D_Side_Right                      1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    5  Geom3D_Bottom_Plate                   46.4       1.8      58.0       58.0 ×     46.4 ×      1.8
+    6  Geom3D_Top_Plate                      46.4       1.8      58.0       58.0 ×     46.4 ×      1.8
+    7  Geom3D_Back_Plate                     46.4     220.4       1.8      220.4 ×     46.4 ×      1.8
+    8  Geom3D_Shelf_1                        46.4       1.8      56.2       56.2 ×     46.4 ×      1.8
+    9  Geom3D_Shelf_2                        46.4       1.8      56.2       56.2 ×     46.4 ×      1.8
+   10  Geom3D_Upper_Suspended_Back           46.0      20.4       1.8       46.0 ×     20.4 ×      1.8
+   11  Geom3D_Hanging_Rail_1                 46.4       2.5       2.5       46.4 ×      2.5 ×      2.5
+   12  Geom3D_Hanging_Rail_2                 46.4       2.5       2.5       46.4 ×      2.5 ×      2.5
+   13  Geom3D_Door_Single                    49.6     223.8       1.8      223.8 ×     49.6 ×      1.8
+
+========================================================================
+[50B.glb]  柜型 code=B  文件名解析: 名义 50(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 50.0 × 230.0 × 59.8 cm (W × H × D)
+  板件数: 12
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_Kick_Front#1                   50.0       6.0       1.8       50.0 ×      6.0 ×      1.8
+    2  Geom3D_Kick_Middle#1                   1.8       6.0      54.4       54.4 ×      6.0 ×      1.8
+    3  Geom3D_Side_Left#1                     1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    4  Geom3D_Side_Right#1                    1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    5  Geom3D_Bottom_Plate#1                 46.4       1.8      58.0       58.0 ×     46.4 ×      1.8
+    6  Geom3D_Top_Plate#1                    46.4       1.8      58.0       58.0 ×     46.4 ×      1.8
+    7  Geom3D_Back_Plate#1                   46.4     220.4       1.8      220.4 ×     46.4 ×      1.8
+    8  Geom3D_Shelf_1#1                      46.4       1.8      56.2       56.2 ×     46.4 ×      1.8
+    9  Geom3D_Shelf_2#1                      46.4       1.8      56.2       56.2 ×     46.4 ×      1.8
+   10  Geom3D_Upper_Feature_Back#1           46.0      20.4       1.8       46.0 ×     20.4 ×      1.8
+   11  Geom3D_Hanging_Rail_2#1               46.4       2.5       2.5       46.4 ×      2.5 ×      2.5
+   12  Geom3D_Door_Single#1                  49.6     223.6       1.8      223.6 ×     49.6 ×      1.8
+
+========================================================================
+[50C.glb]  柜型 code=C  文件名解析: 名义 50(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 50.0 × 230.0 × 59.8 cm (W × H × D)
+  板件数: 26
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_Kick_Front                     50.0       6.0       1.8       50.0 ×      6.0 ×      1.8
+    2  Geom3D_Kick_Middle                     1.8       6.0      54.4       54.4 ×      6.0 ×      1.8
+    3  Geom3D_Side_Left                       1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    4  Geom3D_Side_Right                      1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    5  Geom3D_Bottom_Plate                   46.4       1.8      58.0       58.0 ×     46.4 ×      1.8
+    6  Geom3D_Top_Plate                      46.4       1.8      58.0       58.0 ×     46.4 ×      1.8
+    7  Geom3D_Back_Plate                     46.4     220.4       1.8      220.4 ×     46.4 ×      1.8
+    8  Geom3D_Shelf_1                        46.4       1.8      56.2       56.2 ×     46.4 ×      1.8
+    9  Geom3D_Shelf_2                        46.4       1.8      56.2       56.2 ×     46.4 ×      1.8
+   10  Geom3D_Upper_Feature_Back             46.0      20.4       1.8       46.0 ×     20.4 ×      1.8
+   11  Geom3D_Cabinet_Drawer2_Side_L          1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   12  Geom3D_Cabinet_Drawer2_Side_R          1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   13  Geom3D_Cabinet_Drawer1_Side_L          1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   14  Geom3D_Cabinet_Drawer1_Side_R          1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   15  Geom3D_Drawer_Top_Front               42.4      16.0       1.8       42.4 ×     16.0 ×      1.8
+   16  Geom3D_Drawer_Top_Side_L               1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   17  Geom3D_Drawer_Top_Side_R               1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   18  Geom3D_Drawer_Top_Bottom              38.8       1.8      45.4       45.4 ×     38.8 ×      1.8
+   19  Geom3D_Drawer_Top_Back                38.8       8.9       1.8       38.8 ×      8.9 ×      1.8
+   20  Geom3D_Drawer_Bottom_Front            42.4      16.0       1.8       42.4 ×     16.0 ×      1.8
+   21  Geom3D_Drawer_Bottom_Side_L            1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   22  Geom3D_Drawer_Bottom_Side_R            1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   23  Geom3D_Drawer_Bottom_Bottom           38.8       1.8      45.4       45.4 ×     38.8 ×      1.8
+   24  Geom3D_Drawer_Bottom_Back             38.8       8.9       1.8       38.8 ×      8.9 ×      1.8
+   25  Geom3D_Hanging_Rail_2                 46.4       2.5       2.5       46.4 ×      2.5 ×      2.5
+   26  Geom3D_Door_Single                    49.6     223.6       1.8      223.6 ×     49.6 ×      1.8
+
+========================================================================
+[50D.glb]  柜型 code=D  文件名解析: 名义 50(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 50.0 × 230.0 × 59.8 cm (W × H × D)
+  板件数: 34
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_Kick_Front#4                   50.0       6.0       1.8       50.0 ×      6.0 ×      1.8
+    2  Geom3D_Kick_Middle#4                   1.8       6.0      54.4       54.4 ×      6.0 ×      1.8
+    3  Geom3D_Side_Left#4                     1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    4  Geom3D_Side_Right#4                    1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    5  Geom3D_Bottom_Plate#4                 46.4       1.8      58.0       58.0 ×     46.4 ×      1.8
+    6  Geom3D_Top_Plate#4                    46.4       1.8      58.0       58.0 ×     46.4 ×      1.8
+    7  Geom3D_Back_Plate#4                   46.4     220.4       1.8      220.4 ×     46.4 ×      1.8
+    8  Geom3D_Shelf_1#4                      46.4       1.8      56.2       56.2 ×     46.4 ×      1.8
+    9  Geom3D_Shelf_2#4                      46.4       1.8      56.2       56.2 ×     46.4 ×      1.8
+   10  Geom3D_Shelf_Middle#4                 46.4       1.8      56.2       56.2 ×     46.4 ×      1.8
+   11  Geom3D_Upper_Feature_Back#4           46.0      20.4       1.8       46.0 ×     20.4 ×      1.8
+   12  Geom3D_Cabinet_Drawer2_Side_L#4        1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   13  Geom3D_Cabinet_Drawer2_Side_R#4        1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   14  Geom3D_Cabinet_Drawer1_Side_L#4        1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   15  Geom3D_Cabinet_Drawer1_Side_R#4        1.8      16.0      56.2       56.2 ×     16.0 ×      1.8
+   16  Geom3D_Cabinet_Drawer3_Side_L#4        1.8       7.0      56.2       56.2 ×      7.0 ×      1.8
+   17  Geom3D_Cabinet_Drawer3_Side_R#4        1.8       7.0      56.2       56.2 ×      7.0 ×      1.8
+   18  Geom3D_Drawer_Top_1_Front#4           42.4      16.0       1.8       42.4 ×     16.0 ×      1.8
+   19  Geom3D_Drawer_Top_1_Side_L#4           1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   20  Geom3D_Drawer_Top_1_Side_R#4           1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   21  Geom3D_Drawer_Top_1_Bottom#4          38.8       1.8      45.4       45.4 ×     38.8 ×      1.8
+   22  Geom3D_Drawer_Top_1_Back#4            38.8       8.9       1.8       38.8 ×      8.9 ×      1.8
+   23  Geom3D_Drawer_Top_2_Front#4           42.4      16.0       1.8       42.4 ×     16.0 ×      1.8
+   24  Geom3D_Drawer_Top_2_Side_L#4           1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   25  Geom3D_Drawer_Top_2_Side_R#4           1.8      12.0      47.2       47.2 ×     12.0 ×      1.8
+   26  Geom3D_Drawer_Top_2_Bottom#4          38.8       1.8      45.4       45.4 ×     38.8 ×      1.8
+   27  Geom3D_Drawer_Top_2_Back#4            38.8       8.9       1.8       38.8 ×      8.9 ×      1.8
+   28  Geom3D_Drawer_Bottom_3_Front#4        42.4       7.0       1.8       42.4 ×      7.0 ×      1.8
+   29  Geom3D_Drawer_Bottom_3_Side_L#4        1.8       4.0      47.2       47.2 ×      4.0 ×      1.8
+   30  Geom3D_Drawer_Bottom_3_Side_R#4        1.8       4.0      47.2       47.2 ×      4.0 ×      1.8
+   31  Geom3D_Drawer_Bottom_3_Bottom#4       38.8       1.8      45.4       45.4 ×     38.8 ×      1.8
+   32  Geom3D_Drawer_Bottom_3_Back#4         38.8       0.9       1.8       38.8 ×      1.8 ×      0.9
+   33  Geom3D_Hanging_Rail_2#4               46.4       2.5       2.5       46.4 ×      2.5 ×      2.5
+   34  Geom3D_Door_Single#4                  49.6     223.6       1.8      223.6 ×     49.6 ×      1.8
+
+========================================================================
+[50G1.glb]  柜型 code=G1  文件名解析: 名义 50(W) × 300(H) cm
+  整柜 GLB 原生 AABB: 50.0 × 30.0 × 60.0 cm (W × H × D)
+  板件数: 6
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_Left_Side_Panel                 1.8      30.0      58.0       58.0 ×     30.0 ×      1.8
+    2  Geom3D_Right_Side_Panel                1.8      30.0      58.0       58.0 ×     30.0 ×      1.8
+    3  Geom3D_Bottom_Panel                   46.4       1.8      58.0       58.0 ×     46.4 ×      1.8
+    4  Geom3D_Top_Panel                      46.4       1.8      58.0       58.0 ×     46.4 ×      1.8
+    5  Geom3D_Back_Panel                     46.4      26.4       1.8       46.4 ×     26.4 ×      1.8
+    6  Geom3D_Top_Flip_Door                  49.6      29.6       1.8       49.6 ×     29.6 ×      1.8
+
+========================================================================
+[50G2.glb]  柜型 code=G2  文件名解析: 名义 50(W) × 300(H) cm
+  整柜 GLB 原生 AABB: 50.0 × 60.0 × 60.0 cm (W × H × D)
+  板件数: 7
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_Left_Side_Panel                 1.8      60.0      58.0       60.0 ×     58.0 ×      1.8
+    2  Geom3D_Right_Side_Panel                1.8      60.0      58.0       60.0 ×     58.0 ×      1.8
+    3  Geom3D_Bottom_Panel                   46.4       1.8      58.0       58.0 ×     46.4 ×      1.8
+    4  Geom3D_Top_Panel                      46.4       1.8      58.0       58.0 ×     46.4 ×      1.8
+    5  Geom3D_Back_Panel                     46.4      56.4       1.8       56.4 ×     46.4 ×      1.8
+    6  Geom3D_Adjustable_Shelf               46.4       1.8      46.2       46.4 ×     46.2 ×      1.8
+    7  Geom3D_Right_Hinge_Door               49.6      59.6       1.8       59.6 ×     49.6 ×      1.8
+
+========================================================================
+[Y-110-230.glb]  柜型 code=Y  文件名解析: 名义 110(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 110.0 × 230.0 × 111.0 cm (W × H × D)
+  板件数: 24
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_W2_Left_Side_Panel_ToGround#2      58.0     230.0       1.8      230.0 ×     58.0 ×      1.8
+    2  Geom3D_W2_Right_Side_Panel_Shrunk_And_Cut      26.8     220.4       1.8      220.4 ×     26.8 ×      1.8
+    3  Geom3D_W2_Top_Panel_EncloseRight      58.0       1.8      51.2       58.0 ×     51.2 ×      1.8
+    4  Geom3D_W2_Bottom_Panel_EncloseRight#2      58.0       1.8      51.2       58.0 ×     51.2 ×      1.8
+    5  Geom3D_W2_Back_Panel#9                 1.8     220.4      49.4      220.4 ×     49.4 ×      1.8
+    6  Geom3D_W2_Toe_Kick_Front_Short#3       1.8       5.5      51.2       51.2 ×      5.5 ×      1.8
+    7  Geom3D_W2_Toe_Kick_Middle_Support#9      54.4       5.5       1.8       54.4 ×      5.5 ×      1.8
+    8  Geom3D_W2_Cabinet_Door_ShrunkRight       1.8     223.6      50.8      223.6 ×     50.8 ×      1.8
+    9  Geom3D_W2_Interior_Shelf_Deep250#7      25.0       1.8      49.4       49.4 ×     25.0 ×      1.8
+   10  Geom3D_W2_Interior_Shelf_Deep250#7      25.0       1.8      49.4       49.4 ×     25.0 ×      1.8
+   11  Geom3D_W2_Interior_Shelf_Deep250#7      25.0       1.8      49.4       49.4 ×     25.0 ×      1.8
+   12  Geom3D_W2_Interior_Shelf_Deep250#7      25.0       1.8      49.4       49.4 ×     25.0 ×      1.8
+   13  Geom3D_W1_Side_Panel#9                 1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+   14  Geom3D_W1_Side_Panel#9                 1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+   15  Geom3D_W1_Horizontal_Main_Panel#9      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+   16  Geom3D_W1_Horizontal_Main_Panel#9      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+   17  Geom3D_W1_Back_Panel#9                96.4     220.4       1.8      220.4 ×     96.4 ×      1.8
+   18  Geom3D_W1_Toe_Kick_Front#9           100.0       5.5       1.8      100.0 ×      5.5 ×      1.8
+   19  Geom3D_W1_Toe_Kick_Middle_Support#9       1.8       5.5      54.4       54.4 ×      5.5 ×      1.8
+   20  Geom3D_W1_Interior_Shelf#9            96.4       1.8      55.2       96.4 ×     55.2 ×      1.8
+   21  Geom3D_W1_Interior_Shelf#9            96.4       1.8      55.2       96.4 ×     55.2 ×      1.8
+   22  Geom3D_W1_Hanging_Rod#9               96.4       2.5       2.5       96.4 ×      2.5 ×      2.5
+   23  Geom3D_W1_Hanging_Rod#9               96.4       2.5       2.5       96.4 ×      2.5 ×      2.5
+   24  Geom3D_W1_Cabinet_Door_RightSingle#8      49.7     223.6       1.8      223.6 ×     49.7 ×      1.8
+
+========================================================================
+[YG-110-230G1.glb]  柜型 code=YGG1  文件名解析: 名义 110(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 110.0 × 30.0 × 111.0 cm (W × H × D)
+  板件数: 12
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_W2_Left_Side_Panel_Step32#7      58.0      30.0       1.8       58.0 ×     30.0 ×      1.8
+    2  Geom3D_W2_Top_Panel_CoverRight_Step32#1      58.0       1.8      51.2       58.0 ×     51.2 ×      1.8
+    3  Geom3D_W2_Bottom_Panel_LeftIn_CoverRight_Step32      58.0       1.8      51.2       58.0 ×     51.2 ×      1.8
+    4  Geom3D_W2_Right_Side_Panel_Step32#7      26.8      26.4       1.8       26.8 ×     26.4 ×      1.8
+    5  Geom3D_W2_Back_Panel_Step32#7          1.8      26.4      49.4       49.4 ×     26.4 ×      1.8
+    6  Geom3D_W2_Cabinet_Door_ShrunkRight_Step32#7       1.8      29.6      50.8       50.8 ×     29.6 ×      1.8
+    7  Geom3D_W1_Side_Panel_Step32#7          1.8      30.0      58.0       58.0 ×     30.0 ×      1.8
+    8  Geom3D_W1_Side_Panel_Step32#7          1.8      30.0      58.0       58.0 ×     30.0 ×      1.8
+    9  Geom3D_W1_Horizontal_Main_Panel_Step32#7      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+   10  Geom3D_W1_Horizontal_Main_Panel_Step32#7      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+   11  Geom3D_W1_Back_Panel_Step32#7         96.4      26.4       1.8       96.4 ×     26.4 ×      1.8
+   12  Geom3D_W1_Cabinet_Door_Step32#7       49.7      29.6       1.8       49.7 ×     29.6 ×      1.8
+
+========================================================================
+[YG-110-230G2.glb]  柜型 code=YGG2  文件名解析: 名义 110(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 110.0 × 50.0 × 111.0 cm (W × H × D)
+  板件数: 12
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_W2_Left_Side_Panel_Step32#3      58.0      50.0       1.8       58.0 ×     50.0 ×      1.8
+    2  Geom3D_W2_Top_Panel_CoverRight_Step32#3      58.0       1.8      51.2       58.0 ×     51.2 ×      1.8
+    3  Geom3D_W2_Bottom_Panel_LeftIn_CoverRight_Step32#3      58.0       1.8      51.2       58.0 ×     51.2 ×      1.8
+    4  Geom3D_W2_Right_Side_Panel_Step32#3      26.8      46.4       1.8       46.4 ×     26.8 ×      1.8
+    5  Geom3D_W2_Back_Panel_Step32#2          1.8      46.4      49.4       49.4 ×     46.4 ×      1.8
+    6  Geom3D_W2_Cabinet_Door_ReadyToOpen       1.8      49.6      50.8       50.8 ×     49.6 ×      1.8
+    7  Geom3D_W1_Side_Panel_Step32#2          1.8      50.0      58.0       58.0 ×     50.0 ×      1.8
+    8  Geom3D_W1_Side_Panel_Step32#2          1.8      50.0      58.0       58.0 ×     50.0 ×      1.8
+    9  Geom3D_W1_Horizontal_Main_Panel_Step32#2      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+   10  Geom3D_W1_Horizontal_Main_Panel_Step32#2      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+   11  Geom3D_W1_Back_Panel_Step32#2         96.4      46.4       1.8       96.4 ×     46.4 ×      1.8
+   12  Geom3D_W1_Cabinet_Right_Door_ReadyToOpen      49.7      49.6       1.8       49.7 ×     49.6 ×      1.8
+
+========================================================================
+[Z-110-230.glb]  柜型 code=Z  文件名解析: 名义 110(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 110.0 × 230.0 × 111.0 cm (W × H × D)
+  板件数: 24
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_W1_Side_Panel#24                1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    2  Geom3D_W1_Side_Panel#24                1.8     224.0      58.0      224.0 ×     58.0 ×      1.8
+    3  Geom3D_W1_Horizontal_Main_Panel#24      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    4  Geom3D_W1_Horizontal_Main_Panel#24      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    5  Geom3D_W1_Back_Panel#24               96.4     220.4       1.8      220.4 ×     96.4 ×      1.8
+    6  Geom3D_W1_Toe_Kick_Front#24          100.0       5.5       1.8      100.0 ×      5.5 ×      1.8
+    7  Geom3D_W1_Toe_Kick_Middle_Support#24       1.8       5.5      54.4       54.4 ×      5.5 ×      1.8
+    8  Geom3D_W1_Interior_Shelf#24           96.4       1.8      55.2       96.4 ×     55.2 ×      1.8
+    9  Geom3D_W1_Interior_Shelf#24           96.4       1.8      55.2       96.4 ×     55.2 ×      1.8
+   10  Geom3D_W1_Hanging_Rod#24              96.4       2.5       2.5       96.4 ×      2.5 ×      2.5
+   11  Geom3D_W1_Hanging_Rod#24              96.4       2.5       2.5       96.4 ×      2.5 ×      2.5
+   12  Geom3D_W1_Cabinet_Door_LeftSingle#5      49.7     223.6       1.8      223.6 ×     49.7 ×      1.8
+   13  Geom3D_W2_Left_Side_Panel_CutBothEnds      26.8     220.4       1.8      220.4 ×     26.8 ×      1.8
+   14  Geom3D_W2_Right_Side_Panel_ToGround#2      58.0     230.0       1.8      230.0 ×     58.0 ×      1.8
+   15  Geom3D_W2_Top_Panel_EncloseLeft#1      58.0       1.8      51.2       58.0 ×     51.2 ×      1.8
+   16  Geom3D_W2_Bottom_Panel_EncloseLeft#5      58.0       1.8      51.2       58.0 ×     51.2 ×      1.8
+   17  Geom3D_W2_Back_Panel#24                1.8     220.4      49.4      220.4 ×     49.4 ×      1.8
+   18  Geom3D_W2_Toe_Kick_Front_Short#8       1.8       5.5      51.2       51.2 ×      5.5 ×      1.8
+   19  Geom3D_W2_Toe_Kick_Middle_Support#24      54.4       5.5       1.8       54.4 ×      5.5 ×      1.8
+   20  Geom3D_W2_Cabinet_Door_Shifted#1       1.8     223.6      50.8      223.6 ×     50.8 ×      1.8
+   21  Geom3D_W2_Interior_Shelf_Deep250_Final#1      25.0       1.8      49.4       49.4 ×     25.0 ×      1.8
+   22  Geom3D_W2_Interior_Shelf_Deep250_Final#1      25.0       1.8      49.4       49.4 ×     25.0 ×      1.8
+   23  Geom3D_W2_Interior_Shelf_Deep250_Final#1      25.0       1.8      49.4       49.4 ×     25.0 ×      1.8
+   24  Geom3D_W2_Interior_Shelf_Deep250_Final#1      25.0       1.8      49.4       49.4 ×     25.0 ×      1.8
+
+========================================================================
+[ZG-110-230G1.glb]  柜型 code=ZGG1  文件名解析: 名义 110(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 110.0 × 30.0 × 111.0 cm (W × H × D)
+  板件数: 12
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_W1_Side_Panel_Low#3             1.8      30.0      58.0       58.0 ×     30.0 ×      1.8
+    2  Geom3D_W1_Side_Panel_Low#3             1.8      30.0      58.0       58.0 ×     30.0 ×      1.8
+    3  Geom3D_W1_Horizontal_Panel_Low#3      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    4  Geom3D_W1_Horizontal_Panel_Low#3      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    5  Geom3D_W1_Back_Panel_Low#3            96.4      26.4       1.8       96.4 ×     26.4 ×      1.8
+    6  Geom3D_W1_Cabinet_Lift_Door_Ready      49.6      29.6       1.8       49.6 ×     29.6 ×      1.8
+    7  Geom3D_W2_Left_Side_Panel_Low#3       26.8      26.4       1.8       26.8 ×     26.4 ×      1.8
+    8  Geom3D_W2_Right_Side_Panel_Low#3      58.0      30.0       1.8       58.0 ×     30.0 ×      1.8
+    9  Geom3D_W2_Top_Panel_EncloseLeft_Low#3      58.0       1.8      51.2       58.0 ×     51.2 ×      1.8
+   10  Geom3D_W2_Bottom_Panel_EncloseLeft_Low#3      58.0       1.8      51.2       58.0 ×     51.2 ×      1.8
+   11  Geom3D_W2_Back_Panel_Low#3             1.8      26.4      49.4       49.4 ×     26.4 ×      1.8
+   12  Geom3D_W2_Cabinet_Lift_Door_Ready       1.8      29.6      50.8       50.8 ×     29.6 ×      1.8
+
+========================================================================
+[ZG-110-230G2.glb]  柜型 code=ZGG2  文件名解析: 名义 110(W) × 230(H) cm
+  整柜 GLB 原生 AABB: 110.0 × 50.0 × 111.0 cm (W × H × D)
+  板件数: 12
+
+    #  板件名                                   X(宽)      Y(高)      Z(深)          长 ×        宽 ×        厚
+    1  Geom3D_W1_Side_Panel_Low_500           1.8      50.0      58.0       58.0 ×     50.0 ×      1.8
+    2  Geom3D_W1_Side_Panel_Low_500           1.8      50.0      58.0       58.0 ×     50.0 ×      1.8
+    3  Geom3D_W1_Horizontal_Panel_Low_500      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    4  Geom3D_W1_Horizontal_Panel_Low_500      96.4       1.8      58.0       96.4 ×     58.0 ×      1.8
+    5  Geom3D_W1_Back_Panel_Low_500          96.4      46.4       1.8       96.4 ×     46.4 ×      1.8
+    6  Geom3D_W1_Cabinet_Hinge_LeftDoor_Ready      49.7      49.6       1.8       49.7 ×     49.6 ×      1.8
+    7  Geom3D_W2_Left_Side_Panel_Low_500      26.8      46.4       1.8       46.4 ×     26.8 ×      1.8
+    8  Geom3D_W2_Right_Side_Panel_Low_500      58.0      50.0       1.8       58.0 ×     50.0 ×      1.8
+    9  Geom3D_W2_Top_Panel_EncloseLeft_Low_500      58.0       1.8      51.2       58.0 ×     51.2 ×      1.8
+   10  Geom3D_W2_Bottom_Panel_EncloseLeft_Low_500      58.0       1.8      51.2       58.0 ×     51.2 ×      1.8
+   11  Geom3D_W2_Back_Panel_Low_500           1.8      46.4      49.4       49.4 ×     46.4 ×      1.8
+   12  Geom3D_W2_Cabinet_Hinge_LeftDoor_Ready       1.8      49.6      50.8       50.8 ×     49.6 ×      1.8

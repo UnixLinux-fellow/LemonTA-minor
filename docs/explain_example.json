@@ -1,0 +1,113 @@
+{
+  "glb_file_name": "wardrobe_simple_01.glb",
+  "model_category": "wardrobe",
+  "platform": "wechat",
+  "cos_path": "https://xxx-xxx.cos.ap-hangzhou.myqcloud.com/model/wardrobe_simple_01.glb",
+  "file_size": 204800,
+  "source_type": "official_standard",
+  "upload_openid": "oXXXXXXXXXXXXXXXXXXXXXX",
+  "is_online": true,
+  "remark": "",
+  "overall_size": {
+    "total_width": 50,
+    "total_height": 230,
+    "total_depth": 60
+  },
+  "board_list": [
+    {
+      "node_name": "left_vertical_board",
+      "length": 230,
+      "width": 60,
+      "thickness": 1.8,
+      "area": 1.38
+    },
+    {
+      "node_name": "right_vertical_board",
+      "length": 230,
+      "width": 60,
+      "thickness": 1.8,
+      "area": 1.38
+    },
+    {
+      "node_name": "top_board",
+      "length": 50,
+      "width": 60,
+      "thickness": 1.8,
+      "area": 0.3
+    },
+    {
+      "node_name": "bottom_board",
+      "length": 50,
+      "width": 60,
+      "thickness": 1.8,
+      "area": 0.3
+    },
+    {
+      "node_name": "middle_shelf_01",
+      "length": 50,
+      "width": 60,
+      "thickness": 1.8,
+      "area": 0.3
+    },
+    {
+      "node_name": "drawer_side_left",
+      "length": 40,
+      "width": 15,
+      "thickness": 1.8,
+      "area": 0.06
+    },
+    {
+      "node_name": "drawer_side_right",
+      "length": 40,
+      "width": 15,
+      "thickness": 1.8,
+      "area": 0.06
+    },
+    {
+      "node_name": "drawer_back_board",
+      "length": 46.4,
+      "width": 15,
+      "thickness": 1.8,
+      "area": 0.0696
+    },
+    {
+      "node_name": "drawer_front_panel",
+      "length": 46.4,
+      "width": 16,
+      "thickness": 1.8,
+      "area": 0.07424
+    }
+  ],
+  "total_body_area": 3.20384,
+  "total_door_area": 0.78,
+  "total_raw_board_area": 3.98384,
+  "hanging_rail_list": [
+    {
+      "node_name": "hanging_rail_01",
+      "length": 50
+    }
+  ],
+  "hardware_list": {
+    "hinge": 8,
+    "slide": 2,
+    "hanging_rail": 1,
+    "minifix": 36,
+    "countersunk_screw": 86,
+    "wood_dowel": 42,
+    "push_latch": 2,
+	"self_tapping_screw_16": 30,
+	"self_tapping_screw_30": 30, 
+	"support_arm": 2,
+	"plinth": 4,
+	"nylon_pre_inserted_nut": 50,
+	"dust_strip": 8,
+	"liquid_nails": 1,
+	"access_panel_handle": 1,
+	"cable_channel": 1,
+	"led_light_strip": 2.2,
+	"led_light_power": 1,
+	"led_light_switch": 1
+  },
+  "create_time": "2026-07-13T09:30:00Z",
+  "update_time": "2026-07-13T09:30:00Z"
+}

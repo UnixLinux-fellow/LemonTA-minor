@@ -1,0 +1,208 @@
+{
+  "priceList": {
+    "panelPrice": {
+      "国产兔宝宝": 120.0,
+      "国产克诺斯帮": 115.0,
+      "德国克诺斯帮": 155.0,
+      "E2国产板": 70.0,
+      "爱格": 195.0
+    },
+    "doorMaterial": {
+      "柜体相同": 0.0,
+      "钢琴烤漆": 200.0,
+      "肤感烤漆": 250.0,
+      "铝框AG玻璃": 270.0,
+      "实木贴皮": 300.0,
+      "橡胶实木": 480.0,
+      "白蜡实木": 830.0
+    },
+    "doorCraft": {
+      "无": 0.0,
+      "骨格线(浅造型)": 75.0,
+      "欧式(深造型)": 148.0,
+      "格栅门": 300.0
+    },
+	"transportFee": {
+	  "spec": "运费",
+	  "price": 15 
+	},
+	"installFee": {
+	  "spec": "安装费",
+	  "price": 20 
+	},
+    "hardware": {
+      "中国品牌": {
+        "hinge": {
+		  "spec": "DTC东泰C81一字快装铰链",
+		  "price": 6.2
+        },
+        "hangingRail": {
+          "spec": "衣通",
+		  "price": 40 
+        },
+        "pushLatch": {
+		  "spec":"悍高重型反弹器L=70mm",
+          "price": 2.2
+        },
+        "supportArm": {
+          "spec":"H-03A任意停支撑杆",
+		  "price" : 14.5
+        },
+		"ledLightStrip": {
+			"spec": "12V 4000K LED灯带",
+			"price": 19.4
+		},
+		"ledLightPower": {
+			"spec": "12V 36瓦变压器",
+			"price": 85
+		},
+		"ledLightSwitch": {
+			"spec": "12V 双头门碰感应器",
+			"price": 47
+		},
+        "minifix": {
+		  "spce": "常规三合一", 
+		  "price": 0.2
+        },
+        "slide": {
+          "spec": "国产海蒂诗 Quadro跨卓 S 全拉出阻尼滑轨 推入式 30KG", 
+		  "price": 60.0
+        },
+        "plinthSystem": {
+          "spec": "Häfele AXILO® 78调整脚",
+		  "price": 9.95
+        },
+        "doorBumper": {
+          "spec": "静音胶粒",
+		  "price": 0.02
+        },
+        "liquidNails": {
+          "spec": "立邦MS免钉胶（配尖头）50g",
+		  "price": 15.9
+        },
+        "selfTappingScrew16": {
+          "spec": "国产M4x16mm",
+		  "price" : 0.05
+        },
+		"selfTappingScrew30": {
+          "spec": "国产M4x30mm",
+		  "price" : 0.01
+        },
+        "accessPanelHandle": {
+          "spec": "检修口拉手",
+		  "price": 7.76
+        },
+        "nylonPreInsertedNut": {
+          "spec": "Ø5mm×12mm 尼龙螺丝预埋颗粒",
+		  "price": 0.05
+        },
+        "dustStrip": {
+          "spec": "T型-151 地面防尘胶条",
+		  "price": 0.5
+        },
+        "hingeBaseCap": {
+          "spec": "Ø37mm×12.8mm深 37孔无介防潮盖",
+		  "price": 0.128
+        },
+        "countersunkScrew": {
+          "spec": "SW4 6.3×50mm 白锌合金 沉头螺丝",
+		  "price": 0.1
+        },
+		"woodDowel": {
+		  "spec": "8×40mm 定位木销", 
+		  "price": 0.1
+		},
+		"cableChannel": {
+		  "spec": "PVC方形线槽", 
+		  "price": 2
+		}
+      },
+      "海外品牌": {
+		"hinge": {
+		  "spec": "B1um百隆175H3100MB快装一字铰链",
+		  "price": 27
+        },
+        "hangingRail": {
+          "spec": "Häfele海福乐 801.73.503 衣杆",
+		  "price": 1.1 
+        },
+        "pushLatch": {
+		  "spec":"Häfele海福乐 反弹器带橡胶缓冲器 M-PUSH L=80mm",
+          "price": 22
+        },
+        "supportArm": {
+          "spec":"Häfele海福乐 重载型任意停上翻铰链",
+		  "price" : 97
+        },
+		"ledLightStrip": {
+			"spec": "Häfele Loox LED 2042，24V灯带",
+			"price": 19.4
+		},
+		"ledLightPower": {
+			"spec": "Häfele Loox5 24 V 恒压，配电源线40W+多开关分控盒V2",
+			"price": 200
+		},
+		"ledLightSwitch": {
+			"spec": "Loox5模块化门感应模块+导线",
+			"price": 49.39
+		},
+        "minifix": {
+          "spec": "Häfele 抽屉三合一连接件",
+		  "price": 0.8
+        },
+        "slide": {
+          "spec": "进口海蒂诗 Quadro跨卓 S 全拉出阻尼滑轨 推入式 30KG", 
+		  "price": 120.0
+        },
+        "plinthSystem": {
+          "spec": "Häfele AXILO® 78调整脚",
+		  "price": 9.95
+        },
+        "doorBumper": {
+          "spec": "静音胶粒",
+		  "price": 0.02
+        },
+        "liquidNails": {
+          "spec": "立邦MS免钉胶（配尖头）50g",
+		  "price": 15.9
+        },
+        "selfTappingScrew16": {
+          "spec": "伍尔特M4x16mm",
+		  "price" : 0.05
+        },
+		"selfTappingScrew30": {
+          "spec": "伍尔特M4x30mm",
+		  "price" : 0.01
+        },
+        "accessPanelHandle": {
+          "spec": "检修口拉手",
+		  "price": 7.76
+        },
+        "nylonPre-InsertedNut": {
+          "spec": "Ø5mm×12mm 尼龙螺丝预埋颗粒",
+		  "price": 0.05
+        },
+        "dustStrip": {
+          "spec": "T型-151 地面防尘胶条",
+		  "price": 0.5
+        },
+        "hingeBaseCap": {
+          "spec": "Ø37mm×12.8mm深 37孔无介防潮盖",
+		  "price": 0.128
+        },
+        "countersunkScrew": {
+          "spec": "SW4 6.3×50mm 白锌合金 沉头螺丝",
+		  "price": 0.1
+        },
+		"woodDowel": {
+		  "spec": "8×40mm 定位木销", 
+		  "price": 0.1
+		},
+		"cableChannel": {
+		  "spec": "PVC方形线槽", 
+		  "price": 2
+		}
+      }
+    }
+  }
+}

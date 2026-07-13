@@ -1,0 +1,28 @@
+1. 在我的设计页面，增加一个上传文件的按钮，按钮名称上传新模型，点击完后弹出一个页面，页面上方是文件上传区域，上传区域下方有个下拉框，
+	下拉可以选择模型类型（当前有wardrobe、shoe cabinet两个选项），最下方有两个按钮，一个取消，一个上传；点击上传时做文件格式校验，文件必须是glb格式的文件；文件上传后，参照explain_example.json格式glb文件解析；
+2. explain_example.json文档说明：该文档包含一个glb的元数据，当前包含glb文件的属性信息，如属性信息，板件尺寸及面积信息，模型的面积及包含的五金信息
+	glb_file_name: 为glb文件名称，比如50A.glb
+	model_category: 模型的类型，wardrobe衣柜，shoe cabinet鞋柜，base cabinets; 在上传界面通过下拉选择
+	platform: 字段为是哪个小程序平台上传的模型，当前默认填wechat
+	cos_path: 此字段先glb文件存放的腾讯云公网https路径，正常路径先将文件上传至腾讯云(根据文件名称上传至相应的文件目录，最上级目录cloud://cloud1-5gbuna7d27dafeba.636c-cloud1-5gbuna7d27dafeba-1417087823/cabinet-model-standard/)，
+	在该目录下方有100cm、50cm、zj三个目录
+		目录中存放的是各个glb文件，根据上传的文件名称将glb放入相应的目录，比如50A.glb放入50cm目录，100A.glb放入100cm目录，文件名中包含Y,Z,YG,ZG字母，当前默认放入zj文件夹）
+		文件上传至腾讯云，小程序端拿到该https路径后回填至该路径。
+	file_size：为glb文件的大小
+	source_type：表示是用户上传的，还是小程序管理员上传的模型，当前根据用户openid判读，如果是管理员上传的则填official_standard，普通用户上传的
+		填normal_user,
+	upload_openid: 用户的openid
+	is_online：是否启用该glb元数据文档，当前默认true，启用glb
+	remark：对该文档的备注，暂时没有值
+	overall_size：包含该glb模型的模型尺寸，total_width表示模型宽度，total_height表示模型高度，total_depth表示模型的深度
+	board_list：数组中存放的是板件尺寸及面积列表，数组中的每个元素是一块板件的尺寸面积信息，node_name为板件名称，板件尺寸单位统一为厘米，length板件长度
+		width板件宽度，thickness为板件厚度，area为板件面积，板件面积=(lengthxwidth)/10000
+	total_body_area: 为所有的板件面积之和（不包含柜门和衣通）
+	total_door_area：门板的面积（单独计算，是因为门板牵涉到材质和工艺问题）
+	total_raw_board_area：为板件总面积+门板的面积（后续计算运费和安装费时使用到，这两项费用是按展开面积的平方收取）
+	hanging_rail_list：为衣通数组，一个衣柜可能有多条衣通，node_name为衣通名称，length为衣通长度，单位为cm，衣通费用=长度x每厘米的单价
+	hardware_list: 五金清单，当前无数据直接取explain_example.json中的数据,填默认值，包含hinge铰链、slide滑轨、hanging_rail衣通、minifix三合一、countersunk_screw欧牙沉头螺丝、
+		wood_dowel木销、push_latch反弹器、self_tapping_screw_16M4*16螺丝、self_tapping_screw_30M4*30螺丝、support_arm随意停,
+		plinth调整脚,nylon_pre_inserted_nut尼龙预埋件,dust_strip地面防尘胶条,liquid_nails免钉胶,access_panel_handle检修口拉手,
+		cable_channelPVC线槽,led_light_strip灯带,led_light_power灯带电源,led_light_switch灯带开关
+3. 按照explain_example.json的格式，拼接出一个glb文件元数据，上传至腾讯云monogo数据库model_panel_hardware,流程完成

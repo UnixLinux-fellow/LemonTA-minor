@@ -1,0 +1,140 @@
+{
+	"priceList": {
+		"panelPrice": {
+			"国产兔宝宝": 120.0,
+			"国产克诺斯帮": 115.0,
+			"德国克诺斯帮": 155.0,
+			"E2国产板": 70.0,
+			"爱格": 195.0
+		},
+		"doorMaterial": {
+			"柜体相同": 0.0,
+			"钢琴烤漆": 200.0,
+			"肤感烤漆": 250.0,
+			"铝框AG玻璃": 270.0,
+			"实木贴皮": 300.0,
+			"橡胶实木": 480.0,
+			"白蜡实木": 830.0
+		},
+		"doorCraft": {
+			"无": 0.0,
+			"骨格线(浅造型)": 75.0,
+			"欧式(深造型)": 148.0,
+			"格栅门": 300.0
+		},
+		"hardware": {
+			"中国品牌": {
+				"hinge": {
+					"DTC东泰C81一字快装铰链": 6.2
+				},
+				"hangingRail": {
+					"加厚铝合金静音条挂衣杆/cm": 0.35,
+					"挂衣杆双侧法兰/对": 5.0
+				},
+				"pushLatch": {
+					"悍高重型反弹器L=70mm": 2.2
+				},
+				"supportArm": {
+					"H-03A任意停支撑杆": 14.5
+				},
+				"lightingSystem": {
+					"Led 超薄1010带边灯槽/米": 4.4,
+					"12V 4000K LED灯带 60珠 8mm/米": 15.0,
+					"12V 36瓦变压器": 85.0,
+					"12V 双头门碰感应器": 47.0
+				},
+				"minifix": {
+					"常规三合一": 0.2
+				},
+				"slide": {
+					"国产海蒂诗 Quadro跨卓 S 全拉出阻尼滑轨 推入式 30KG ": 60.0
+				},
+				"plinthSystem": {
+					"Häfele AXILO® 78 ": 9.95
+				},
+				"doorBumper": {
+					"静音胶粒": 0.02
+				},
+				"liquidNails": {
+					"立邦MS免钉胶（配尖头）50g": 15.9
+				},
+				"selfTappingScrew": {
+					"M4x30mm": 0.1,
+					"M4x16mm": 0.05
+				},
+				"accessPanelHandle": {
+					"检修口拉手": 7.76
+				},
+				"nylonPre-InsertedNut ": {
+					"Ø5mm×12mm 尼龙螺丝预埋颗粒": 0.05
+				},
+				"dustStrip": {
+					"T型-151 地面防尘胶条": 0.5
+				},
+				"hingeBaseCap": {
+					"Ø37mm×12.8mm深 37孔无介防潮盖": 0.128
+				},
+				"cabinetBodyConnector": {
+					"SW4 6.3×50mm 白锌合金 沉头螺丝": 0.1,
+					"8×40mm 定位木销": 0.1
+				}
+			},
+			"海外品牌": {
+				"hinge": {
+					"B1um百隆175H3100MB快装一字铰链": 27
+				},
+				"hangingRail": {
+					"Häfele海福乐 801.73.503 衣杆带顶部静音条 高级灰/cm": 0.72,
+					"Häfele海福乐 801.73.503 衣杆托 侧装/顶装 高级灰 /对": 50
+				},
+				"pushLatch": {
+					"悍高重型反弹器L=70mm": 2.2
+				},
+				"supportArm": {
+					"Häfele海福乐 反弹器带橡胶缓冲器 M-PUSH L=80mm": 22
+				},
+				"lightingSystem": {
+					"Häfele Loox5 内嵌式型材1101，聚碳酸酯 /米": 13.86,
+					"Häfele Loox LED 2042，24V灯带 120珠 4000K /米": 40,
+					"Häfele Loox5 24 V 恒压，配电源线40W+多开关分控盒V2": 200,
+					"Loox5模块化门感应模块+导线": 43.39
+				},
+				"minifix": {
+					"Häfele 抽屉三合一连接件": 0.8
+				},
+				"slide": {
+					"进口海蒂诗 Quadro跨卓 S 全拉出阻尼滑轨 推入式 30KG ": 60.0
+				},
+				"plinthSystem": {
+					"Häfele AXILO® 78 ": 9.95
+				},
+				"doorBumper": {
+					"静音胶粒": 0.02
+				},
+				"liquidNails": {
+					"立邦MS免钉胶（配尖头）50g": 15.9
+				},
+				"selfTappingScrew": {
+					"伍尔特M4x30mm": 0.3,
+					"伍尔特M4x16mm": 0.1
+				},
+				"accessPanelHandle": {
+					"检修口拉手": 7.76
+				},
+				"nylonPre-InsertedNut ": {
+					"Ø5mm×12mm 尼龙螺丝预埋颗粒": 0.05
+				},
+				"dustStrip": {
+					"T型-151 地面防尘胶条": 0.5
+				},
+				"hingeBaseCap": {
+					"Ø37mm×12.8mm深 37孔无介防潮盖": 0.128
+				},
+				"cabinetBodyConnector": {
+					"SW4 6.3×50mm 白锌合金 沉头螺丝": 0.1,
+					"8×40mm 定位木销": 0.1
+				}
+			}
+		}
+	}
+}
