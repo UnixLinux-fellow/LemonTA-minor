@@ -5,6 +5,7 @@
 
 const glbMetadata = require('../../../utils/glb-metadata.js');
 const modelMetaCache = require('../../../utils/model-meta-cache.js');
+const modelSync = require('../../../utils/model-sync.js');
 const { createScopedThreejs } = require('threejs-miniprogram');
 const attachGLTFLoader = require('../../vendor/GLTFLoader.js');
 
@@ -13,7 +14,10 @@ const attachGLTFLoader = require('../../vendor/GLTFLoader.js');
 const ADMIN_OPENIDS = [];
 
 const MODEL_PANEL_HARDWARE = 'model_panel_hardware';
-const UPLOAD_ROOT = 'cabinet-model-standard';
+// 直接落到 cabinet-model/, 与现有官方模型同位。listCabinetModels 云函数会扫到,
+// 其他用户下次冷启动 syncOnLaunch 自动拉到。本机上传后 registerLocalFile
+// 立即插 manifest, 本会话 picker 即刻可见。
+const UPLOAD_ROOT = 'cabinet-model';
 
 async function _getOpenid() {
   const app = getApp();
@@ -153,6 +157,18 @@ Page({
 
       // 5) 写本地缓存, 后续设计消费同名模型时直接命中, 不用再查库
       modelMetaCache.setMeta(file.name, meta);
+
+      // 6) copy 到 model-sync 本地缓存 + 插 manifest → picker 本会话即可见
+      const reg = modelSync.registerLocalFile({
+        subdir,
+        name: file.name,
+        srcPath: file.path,
+        fileID,
+        size: file.size,
+      });
+      if (!reg.ok) {
+        console.warn('[upload-processor] registerLocalFile fail:', reg.err);
+      }
 
       finishAndBack('上传成功', true);
     } catch (err) {

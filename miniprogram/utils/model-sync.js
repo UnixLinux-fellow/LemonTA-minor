@@ -399,12 +399,73 @@ function getLocalPath(target) {
   return null;
 }
 
+// 把本机上传成功的 GLB 立即注入 manifest,让 picker 本会话就能看到。
+// 传入 { subdir, name, srcPath, fileID, size } → copy 到 rootDir/<subdir>/<name>
+// 并插入 _manifest.models,写回 manifest。若已有同 key 则覆盖。
+// 返回 { ok, path } 或 { ok:false, err }。
+function registerLocalFile(entry) {
+  if (!isWx()) return { ok: false, err: 'no_wx' };
+  if (!entry || !entry.subdir || !entry.name || !entry.srcPath) {
+    return { ok: false, err: 'invalid_entry' };
+  }
+  const fs = wx.getFileSystemManager();
+  try {
+    ensureDirsSync();
+    const target = subdirPath(entry.subdir) + '/' + entry.name;
+    // 若源与目标相同,则跳过 copy(理论上不会,srcPath 是 wx tmp)
+    try { fs.copyFileSync(entry.srcPath, target); }
+    catch (e) {
+      const msg = (e && (e.errMsg || e.message)) || String(e);
+      // 目标已存在时先删再 copy
+      try { fs.unlinkSync(target); } catch (e2) { /* ignore */ }
+      try { fs.copyFileSync(entry.srcPath, target); }
+      catch (e3) {
+        return { ok: false, err: (e3 && e3.errMsg) || msg };
+      }
+    }
+    if (!_manifest) _manifest = { version: 1, syncedAt: Date.now(), models: [] };
+    // upsert
+    const k = entry.subdir + '/' + entry.name;
+    let found = false;
+    for (let i = 0; i < _manifest.models.length; i++) {
+      if (key(_manifest.models[i]) === k) {
+        _manifest.models[i] = Object.assign({}, _manifest.models[i], {
+          fileID: entry.fileID || _manifest.models[i].fileID || '',
+          size: entry.size || _manifest.models[i].size || 0,
+          downloaded: true,
+          downloadedAt: Date.now(),
+          pending: null,
+        });
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      _manifest.models.push({
+        subdir: entry.subdir,
+        name: entry.name,
+        fileID: entry.fileID || '',
+        md5: '',
+        size: entry.size || 0,
+        downloaded: true,
+        downloadedAt: Date.now(),
+      });
+    }
+    writeManifestSync(_manifest);
+    emitReady(entry.subdir, entry.name);
+    return { ok: true, path: target };
+  } catch (e) {
+    return { ok: false, err: (e && e.errMsg) || String(e) };
+  }
+}
+
 module.exports = {
   syncOnLaunch,
   onManifestReady,
   listModels,
   getLocalPath,
   onModelReady,
+  registerLocalFile,
   _getManifest: () => _manifest,
   // 内部实现，仅用于测试
   downloadOne,
