@@ -1,7 +1,10 @@
 <view class="page">
   <view class="info-bar">
-    <view class="info-name">{{plan.name}}</view>
-    <view class="info-meta">{{plan.wall.w}}×{{plan.wall.h}}cm · {{cornerLabel}}{{plan.hasRaise ? ' · 加高' : ''}}</view>
+    <view class="info-main">
+      <view class="info-name">{{plan.name}}</view>
+      <view class="info-meta">{{plan.wall.w}}×{{plan.wall.h}}cm · {{cornerLabel}}{{plan.hasRaise ? ' · 加高' : ''}}</view>
+    </view>
+    <view class="info-upload" bindtap="onOpenUploadModal">上传新模型</view>
   </view>
 
   <view class="canvas-zone"
@@ -70,6 +73,11 @@
     <view class="action-btn" bindtap="onPrev">上一模块</view>
     <view class="action-btn primary" bindtap="onNext">{{nextBtnText}}</view>
   </view>
+
+  <upload-model-modal
+    visible="{{uploadModalVisible}}"
+    binduploadcancel="onCancelUploadModal"
+    binduploadconfirm="onConfirmUploadModel" />
 
   <cabinet-toast text="{{toast}}"></cabinet-toast>
 </view>

@@ -51,6 +51,7 @@ Page({
     thumbLeftPct: 0,
     scrollViewLeft: 0,
     toast: '',
+    uploadModalVisible: false,
   },
 
   onLoad() {
@@ -571,6 +572,14 @@ Page({
   showToast(msg) {
     this.setData({ toast: msg });
     setTimeout(() => this.setData({ toast: '' }), 2000);
+  },
+
+  onOpenUploadModal() {
+    this.setData({ uploadModalVisible: true });
+  },
+
+  onCancelUploadModal() {
+    this.setData({ uploadModalVisible: false });
   },
 
   onTouchStartCanvas(e) {
