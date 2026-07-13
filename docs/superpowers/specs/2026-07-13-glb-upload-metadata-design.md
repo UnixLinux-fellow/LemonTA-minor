@@ -50,11 +50,11 @@
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ upload-model-modal 组件（新）                                 │
-│  properties: visible, defaultCategory                        │
-│  events: cancel / confirm({file, category})                  │
+│  properties: visible                                         │
+│  events: uploadcancel / uploadconfirm({file, category})      │
 │  UI: 文件选择区 + category 下拉 + 取消 / 上传                 │
 └──────────────────────────────────────────────────────────────┘
-                            │ confirm
+                            │ uploadconfirm
                             ▼
 ┌──────────────────────────────────────────────────────────────┐
 │ design/index.js 里的 onConfirmUploadModel                    │
