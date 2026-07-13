@@ -1,6 +1,14 @@
 const cabinetModel = require('../../utils/cabinet-model.js');
 const layoutEngine = require('../../utils/layout-engine.js');
 const imgCache = require('../../../utils/img-cache.js');
+const glbMetadata = require('../../../utils/glb-metadata.js');
+
+// 管理员 openid 白名单。命中则 source_type = 'official_standard',
+// 否则 'normal_user'。目前空,后续由运营手动填并发版。
+const ADMIN_OPENIDS = [];
+
+const MODEL_PANEL_HARDWARE = 'model_panel_hardware';
+const UPLOAD_ROOT = 'cabinet-model-standard';
 
 const COLORS = [
   { id: 'white', label: '白色', css: '#f0f0e7' },
@@ -22,6 +30,24 @@ const CORNER_LABEL = {
   YZJ: '右转角',
   ZYZJ: '双侧转角',
 };
+
+// 从 app.globalData.openid 拿 openid;没有则通过 cloud.callFunction('login') 兜底。
+// 现有登录/注册流程在 app.js onLaunch 时已缓存到 globalData.openid;这里仅做兜底。
+async function _getOpenid() {
+  const app = getApp();
+  if (app && app.globalData && app.globalData.openid) return app.globalData.openid;
+  try {
+    const r = await wx.cloud.callFunction({
+      name: 'quickstartFunctions',
+      data: { type: 'getOpenId' },
+    });
+    const openid = r && r.result && r.result.openid;
+    if (openid && app && app.globalData) app.globalData.openid = openid;
+    return openid || '';
+  } catch (e) {
+    return '';
+  }
+}
 
 Page({
   data: {
@@ -580,6 +606,82 @@ Page({
 
   onCancelUploadModal() {
     this.setData({ uploadModalVisible: false });
+  },
+
+  async onConfirmUploadModal(e) {
+    const { file, category } = e.detail || {};
+    if (!file || !file.name || !file.path) {
+      wx.showToast({ title: '未选择文件', icon: 'none' });
+      return;
+    }
+    // 1) 命名校验 → 子目录归类
+    const subdir = glbMetadata.parseSubdir(file.name);
+    if (!subdir) {
+      wx.showModal({
+        title: '文件名格式无效',
+        content: '请使用形如 50A.glb / 100C.glb / Y110.glb / YG120.glb 的命名',
+        showCancel: false,
+      });
+      return;
+    }
+
+    // 2) 3D 渲染器必须已初始化,才能拿到 scoped THREE + gltfLoader
+    const renderer = this._renderer;
+    if (!renderer || !renderer.THREE || !renderer.gltfLoader) {
+      wx.showModal({
+        title: '3D 渲染尚未就绪',
+        content: '请等待模型加载完成后再试',
+        showCancel: false,
+      });
+      return;
+    }
+
+    wx.showLoading({ title: '上传中...', mask: true });
+    try {
+      // 3) 上传到 cabinet-model-standard/{subdir}/{name}
+      const cloudPath = `${UPLOAD_ROOT}/${subdir}/${file.name}`;
+      const up = await wx.cloud.uploadFile({ cloudPath, filePath: file.path });
+      const fileID = up && up.fileID;
+      if (!fileID) throw new Error('upload_no_fileID');
+
+      // 4) 解析 GLB → 元数据
+      const openid = await _getOpenid();
+      const sourceType = ADMIN_OPENIDS.indexOf(openid) >= 0
+        ? 'official_standard'
+        : 'normal_user';
+      const meta = await glbMetadata.parse(
+        {
+          filePath: file.path,
+          fileName: file.name,
+          modelCategory: category,
+          fileSize: file.size,
+          uploadOpenid: openid,
+          sourceType,
+        },
+        {
+          THREE: renderer.THREE,
+          gltfLoader: renderer.gltfLoader,
+          fs: wx.getFileSystemManager(),
+        }
+      );
+      meta.cos_path = fileID;
+
+      // 5) 写库(集合首次调用时会自动被创建;若权限限制则需要控制台创建)
+      const db = wx.cloud.database();
+      await db.collection(MODEL_PANEL_HARDWARE).add({ data: meta });
+
+      wx.hideLoading();
+      this.setData({ uploadModalVisible: false });
+      wx.showToast({ title: '上传成功', icon: 'success' });
+    } catch (err) {
+      wx.hideLoading();
+      console.error('[design] upload model failed', err);
+      wx.showModal({
+        title: '上传失败',
+        content: (err && (err.errMsg || err.message)) || '未知错误',
+        showCancel: false,
+      });
+    }
   },
 
   onTouchStartCanvas(e) {
