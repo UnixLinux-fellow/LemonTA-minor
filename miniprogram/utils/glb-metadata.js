@@ -106,15 +106,8 @@ function _parseGltf(buffer, gltfLoader) {
   });
 }
 
-function _rootSize(root, THREE) {
-  const bbox = new THREE.Box3().setFromObject(root);
-  const v = new THREE.Vector3();
-  bbox.getSize(v);
-  return { x: v.x, y: v.y, z: v.z };
-}
-
-function _meshSize(mesh, THREE) {
-  const bbox = new THREE.Box3().setFromObject(mesh);
+function _sizeFromObject(obj, THREE) {
+  const bbox = new THREE.Box3().setFromObject(obj);
   const v = new THREE.Vector3();
   bbox.getSize(v);
   return { x: v.x, y: v.y, z: v.z };
@@ -130,9 +123,10 @@ async function parse(opts, deps) {
   const root = await _parseGltf(buffer, gltfLoader);
 
   const expectedW = expectedWidthCm(fileName);
-  const rootSize = _rootSize(root, THREE);
+  const rootSize = _sizeFromObject(root, THREE);
   // GLB 原始坐标不是可靠的 cm/mm,用文件名反推的目标宽度反算 unitToCm。
   // rootSize.x 为 0 时兜底 1(承认 GLB 已按 cm 建模)。
+  // 注:兜底 1 时 overall_size 可能全为 0,调用方应检查并向用户告警(见 Task 5 上传编排)。
   const unitToCm =
     rootSize.x > 0.0001 && expectedW ? expectedW / rootSize.x : 1;
 
@@ -150,7 +144,7 @@ async function parse(opts, deps) {
     if (!node || !node.isMesh) return;
     const kind = _classifyMesh(node.name);
     if (kind === 'other') return;
-    const size = _meshSize(node, THREE);
+    const size = _sizeFromObject(node, THREE);
     const dims = _meshDimsFromSize(size, unitToCm);
     if (kind === 'board') {
       board_list.push({

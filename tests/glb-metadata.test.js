@@ -176,8 +176,11 @@ test('parse: 端到端拼装 (mock deps)', async () => {
   // total_door_area 应等于门板面积
   assert.equal(meta.total_door_area, glb._computeArea(230, 50));
   // total_body_area 应等于两板件面积之和
-  const expBody = glb._computeArea(230, 60) + glb._computeArea(50, 60);
+  const expBody = glb._computeArea(230, 60) + glb._computeArea(60, 50);
   assert.equal(meta.total_body_area, Math.round(expBody * 10000) / 10000);
+  // total_raw_board_area = body + door
+  assert.equal(meta.total_raw_board_area,
+    Math.round((meta.total_body_area + meta.total_door_area) * 10000) / 10000);
   // hardware_list 用默认值
   assert.equal(meta.hardware_list.hinge, 8);
   assert.equal(meta.hardware_list.slide, 2);
