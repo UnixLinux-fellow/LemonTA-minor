@@ -95,8 +95,8 @@ Page({
     const subdir = glbMetadata.parseSubdir(file.name);
     if (!subdir) {
       wx.showModal({
-        title: '文件名格式无效',
-        content: '请使用形如 50A.glb / 100C.glb / Y110.glb / YG120.glb 的命名',
+        title: '无法识别模型类别',
+        content: '文件名需要包含 50 (50cm 柜) / 100 (100cm 柜) / 或 Y/Z/YG/ZG 开头 (转角柜) 其中一种,以便自动归类。',
         showCancel: false,
       });
       return;

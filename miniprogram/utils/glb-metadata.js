@@ -58,21 +58,30 @@ function _computeArea(length, width) {
 }
 
 // 文件名 → 子目录归类:'50cm' | '100cm' | 'zj' | null
-function parseSubdir(fileName) {
-  const base = String(fileName || '').replace(/\.glb$/i, '');
-  if (/^50[A-Za-z]+$/.test(base)) return '50cm';
-  if (/^100[A-Za-z]+$/.test(base)) return '100cm';
-  if (/^(YG|ZG|Y|Z)([-_A-Za-z0-9]*)$/i.test(base)) return 'zj';
+// 规则:后缀必须 .glb;名字宽松(数字/字母/汉字/_/-),按下列顺序判断:
+//   含 '100' → 100cm (优先级高于 50, 避免 50 子串命中)
+//   含 '50'  → 50cm
+//   以 Y/Z/YG/ZG 开头 → zj (与旧规则一致, 转角柜命名习惯)
+//   都不含 → null (拒绝上传)
+function _classifyByName(fileName) {
+  const s = String(fileName || '');
+  if (!/\.glb$/i.test(s)) return null;
+  const base = s.replace(/\.glb$/i, '');
+  if (base.indexOf('100') >= 0) return '100cm';
+  if (base.indexOf('50') >= 0) return '50cm';
+  if (/^(YG|ZG|Y|Z)/i.test(base)) return 'zj';
   return null;
 }
 
+function parseSubdir(fileName) {
+  return _classifyByName(fileName);
+}
+
 // 文件名 → 期望宽度(cm),用来反推 unitToCm。不合法返回 null
+const _SUBDIR_TO_WIDTH = { '50cm': 50, '100cm': 100, 'zj': 110 };
 function expectedWidthCm(fileName) {
-  const base = String(fileName || '').replace(/\.glb$/i, '');
-  if (/^50[A-Za-z]+$/.test(base)) return 50;
-  if (/^100[A-Za-z]+$/.test(base)) return 100;
-  if (/^(Y|Z|YG|ZG)([-_A-Za-z0-9]*)$/i.test(base)) return 110;
-  return null;
+  const sub = _classifyByName(fileName);
+  return sub ? _SUBDIR_TO_WIDTH[sub] : null;
 }
 
 // 读取文件 → ArrayBuffer,依赖注入 fs (支持 wx.getFileSystemManager 与测试 mock)

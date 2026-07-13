@@ -52,27 +52,52 @@ test('_computeArea: (length * width) / 10000 保留 4 位', () => {
   assert.equal(glb._computeArea(46.4, 15), 0.0696);
 });
 
-test('parseSubdir: 50cm', () => {
+test('parseSubdir: 50cm - 严格命名', () => {
   assert.equal(glb.parseSubdir('50A.glb'), '50cm');
   assert.equal(glb.parseSubdir('50L.glb'), '50cm');
 });
 
-test('parseSubdir: 100cm', () => {
+test('parseSubdir: 50cm - 宽松命名(含 50 子串)', () => {
+  assert.equal(glb.parseSubdir('衣柜_50cm.glb'), '50cm');
+  assert.equal(glb.parseSubdir('mini-50-wardrobe.glb'), '50cm');
+  assert.equal(glb.parseSubdir('模型50标准.glb'), '50cm');
+});
+
+test('parseSubdir: 100cm - 严格命名', () => {
   assert.equal(glb.parseSubdir('100A.glb'), '100cm');
   assert.equal(glb.parseSubdir('100C.glb'), '100cm');
 });
 
-test('parseSubdir: zj', () => {
+test('parseSubdir: 100cm - 宽松命名(含 100 子串)', () => {
+  assert.equal(glb.parseSubdir('柜体100cm加高.glb'), '100cm');
+  assert.equal(glb.parseSubdir('big_100_wardrobe.glb'), '100cm');
+});
+
+test('parseSubdir: 100 优先于 50 (100C 不应误判为 50cm)', () => {
+  // "100C" 里没有连续 "50" 子串, 但确认逻辑正确
+  assert.equal(glb.parseSubdir('100C.glb'), '100cm');
+  // 极端: 名字同时含 100 和 50, 按优先级归 100
+  assert.equal(glb.parseSubdir('50-100-mix.glb'), '100cm');
+});
+
+test('parseSubdir: zj - 沿用 Y/Z/YG/ZG 开头规则', () => {
   assert.equal(glb.parseSubdir('Y110.glb'), 'zj');
   assert.equal(glb.parseSubdir('Z.glb'), 'zj');
   assert.equal(glb.parseSubdir('YG120.glb'), 'zj');
   assert.equal(glb.parseSubdir('ZG-110-230.glb'), 'zj');
 });
 
-test('parseSubdir: 命名不合法返回 null', () => {
+test('parseSubdir: 不含 50/100/YZ 开头 → null', () => {
   assert.equal(glb.parseSubdir('random.glb'), null);
   assert.equal(glb.parseSubdir('abc.glb'), null);
   assert.equal(glb.parseSubdir('200A.glb'), null);
+  assert.equal(glb.parseSubdir('衣柜.glb'), null);
+});
+
+test('parseSubdir: 非 .glb 后缀 → null', () => {
+  assert.equal(glb.parseSubdir('50A.txt'), null);
+  assert.equal(glb.parseSubdir('100A'), null);
+  assert.equal(glb.parseSubdir('Y110.gltf'), null);
 });
 
 test('expectedWidthCm: 从文件名反推目标宽度', () => {
@@ -81,6 +106,9 @@ test('expectedWidthCm: 从文件名反推目标宽度', () => {
   assert.equal(glb.expectedWidthCm('Y110.glb'), 110);
   assert.equal(glb.expectedWidthCm('YG120.glb'), 110);
   assert.equal(glb.expectedWidthCm('random.glb'), null);
+  // 宽松命名也能反推
+  assert.equal(glb.expectedWidthCm('衣柜_100cm.glb'), 100);
+  assert.equal(glb.expectedWidthCm('模型50.glb'), 50);
 });
 
 test('_classifyMesh: null/空串归 other', () => {
