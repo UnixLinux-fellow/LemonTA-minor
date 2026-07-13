@@ -11,28 +11,8 @@
   padding: 20rpx 28rpx;
   display: flex;
   flex-direction: row;
-  align-items: center;
-  gap: 16rpx;
-  justify-content: space-between;
-}
-
-.info-main {
-  display: flex;
-  flex-direction: row;
   align-items: baseline;
   gap: 16rpx;
-  flex: 1;
-  min-width: 0;
-}
-
-.info-upload {
-  flex: 0 0 auto;
-  font-size: 22rpx;
-  color: #14532d;
-  border: 2rpx solid #14532d;
-  border-radius: 999rpx;
-  padding: 8rpx 20rpx;
-  line-height: 1;
 }
 
 .info-name {

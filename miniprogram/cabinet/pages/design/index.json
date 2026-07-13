@@ -1,8 +1,7 @@
 {
   "navigationBarTitleText": "设计衣柜",
   "usingComponents": {
-    "cabinet-toast": "/components/cabinet-toast/index",
-    "upload-model-modal": "/components/upload-model-modal/index"
+    "cabinet-toast": "/components/cabinet-toast/index"
   },
   "navigationStyle": "default"
 }
