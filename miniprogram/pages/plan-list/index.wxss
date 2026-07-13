@@ -22,6 +22,30 @@
   margin-bottom: 20rpx;
 }
 
+/* 标题 + "上传新模型" 同行, 标题左对齐, 按钮靠右 */
+.h1-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 20rpx;
+}
+
+.h1-row .h1-title {
+  margin-bottom: 0;
+}
+
+.upload-btn {
+  flex: 0 0 auto;
+  font-size: 26rpx;
+  color: #fff7c2;
+  background: #1f2937;
+  border-radius: 999rpx;
+  padding: 14rpx 28rpx;
+  line-height: 1;
+}
+
 .subtitle-lead {
   margin-top: 4rpx;
 }
@@ -147,4 +171,13 @@
   top: -9999px;
   width: 595px;
   height: 842px;
+}
+
+/* 隐藏 webgl canvas —— 供 GLB 上传时 createScopedThreejs 用, 不显示 */
+.glb-parse-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 1px;
+  height: 1px;
 }

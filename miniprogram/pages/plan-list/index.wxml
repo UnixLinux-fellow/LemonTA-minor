@@ -16,7 +16,10 @@
     <!-- 页面标题 -->
     <view class="design-header">
       <text class="eyebrow">MY DESIGNS</text>
-      <text class="h1-title">我的设计</text>
+      <view class="h1-row">
+        <text class="h1-title">我的设计</text>
+        <view class="upload-btn" bindtap="onOpenUploadModal">上传新模型</view>
+      </view>
       <text class="subtitle-lead">最多保存 30 个空间方案</text>
     </view>
 
@@ -105,6 +108,14 @@
   </filename-input-modal>
 
   <canvas type="2d" id="pdf-canvas" class="pdf-canvas"></canvas>
+
+  <!-- GLB 元数据解析用的 webgl canvas。不显示不占布局,仅让 GLTFLoader 拿到 scoped THREE -->
+  <canvas type="webgl" id="glb-parse-canvas" class="glb-parse-canvas"></canvas>
+
+  <upload-model-modal
+    visible="{{uploadModalVisible}}"
+    binduploadcancel="onCancelUploadModal"
+    binduploadconfirm="onConfirmUploadModal" />
 
   <cabinet-toast text="{{toast}}"></cabinet-toast>
 </view>
