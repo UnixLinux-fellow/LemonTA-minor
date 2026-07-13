@@ -1,6 +1,6 @@
 .up {
   min-height: 100vh;
-  background: #fef9c3;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -8,31 +8,27 @@
 }
 
 .up-card {
-  background: #fff;
-  border-radius: 24rpx;
-  padding: 60rpx 48rpx;
   text-align: center;
   max-width: 620rpx;
   width: 100%;
 }
 
 .up-title {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 20rpx;
+  font-size: 32rpx;
+  color: #4b5563;
+  margin-bottom: 16rpx;
 }
 
 .up-sub {
-  font-size: 28rpx;
-  color: #6b7280;
-  margin-bottom: 32rpx;
+  font-size: 26rpx;
+  color: #9ca3af;
+  margin-bottom: 24rpx;
   word-break: break-all;
 }
 
 .up-hint {
-  font-size: 24rpx;
-  color: #9ca3af;
+  font-size: 22rpx;
+  color: #d1d5db;
 }
 
 /* 隐藏 webgl canvas —— 只是给 createScopedThreejs 挂 WebGL 上下文 */
