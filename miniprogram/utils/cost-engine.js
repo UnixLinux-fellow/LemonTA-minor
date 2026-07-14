@@ -113,7 +113,15 @@ function calcModule(cabinet, cfg) {
 
   const baseMeta = modelMeta.peekMeta(glbFile);
   if (!baseMeta) {
-    return { missing: 'meta', label: cabinet.label || '', code: cabinet.code, w: cabinet.w, h: cabinet.h, glbFile };
+    return {
+      missing: 'meta',
+      label: cabinet.label || '',
+      code: cabinet.code, w: cabinet.w, h: cabinet.h, glbFile,
+      panelCost: 0, hardwareCost: 0,
+      transport: 0, install: 0, total: 0,
+      totalBodyArea: 0, totalDoorArea: 0, totalRawBoardArea: 0,
+      detail: { panels: [], hardware: [] },
+    };
   }
 
   const isFormulaPath = cabinet.kind === 'nonstandard' || cabinet.kind === 'raise';
@@ -130,7 +138,7 @@ function calcModule(cabinet, cfg) {
   if (!doorCraftEntry) console.warn('[cost-engine] price miss', cfg.doorCraft);
 
   const bodyCost = meta.total_body_area * panelUnit;
-  const doorCost = meta.total_door_area * (doorMatUnit + doorCraftUnit);
+  const doorCost = meta.total_door_area * (panelUnit + doorMatUnit + doorCraftUnit);
 
   const brand = cfg.hardware;
   const lighting = cfg.lighting;
@@ -138,6 +146,8 @@ function calcModule(cabinet, cfg) {
 
   let hardwareCost = 0;
   const hardwareDetail = [];
+  // v1 曾根据 lighting='无' 强制清零 access_panel_handle 与 cable_channel 数量;
+  // v2 以 glb 元数据的数量为准 — 有无灯槽应在建模时决定, 通过 model_panel_hardware.hardware_list 表达。
   Object.entries(meta.hardware_list || {}).forEach(([key, qty]) => {
     let priceCode;
     let effectiveQty = qty;
@@ -147,6 +157,7 @@ function calcModule(cabinet, cfg) {
     } else {
       priceCode = `${key}_${brand}`;
     }
+    if (!effectiveQty) return; // 过滤 qty=0 行 (与旧版 pushHw 行为一致)
     const p = priceDict.get(priceCode);
     if (!p) {
       console.warn('[cost-engine] price miss', priceCode);

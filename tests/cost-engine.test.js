@@ -203,7 +203,7 @@ test('case 1: 标准 50A + panel_egger + 同柜体 + 无工艺 + domestic + 无�
       wall: null,
     });
     const m = cost.modules[0];
-    assert.equal(m.panelCost, _round2(4.7084 * 195));
+    assert.equal(m.panelCost, _round2(4.7084 * 195 + 1.11 * 195));
     const expectHw = 24.8 + 40 + 7.2 + 23 + 2.8 + 2.2 + 0.8 + 39.8 + 2.5 + 0.5 + 15.9 + 7.76 + 2;
     assert.equal(m.hardwareCost, _round2(expectHw));
     assert.equal(cost.transport, _round2(5.8184 * 15));
@@ -243,7 +243,7 @@ test('case 2: 标准 100A + E2 + 钢琴烤漆 + import + led_import → 门板�
       wall: null,
     });
     const m = cost.modules[0];
-    assert.equal(m.panelCost, _round2(6.9799 * 70 + 2.227 * 200));
+    assert.equal(m.panelCost, _round2(6.9799 * 70 + 2.227 * (70 + 200)));
     assert.ok(m.hardwareCost > 216, 'hardwareCost 应 > 铰链单项');
   } finally { delete global.wx; }
 });
