@@ -174,3 +174,97 @@ test('无 wx 环境: 所有 API 退化 no-op', async () => {
   assert.equal(await cache.getMeta('any.glb'), null);
   cache.removeMeta('any.glb');              // 不抛
 });
+
+// ---- preloadAll: 一次性拉 is_online=true 的元数据, 按 glb_file_name 写单条 storage ----
+
+function makeCloudMockForPreload(rows) {
+  return {
+    database() {
+      return {
+        collection(name) {
+          assert.equal(name, 'model_panel_hardware');
+          const chain = {
+            _cond: null, _skip: 0, _limit: 20,
+            where(c) { this._cond = c; return this; },
+            skip(n) { this._skip = n; return this; },
+            limit(n) { this._limit = n; return this; },
+            count: async function () {
+              const filtered = rows.filter((r) => this._cond ? r.is_online === this._cond.is_online : true);
+              return { total: filtered.length };
+            },
+            get: async function () {
+              const filtered = rows.filter((r) => this._cond ? r.is_online === this._cond.is_online : true);
+              return { data: filtered.slice(this._skip, this._skip + this._limit) };
+            },
+          };
+          return chain;
+        },
+      };
+    },
+  };
+}
+
+test('preloadAll: 拉所有 is_online=true 的 meta 并按 fileName 写单条 storage', async () => {
+  const wx = makeStorageMock();
+  const rows = [
+    { glb_file_name: '50A.glb', is_online: true, total_body_area: 4.7 },
+    { glb_file_name: '100A.glb', is_online: true, total_body_area: 6.9 },
+    { glb_file_name: '50X.glb', is_online: false, total_body_area: 1 },   // 应过滤
+  ];
+  global.wx = Object.assign({}, wx, { cloud: makeCloudMockForPreload(rows) });
+  try {
+    const cache = loadFreshCache();
+    await cache.preloadAll();
+    assert.equal(cache.peekMeta('50A.glb').total_body_area, 4.7);
+    assert.equal(cache.peekMeta('100A.glb').total_body_area, 6.9);
+    assert.equal(cache.peekMeta('50X.glb'), null);   // is_online=false 未预拉
+  } finally { delete global.wx; }
+});
+
+test('preloadAll: 总是覆盖已有 fileName (glb 数据修正常见)', async () => {
+  const wx = makeStorageMock();
+  wx.store['model_meta_50A.glb'] = { glb_file_name: '50A.glb', total_body_area: 999 };   // 老值
+  const cloud = {
+    database() {
+      return {
+        collection() {
+          return {
+            where() { return this; }, skip() { return this; }, limit() { return this; },
+            count: async () => ({ total: 1 }),
+            get: async () => ({ data: [{ glb_file_name: '50A.glb', is_online: true, total_body_area: 4.7 }] }),
+          };
+        },
+      };
+    },
+  };
+  global.wx = Object.assign({}, wx, { cloud });
+  try {
+    const cache = loadFreshCache();
+    await cache.preloadAll();
+    // 与字典模块不同: 模型元数据总是覆盖(允许 glb 数据修正)
+    assert.equal(cache.peekMeta('50A.glb').total_body_area, 4.7);
+  } finally { delete global.wx; }
+});
+
+test('preloadAll 云失败: warn 不抛', async () => {
+  const wx = makeStorageMock();
+  const cloud = {
+    database() {
+      return {
+        collection() {
+          return {
+            where() { return this; }, skip() { return this; }, limit() { return this; },
+            count: async () => { throw new Error('net'); },
+            get: async () => ({ data: [] }),
+          };
+        },
+      };
+    },
+  };
+  global.wx = Object.assign({}, wx, { cloud });
+  try {
+    const cache = loadFreshCache();
+    await cache.preloadAll();   // 不抛
+    assert.equal(cache.peekMeta('50A.glb'), null);
+  } finally { delete global.wx; }
+});

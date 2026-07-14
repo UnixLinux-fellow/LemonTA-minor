@@ -70,6 +70,31 @@ async function _fetchFromCloud(fileName) {
   }
 }
 
+const PAGE_SIZE = 20;
+
+// 一次性把 is_online=true 的元数据拉进 storage(按 fileName 单条写)。
+// 总是覆盖已有条目: glb 数据的修正(节点尺寸/五金修正)常见, 缓存不应挡新数据。
+// 与 price-dict / panel-dict 的差异: 那两个模块采用"读老 + 后台悄悄刷新",
+// 本模块直接同步刷新 —— 数据量小 (20+ 条), 覆盖策略更可控。
+async function preloadAll() {
+  if (typeof wx === 'undefined' || !wx.cloud || !wx.cloud.database) return;
+  try {
+    const db = wx.cloud.database();
+    const col = db.collection(COLLECTION).where({ is_online: true });
+    const { total } = await col.count();
+    for (let skip = 0; skip < total; skip += PAGE_SIZE) {
+      const res = await db.collection(COLLECTION).where({ is_online: true })
+        .skip(skip).limit(PAGE_SIZE).get();
+      (res.data || []).forEach((doc) => {
+        if (!doc || !doc.glb_file_name) return;
+        setMeta(doc.glb_file_name, doc);   // 直接覆盖
+      });
+    }
+  } catch (e) {
+    console.warn('[model-meta-cache] preloadAll fail', e && e.errMsg);
+  }
+}
+
 // 清缓存:主要用于测试和手工修复
 function removeMeta(fileName) {
   if (!fileName) return;
@@ -82,5 +107,6 @@ module.exports = {
   peekMeta,
   getMeta,
   removeMeta,
+  preloadAll,
   _STORAGE_PREFIX: STORAGE_PREFIX,
 };
