@@ -2,6 +2,7 @@
 // 这样中文走系统字体，不用打包字体文件，主包体积不爆。
 const jspdfModule = require('../vendor/jspdf.min.js');
 const costEngine = require('./cost-engine.js');
+const { materialName } = require('./materials-options.js');
 const jsPDF = jspdfModule.jsPDF || jspdfModule;
 
 const A4_W_PT = 595.28;
@@ -126,13 +127,15 @@ async function _renderOverview(canvas, ctx, plan) {
 
   // 板材五金（与上方空间信息文字续列对齐）
   infoY += 16 * SCALE; // 段间间距
+  // plan.materials 里存的是 code (如 'panel_egger' / 'door_material_piano_lacquer' /
+  // 'domestic' / 'led_import'); PDF 面向人阅读, 需要走 materialName 映射回中文名。
   const m = plan.materials || {};
   const matRows = [
-    ['板材', m.panel],
-    ['柜门面板', m.doorPanel],
-    ['柜门工艺', m.doorCraft],
-    ['五金', m.hardware],
-    ['灯带', m.lighting],
+    ['板材', materialName('panel', m.panel)],
+    ['柜门面板', materialName('doorPanel', m.doorPanel)],
+    ['柜门工艺', materialName('doorCraft', m.doorCraft)],
+    ['五金', materialName('hardware', m.hardware)],
+    ['灯带', materialName('lighting', m.lighting)],
   ];
   matRows.forEach(([k, v]) => {
     ctx.fillText(`${k}: ${v || ''}`, infoX, infoY);
