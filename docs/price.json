@@ -1,0 +1,60 @@
+{"_id":"78167c7f6a54b0771e4f322b1037d5b8","code":"panel_tu_baby_domestic","name":"兔宝宝","price":120.0,"category":"panel","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f322c776c0c68","code":"panel_kronospan_domestic","name":"国产克诺斯帮","price":115.0,"category":"panel","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f322d1c9c6418","code":"panel_kronospan_germany","name":"德国克诺斯帮","price":155.0,"category":"panel","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f322e0f4e3fcb","code":"panel_e2_domestic","name":"E2国产板","price":70.0,"category":"panel","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f322f7fe599ba","code":"panel_egger","name":"爱格板材","price":195.0,"category":"panel","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f3230011de409","code":"door_material_same_as_cabinet","name":"柜体相同","price":0.0,"category":"door_material","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f32317ff64030","code":"door_material_piano_lacquer","name":"钢琴烤漆","price":200.0,"category":"door_material","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f32323b77a17c","code":"door_material_skin_feel_lacquer","name":"肤感烤漆","price":250.0,"category":"door_material","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f323325df8e27","code":"door_material_aluminum_frame_ag_glass","name":"铝框AG玻璃","price":270.0,"category":"door_material","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f32342c62c0ab","code":"door_material_wood_veneer","name":"实木贴皮","price":300.0,"category":"door_material","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f323567fcb4a6","code":"door_material_rubber_solid_wood","name":"橡胶实木","price":480.0,"category":"door_material","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f323652c47f5c","code":"door_material_ash_solid_wood","name":"白蜡实木","price":830.0,"category":"door_material","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f32375ab0018d","code":"door_craft_none","name":"无","price":0.0,"category":"door_craft","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f3238080bd46a","code":"door_craft_skeleton_line_shallow","name":"骨格线","price":75.0,"category":"door_craft","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f3239774fbd47","code":"door_craft_european_deep","name":"欧式","price":148.0,"category":"door_craft","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f323a0c8b2057","code":"door_craft_grille_door","name":"格栅门","price":300.0,"category":"door_craft","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f323b2733cb73","code":"transport_fee","name":"运费","price":15.0,"category":"transport","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f323c205da2d9","code":"install_fee","name":"安装费","price":20.0,"category":"install","unit":"㎡","brand_type":null}
+{"_id":"78167c7f6a54b0771e4f323d365dab38","code":"hinge_domestic","name":"DTC东泰C81一字快装铰链","price":6.2,"category":"hardware","brand_type":"domestic","unit":"个"}
+{"_id":"78167c7f6a54b0771e4f323e7126d16a","code":"hanging_rail_domestic","name":"衣通","price":40.0,"category":"hardware","brand_type":"domestic","unit":"米"}
+{"_id":"78167c7f6a54b0771e4f323f07658eaa","code":"push_latch_domestic","name":"悍高重型反弹器L=70mm","price":2.2,"category":"hardware","brand_type":"domestic","unit":"个"}
+{"_id":"78167c7f6a54b0771e4f32404394dfbe","code":"support_arm_domestic","name":"H-03A任意停支撑杆","price":14.5,"category":"hardware","brand_type":"domestic","unit":"支"}
+{"_id":"78167c7f6a54b0771e4f324116285b27","code":"led_light_strip_domestic","name":"12V 4000K LED灯带","price":19.4,"category":"hardware","brand_type":"domestic","unit":"米"}
+{"_id":"78167c7f6a54b0771e4f324223c4285e","code":"led_light_power_domestic","name":"12V 36瓦变压器","price":85.0,"category":"hardware","brand_type":"domestic","unit":"个"}
+{"_id":"78167c7f6a54b0771e4f324361bb2072","code":"led_light_switch_domestic","name":"12V 双头门碰感应器","price":47.0,"category":"hardware","brand_type":"domestic","unit":"个"}
+{"_id":"78167c7f6a54b0771e4f32442ce97755","code":"minifix_domestic","name":"常规三合一","price":0.2,"category":"hardware","brand_type":"domestic","unit":"套"}
+{"_id":"78167c7f6a54b0771e4f32452894fde4","code":"slide_domestic","name":"国产海蒂诗 Quadro跨卓 S 全拉出阻尼滑轨 推入式 30KG","price":60.0,"category":"hardware","brand_type":"domestic","unit":"副"}
+{"_id":"78167c7f6a54b0771e4f32460c4c94e5","code":"plinth_system_domestic","name":"Hafele AXILO® 78调整脚","price":9.95,"category":"hardware","brand_type":"domestic","unit":"只"}
+{"_id":"78167c7f6a54b0771e4f32470e3b6876","code":"door_bumper_domestic","name":"静音胶粒","price":0.02,"category":"hardware","brand_type":"domestic","unit":"粒"}
+{"_id":"78167c7f6a54b0771e4f3248588c5096","code":"liquid_nails_domestic","name":"立邦MS免钉胶（配尖头）50g","price":15.9,"category":"hardware","brand_type":"domestic","unit":"支"}
+{"_id":"78167c7f6a54b0771e4f324950aa05d2","code":"self_tapping_screw_16_domestic","name":"国产M4x16mm自攻螺丝","price":0.05,"category":"hardware","brand_type":"domestic","unit":"颗"}
+{"_id":"78167c7f6a54b0771e4f324a556e3256","code":"self_tapping_screw_30_domestic","name":"国产M4x30mm自攻螺丝","price":0.01,"category":"hardware","brand_type":"domestic","unit":"颗"}
+{"_id":"78167c7f6a54b0771e4f324b454afe97","code":"access_panel_handle_domestic","name":"检修口拉手","price":7.76,"category":"hardware","brand_type":"domestic","unit":"个"}
+{"_id":"78167c7f6a54b0771e4f324c58787939","code":"nylon_pre_inserted_nut_domestic","name":"Ø5mm×12mm 尼龙螺丝预埋颗粒","price":0.05,"category":"hardware","brand_type":"domestic","unit":"颗"}
+{"_id":"78167c7f6a54b0771e4f324d4ecdab4a","code":"dust_strip_domestic","name":"T型-151 地面防尘胶条","price":0.5,"category":"hardware","brand_type":"domestic","unit":"米"}
+{"_id":"78167c7f6a54b0771e4f324e70d8b78f","code":"hinge_base_cap_domestic","name":"Ø37mm×12.8mm深 37孔无介防潮盖","price":0.128,"category":"hardware","brand_type":"domestic","unit":"个"}
+{"_id":"78167c7f6a54b0771e4f324f48bd10b3","code":"countersunk_screw_domestic","name":"SW4 6.3×50mm 白锌合金 沉头螺丝","price":0.5,"category":"hardware","brand_type":"domestic","unit":"颗"}
+{"_id":"78167c7f6a54b0771e4f32500c7aa383","code":"wood_dowel_domestic","name":"8×40mm 定位木销","price":0.1,"category":"hardware","brand_type":"domestic","unit":"根"}
+{"_id":"78167c7f6a54b0771e4f32517faa777b","code":"cable_channel_domestic","name":"PVC方形线槽","price":2.0,"category":"hardware","brand_type":"domestic","unit":"米"}
+{"_id":"78167c7f6a54b0771e4f3252004ca74b","code":"hinge_import","name":"B1um百隆175H3100MB快装一字铰链","price":27.0,"category":"hardware","brand_type":"import","unit":"个"}
+{"_id":"78167c7f6a54b0771e4f3253655ecef9","code":"hanging_rail_import","name":"Hafele海福乐 801.73.503 衣杆","price":1.1,"category":"hardware","brand_type":"import","unit":"米"}
+{"_id":"78167c7f6a54b0771e4f3254595a0668","code":"push_latch_import","name":"Hafele海福乐 反弹器带橡胶缓冲器 M-PUSH L=80mm","price":22.0,"category":"hardware","brand_type":"import","unit":"个"}
+{"_id":"78167c7f6a54b0771e4f325504306e6f","code":"support_arm_import","name":"Hafele海福乐 重载型任意停上翻铰链","price":97.0,"category":"hardware","brand_type":"import","unit":"支"}
+{"_id":"78167c7f6a54b0771e4f3256289cbc72","code":"led_light_strip_import","name":"Hafele Loox LED 2042，24V灯带","price":19.4,"category":"hardware","brand_type":"import","unit":"米"}
+{"_id":"78167c7f6a54b0771e4f32571357eebd","code":"led_light_power_import","name":"Hafele Loox5 24 V 恒压，配电源线40W+多开关分控盒V2","price":200.0,"category":"hardware","brand_type":"import","unit":"个"}
+{"_id":"78167c7f6a54b0771e4f3258235ed5d4","code":"led_light_switch_import","name":"Loox5模块化门感应模块+导线","price":49.39,"category":"hardware","brand_type":"import","unit":"个"}
+{"_id":"78167c7f6a54b0771e4f3259470313fe","code":"minifix_import","name":"Hafele 抽屉三合一连接件","price":0.8,"category":"hardware","brand_type":"import","unit":"套"}
+{"_id":"78167c7f6a54b0771e4f325a0344b08c","code":"slide_import","name":"进口海蒂诗 Quadro跨卓 S 全拉出阻尼滑轨 推入式 30KG","price":120.0,"category":"hardware","brand_type":"import","unit":"副"}
+{"_id":"78167c7f6a54b0771e4f325b55ff72c0","code":"plinth_system_import","name":"Hafele AXILO® 78调整脚","price":9.95,"category":"hardware","brand_type":"import","unit":"只"}
+{"_id":"78167c7f6a54b0771e4f325c13c9711a","code":"door_bumper_import","name":"静音胶粒","price":0.02,"category":"hardware","brand_type":"import","unit":"粒"}
+{"_id":"78167c7f6a54b0771e4f325d1c0048b3","code":"liquid_nails_import","name":"立邦MS免钉胶（配尖头）50g","price":15.9,"category":"hardware","brand_type":"import","unit":"支"}
+{"_id":"78167c7f6a54b0771e4f325e20a4258f","code":"self_tapping_screw_16_import","name":"伍尔特M4x16mm自攻螺丝","price":0.05,"category":"hardware","brand_type":"import","unit":"颗"}
+{"_id":"78167c7f6a54b0771e4f325f4140d11b","code":"self_tapping_screw_30_import","name":"伍尔特M4x30mm自攻螺丝","price":0.01,"category":"hardware","brand_type":"import","unit":"颗"}
+{"_id":"78167c7f6a54b0771e4f326078ed6f31","code":"access_panel_handle_import","name":"检修口拉手","price":7.76,"category":"hardware","brand_type":"import","unit":"个"}
+{"_id":"78167c7f6a54b0771e4f32615b530f7a","code":"nylon_pre_inserted_nut_import","name":"Ø5mm×12mm 尼龙螺丝预埋颗粒","price":0.05,"category":"hardware","brand_type":"import","unit":"颗"}
+{"_id":"78167c7f6a54b0771e4f32622901c788","code":"dust_strip_import","name":"T型-151 地面防尘胶条","price":0.5,"category":"hardware","brand_type":"import","unit":"米"}
+{"_id":"78167c7f6a54b0771e4f32631afb65c6","code":"hinge_base_cap_import","name":"Ø37mm×12.8mm深 37孔无介防潮盖","price":0.128,"category":"hardware","brand_type":"import","unit":"个"}
+{"_id":"78167c7f6a54b0771e4f32641f5285fe","code":"countersunk_screw_import","name":"SW4 6.3×50mm 白锌合金 沉头螺丝","price":0.1,"category":"hardware","brand_type":"import","unit":"颗"}
+{"_id":"78167c7f6a54b0771e4f32654d5a4cdb","code":"wood_dowel_import","name":"8×40mm 定位木销","price":0.1,"category":"hardware","brand_type":"import","unit":"根"}
+{"_id":"78167c7f6a54b0771e4f326657b34d26","code":"cable_channel_import","name":"PVC方形线槽","price":2.0,"category":"hardware","brand_type":"import","unit":"米"}

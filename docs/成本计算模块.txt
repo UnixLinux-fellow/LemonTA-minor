@@ -1,0 +1,143 @@
+成本透视模块改造prompt
+该文档仅用于成本透视模块的改造，其他逻辑比如glb模型的查询、拉取、渲染等逻辑不变
+一、整体流程
+1. 进入小程序，检查缓存，看是否存在一下文档单价字典、元数据文档、板件中英文映射字典
+2. 拉取板材五金配件单价字典、glb模型元数据文档、板件中英文映射字典，存入本地缓存
+3. 进入设计
+4. 设计衣柜布局
+5. 实时计算非标柜板件及门板面积及五金数量(该数量暂时取拉伸缩放柜的五金数量)
+6. 板材五金选择
+7. 跳转成本计算
+8. 根据板材选择，从glb模型元数据中获取板件面积，从单价字典中获取板材单价，计算板材价格
+9. 根据门板材质、工艺选择获取单价字典中门板，从单价字典获取价格，计算门板价格
+10. 根据五金选择，从单价中字典中获取五金单价，计算五金价格
+11. 根据照明选择，从单价字典中获取灯带价格，计算灯带价格
+12. 从glb元数据中获取板件与门板面积，计算运费与搬运费
+13. 将板件code及五金信息映射成中文
+14. 跳转到成本透视页面，查看明细，要显示中文
+二、 获取的文档及作用说明
+1. 进入小程序，从腾讯云文档数据库相关的文档，获取之后存入缓存，以备后续成本透视使用
+1.1 获取glb模型的元数据与五金数量，查询model_panel_hardware库下的文档，查询条件为is_online=true，每个文档对应一个glb模型的板件数据(包括板件尺寸、面积、门板尺寸面积、总面积等信息)与五金数量数据（包括铰链个数、连接件的个数、轨道副数、灯带长度、衣通长度等）用于成本的计算
+1.2 获取板材五金配件单价文档，查询price库下的所有文档，每个文档对应一项价格，用于成本的计算
+1.3 获取glb模型文件中板件英文中文映射文档，英文用于板件标识，中文用于明细成本的展示
+三、板材五金选择页面改造
+1. 板材五金选择页面
+以前板件五金选择页面中的选择项，是直接用选项汉字作为存储查询键值；这样做可能因为汉字没对上就导致后续的价格计算出错；现为各选项加上code，后续所有的价格计算使用code计算，code和名称做对应即可。
+衣柜板材品牌: 页面显示名称与code的对应关系如下
+code(查表 key)
+名称 (name)
+副标题 (desc)
+panel_e2_domestic
+E2 国产板
+性价比之选
+panel_tu_baby_domestic
+兔宝宝
+国产环保板材
+panel_kronospan_domestic
+国产克诺斯帮
+中国制造，欧洲品牌
+
+panel_kronospan_germany
+德国克诺斯帮
+德国原装进口
+panel_egger
+爱格
+奥地利顶级板材
+门板材质：页面显示名称与code的对应关系如下
+code(查表 key)
+名称 (name)
+副标题 (desc)
+door_material_same_as_cabinet
+与柜体相同
+不加价
+door_material_piano_lacquer
+钢琴烤漆
+光泽细腻
+door_material_skin_feel_lacquer
+肤感烤漆
+柔和触感
+door_material_aluminum_frame_ag_glass
+铝框 AG 玻璃
+通透显大
+door_material_wood_veneer
+实木贴皮
+木纹纹理
+door_material_rubber_solid_wood
+橡胶实木
+中等档次
+door_material_ash_solid_wood
+白蜡实木
+高端实木
+门板工艺：页面显示名称与code的对应关系如下
+code(查表 key)
+名称 (name)
+副标题 (desc)
+door_craft_none
+无
+性价比之选
+door_craft_skeleton_line_shallow
+骨格线
+国产环保板材
+door_craft_european_deep
+欧式
+中国制造，欧洲品牌
+door_craft_grille_door
+格栅门
+德国原装进口
+五金品牌：页面显示名称与code的对应关系如下,这里的中国品牌(domestic)和海外品牌(import)对应价格文档中的brand_type字段，brand_type分为两类，一类为domestic，一类为import，两类下包含的五金品类是一样的，价格计算的时候先找到brand_type把同一类的五金找出来，domestic下五金的code为五金名称_domestic，如铰链hinge_domestic
+code(查表 key)
+名称 (name)
+副标题 (desc)
+domestic
+中国品牌
+默认 DTC
+import
+海外品牌
+百隆 + 海福乐
+glb元数据文档中的hardware_list数组包含所有的五金品类，要计算五金价格，要先根据五金code到板材五金配件价格中的价格，根据用户选择的品牌拼接处五金的code，五金名称_品牌(如hingle_domestic，hingle_import)，获取五金code就可以指定五金的价格
+照明系统：页面显示名称与code的对应关系如下
+code(查表 key)
+名称 (name)
+副标题 (desc)
+panel_e2_domestic
+无
+无
+
+国产灯带
+铝框超薄
+
+海福乐灯带
+柔光均匀
+
+
+三、成本计算
+1. 单柜总成本计算公式
+总体成本 = 板材合计(包括柜体与门板) + 五金成本 + 运输费用 + 安装费用
+1.1 板件成本
+板件成本 = 板件面积*板件价格 + 门板面积*门板材质 + 门板面积*门板工艺
+板件面积取glb文件元数据文档中的total_body_area字段的值，板件价格根据用户在小程序端选择的板材的code计算相应的价格，比如用户选择了爱格(code为panel_egger,根据code在价格字典中找到code对应的price)则板材成本 = total_body_area * price
+门板面积取glb文件元数据中total_door_area的值，比如门板材质用户选择了与柜体相同，门板工艺选择了无，则门板面积 = total_door_area * （根据code：door_material_same_as_cabinet在价格字典中找到的对应的price）+ total_door_area * （根据code：door_craft_none在价格字典中找到的对应的price）；其他的选项找这个逻辑根据code找到价格，再用面积*价格即可
+1.2 五金成本
+五金成本 = Σ（五金数量 * 五金单价），五金当前包括access_panel_handle、cable_channel、countersunk_screw、dust_strip、hanging_rail、hinge、led_light_power、led_light_strip、led_light_switch、liquid_nails、minifix、nylon_pre_inserted_nut、plinth、push_latch、self_tapping_screw_16、self_tapping_screw_30、slide、support_arm、wood_dowel，在glb元数据文档中hardware_list数组中有该模型所有的五金数量数据，根据用户选择五金品牌找到五金价格; 比如用户选择了中国品牌五金, brand_type为domestic, 首先在价格字段中找到brand_type为domestic的五金品类, 依次遍历该数组中的所有五金品类，拼接出code(五金品类名称_domestic, 如hingle_domestic),再根据code到价格字段中找出对应的price; 然后用相应的数量乘单价即可算出价格
+以50A.glb为例铰链成本 = hingle(个数)*(根据hingle_domestic找出的price) = 4 * 6.2; 如果用户选择了要灯带，灯带价格=灯带长度*单价 + 灯带电源 * 单价 + 灯带开关*单价，如果用户选择了无则将不用取价格表中查找价格，价格直接设置为0计算即可
+1.3 运输费用与安装费用
+运输费用=(板材面积+门板面积)*运输单价,总面积取glb元数据中的total_raw_board_area*(根据code，transport_fee再价格字典中找到的价格)
+安装费用=(板材面积+门板面积)*安装单价,总面积取glb元数据中的total_raw_board_area*(根据code，install_fee再价格字典中找到的价格)
+2. 一个设计方案的成本
+方案成本 = 标准柜 + 非标柜(包括侧边非标+加高模块)
+2.1 标准柜：走标准的计算路径即可
+2.2 侧边非标与加高模块
+实时计算板件的尺寸信息，五金数据取拉伸缩放基础柜的五金数据即可
+四、成本透视也中的显示
+1. 单柜预览，板材合计、五金配件、运输费用、安装费用取之前计算好的即可
+2. 查看明细
+2.1 板材：glb元数据中的所有板件都要显示
+名称列：根据板材code在中英映射中找到相应的中文
+尺寸列: 取glb元数据中lengthxwidth*thickness即可
+面积列：去glb元数据文档中去area列即可，门板取total_door_area字段的值
+2.2 五金&配件
+部件列：根据code列取价格表中的五金名称
+规格列: 要在板材五金价格表中增加一个五金规格字段，用于记录五金的规格，后续直接从价格表中取即可
+数量列：取glb元数据文档中五金品类的数量
+单价列：取价格表的单价
+小计列：数量*单价
