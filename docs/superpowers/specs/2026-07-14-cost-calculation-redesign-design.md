@@ -233,7 +233,9 @@ const doorMatUnit = priceDict.get(cfg.doorPanel)?.price ?? 0;
 const doorCraftUnit = priceDict.get(cfg.doorCraft)?.price ?? 0;
 
 const panelCost = meta.total_body_area * panelUnit;
-const doorCost  = meta.total_door_area * (doorMatUnit + doorCraftUnit);
+// 门板由 panel 基材 + 材质加价 + 工艺加价 组成 (同 SK 收口条 unit 公式,
+// 同 buildPanelDetail 的 doorUnit)。door_material_same_as_cabinet.price=0 表示"无溢价"而非"零成本"。
+const doorCost  = meta.total_door_area * (panelUnit + doorMatUnit + doorCraftUnit);
 
 // —— 五金成本 —— //
 const brand = cfg.hardware;               // 'domestic' | 'import'
@@ -434,7 +436,7 @@ buildPanelDetail(boardList, panelUnit, doorMatUnit, doorCraftUnit) → panels[]
 - 同上模式;补 `enable=false` 过滤
 
 `tests/cost-engine.test.js`(用 docs/*.json 的样例数据构造 fixture):
-- **case 1** 标 50A + panel_egger + door_material_same_as_cabinet + door_craft_none + hardware=domestic + lighting=none:验证 panelCost = total_body_area * 195,doorCost = total_door_area * 0,五金 led_* 三项 = 0,总和匹配
+- **case 1** 标 50A + panel_egger + door_material_same_as_cabinet + door_craft_none + hardware=domestic + lighting=none:验证 panelCost = (total_body_area + total_door_area) * 195 (门板走 panel 基材),五金 led_* 三项 = 0,总和匹配
 - **case 2** 标 100C + panel_e2_domestic + door_material_piano_lacquer + door_craft_none + hardware=import + lighting=led_import:验证门板成本含 200 加价,五金查 `hinge_import` = 27
 - **case 3** 非标宽 30cm + 基础 50A:`rescaleMetadata` 后 kick_front_18 length=30、top_panel_18 width=26.4,total_body_area 重算正确,hardware_list 仍等于 50A.hardware_list
 - **case 4** 加高 150cm + 基础 100G1:同 case 3 的验证方向,H 也参与部分板件公式

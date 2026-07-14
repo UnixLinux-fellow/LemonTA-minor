@@ -84,20 +84,13 @@ Page({
   _maybeBakeWireframe() {
     const plan = this.data.plan;
     if (!plan || !plan.wireframeImage) return;
-    // TODO(debug): 重影问题排查；确认后删掉这段
-    console.log('[cost.bake]', 'hasLabels=', plan.wireframeHasLabels,
-      'version=', plan.wireframeLabelsVersion,
-      'current=', wireframeLabels.WIREFRAME_LABELS_VERSION,
-      'wireframeImage=', String(plan.wireframeImage).slice(0, 80));
     // 版本匹配才承认"已烘"。历史方案的 wireframeLabelsVersion 缺失 → 视作旧版本 → 重烧。
     // 参数变更（fov / dist 公式 / CAPTURE_ZOOM / 走 fov 或走 z）都会让存量图坐标与
     // DOM 覆盖坐标错位，出现"重影"。
     if (plan.wireframeHasLabels
         && plan.wireframeLabelsVersion === wireframeLabels.WIREFRAME_LABELS_VERSION) {
-      console.log('[cost.bake] SKIP（版本匹配，用缓存）');
       return;
     }
-    console.log('[cost.bake] 触发烘焙…');
 
     wx.createSelectorQuery().in(this)
       .select('#wf-canvas').fields({ node: true, size: true })
