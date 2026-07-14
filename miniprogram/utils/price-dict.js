@@ -64,18 +64,26 @@ async function preloadAll(opts) {
   }
   const remote = await _fetchAll();
   if (remote) { _ingest(remote); _writeStorage(remote); return; }
-  if (!_ready) _ingest([]);
-  _ready = false;
+  // 云拉取失败。如果从未成功加载过, 初始化空状态并标记未就绪;
+  // 如果已有旧数据, 保持原样不动 (旧数据仍可用, isReady 不误翻转)。
+  if (_byCode === null) {
+    _byCode = new Map();
+    _all = [];
+    _ready = false;
+  }
 }
 
-// 后台静默刷新:成功覆写内存 + storage;失败静默(保留老缓存)
+// 后台静默刷新:成功覆写内存 + storage;失败保留老缓存
 function _refreshInBackground() {
   _fetchAll().then((remote) => {
     if (remote && Array.isArray(remote) && remote.length > 0) {
       _ingest(remote);
       _writeStorage(remote);
     }
-  }).catch(() => { /* 静默 */ });
+    // remote===null 时 _fetchAll 已 warn 过, 不再重复
+    // remote===[] 时(后端空表)保留老缓存不覆盖 — 这是设计意图
+  });
+  // 不加 .catch: _fetchAll 内部已捕获, 走到这里说明 promise 已 resolve
 }
 
 function get(code) { return _byCode ? _byCode.get(code) : undefined; }

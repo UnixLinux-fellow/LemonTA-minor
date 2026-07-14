@@ -169,3 +169,39 @@ test('isReady:preload 前 false, 后 true', async () => {
     assert.equal(dict.isReady(), true);
   } finally { delete global.wx; }
 });
+
+test('preloadAll force=true 云失败但已有旧数据: isReady 仍 true, 保留旧值', async () => {
+  const wx = makeStorageMock();
+  wx.store['cost_data_v1_price'] = SAMPLE;
+  // 先热身一次成功加载
+  let firstCall = true;
+  const cloud = {
+    database() {
+      return {
+        collection() {
+          return {
+            _skip: 0, _limit: 20,
+            count: async () => firstCall ? { total: SAMPLE.length } : (() => { throw new Error('down'); })(),
+            skip(n) { this._skip = n; return this; },
+            limit(n) { this._limit = n; return this; },
+            get: async function () {
+              return { data: SAMPLE.slice(this._skip, this._skip + this._limit) };
+            },
+          };
+        },
+      };
+    },
+  };
+  global.wx = Object.assign({}, wx, { cloud });
+  try {
+    const dict = loadFresh();
+    await dict.preloadAll({ force: true });
+    assert.equal(dict.isReady(), true);
+    assert.equal(dict.get('panel_egger').price, 195);
+    // 第二次:云表挂
+    firstCall = false;
+    await dict.preloadAll({ force: true });
+    assert.equal(dict.isReady(), true, '旧数据仍可用, isReady 不应因单次失败翻转');
+    assert.equal(dict.get('panel_egger').price, 195, '旧数据仍在内存');
+  } finally { delete global.wx; }
+});
