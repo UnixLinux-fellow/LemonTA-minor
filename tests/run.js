@@ -532,33 +532,7 @@ group('wireframe-labels.computeLabelPositions', () => {
   eq(labels3.length, 1, 'sk 不计数，仅 1 个 standard');
 });
 
-// ---- cost-engine ----
-group('cost-engine.calc', () => {
-  const cabinets = [
-    { idx: 1, label: '左下1', code: 'a', w: 50, h: 230, kind: 'standard' },
-    { idx: 2, label: '左下2', code: 'b', w: 100, h: 230, kind: 'standard' },
-  ];
-  const out = cost.calc({ cabinets, materials: { panel: 'E2国产板', doorPanel: '柜体相同', doorCraft: '无', hardware: '中国品牌', lighting: '无' } });
-  eq(out.modules.length, 2, '2 个模块');
-  truthy(out.grandTotal > 0, '总价大于 0');
-  truthy(out.modules[0].detail.panels.length > 5, '板件清单 > 5 项');
-  truthy(out.modules[0].detail.hardware.length > 5, '五金清单 > 5 项');
-});
-
-group('cost-engine 100A E2国产板 应接近表格示例', () => {
-  // sheet1 中 100A 230 配 E2(80元/m²)/柜体相同/无/中国品牌/无 时，I8=109.0284 等等
-  const out = cost.calc({
-    cabinets: [{ label: '左下1', code: 'a', w: 100, h: 230, kind: 'standard' }],
-    materials: { panel: 'E2国产板', doorPanel: '柜体相同', doorCraft: '无', hardware: '中国品牌', lighting: '无' },
-  });
-  const mod = out.modules[0];
-  // 顶板 = (100-3.6)*58/10000*1*80 = 96.4*58*80/10000 ≈ 447.30 (源表用了 W-3.6=96.4 后乘 80 = 109.0284? 该值是单位面积 0.55912 * 195=爱格 才接近)
-  // 这里只校验单价命中：板材 E2 = 80
-  truthy(mod.detail.panels.every((p) => p.unit > 0), '所有板件单价 > 0');
-  // 门板的单价应等于 80（柜体相同 + 无工艺 = 80）
-  const door = mod.detail.panels.find((p) => p.name === '门板');
-  eq(door.unit, 80, '门板单价 = E2 80');
-});
+// cost-engine 单测已迁移到 tests/cost-engine.test.js (用 3 张字典 fixture 而非硬编码)
 
 // ---- layout-engine.renderRows ----
 group('layout-engine.renderRows 加高分层', () => {
@@ -571,74 +545,6 @@ group('layout-engine.renderRows 加高分层', () => {
   // hasRaise=false 时 top 应为空
   const s2 = layout.init({ wall: { w: 320, h: 240 }, cornerType: 'WZJ', hasRaise: false });
   eq(layout.renderRows(s2).top.length, 0, '不加高时顶层为空');
-});
-
-// ---- cost-engine 100H：层板 5 / A 抽 4 / 无 B 抽 ----
-group('cost-engine 100H h 型抽屉与层板计入', () => {
-  const out = cost.calc({
-    cabinets: [{ label: '左下1', code: 'h', w: 100, h: 230, kind: 'standard' }],
-    materials: { panel: 'E2国产板', doorPanel: '柜体相同', doorCraft: '无', hardware: '中国品牌', lighting: '无' },
-  });
-  const panels = out.modules[0].detail.panels;
-  const shelf = panels.find((p) => p.name === '层板');
-  const aFace = panels.find((p) => p.name === 'A抽面');
-  const bFace = panels.find((p) => p.name === 'B抽面');
-  eq(shelf.qty, 5, '层板 qty=5');
-  eq(aFace.qty, 4, 'A抽面 qty=4');
-  eq(bFace.qty, 0, 'B抽面 qty=0（全按 A 抽）');
-  // 5 项与 h 抽屉数联动
-  const hw = out.modules[0].detail.hardware;
-  const slide = hw.find((h) => /Quadro/.test(h.name));
-  const trio = hw.find((h) => /三合一/.test(h.name));
-  eq(slide.qty, 4, '滑轨 qty = A+B = 4');
-  eq(trio.qty, 60, '三合一 qty = 滑轨*15 = 60');
-});
-
-// ---- cost-engine 100E：层板 6 / 无抽屉 ----
-group('cost-engine 100E e 型层板计入且无抽屉', () => {
-  const out = cost.calc({
-    cabinets: [{ label: '左下1', code: 'e', w: 100, h: 230, kind: 'standard' }],
-    materials: { panel: 'E2国产板', doorPanel: '柜体相同', doorCraft: '无', hardware: '中国品牌', lighting: '无' },
-  });
-  const panels = out.modules[0].detail.panels;
-  const shelf = panels.find((p) => p.name === '层板');
-  const aFace = panels.find((p) => p.name === 'A抽面');
-  const bFace = panels.find((p) => p.name === 'B抽面');
-  eq(shelf.qty, 6, '层板 qty=6');
-  eq(aFace.qty, 0, 'A抽面 qty=0（100E 无抽屉）');
-  eq(bFace.qty, 0, 'B抽面 qty=0');
-  const hw = out.modules[0].detail.hardware;
-  const slide = hw.find((h) => /Quadro/.test(h.name));
-  truthy(!slide || slide.qty === 0, '无滑轨（qty=0 应被 pushHw 过滤掉，或值为 0）');
-});
-
-// ---- cost-engine 非标 e1/e2 与 100E 隔离：仍是裸壳 ----
-group('cost-engine 非标 e1/e2 不复用 100E 的表', () => {
-  ['e1', 'e2'].forEach((code) => {
-    const out = cost.calc({
-      cabinets: [{ label: '左下1', code, w: 80, h: 230, kind: 'nonstandard' }],
-      materials: { panel: 'E2国产板', doorPanel: '柜体相同', doorCraft: '无', hardware: '中国品牌', lighting: '无' },
-    });
-    const panels = out.modules[0].detail.panels;
-    const shelf = panels.find((p) => p.name === '层板');
-    const aFace = panels.find((p) => p.name === 'A抽面');
-    eq(shelf.qty, 0, code + ' 层板 qty=0（非标裸壳）');
-    eq(aFace.qty, 0, code + ' A抽面 qty=0');
-  });
-});
-
-// ---- cost-engine 带 wall 时应包含 SK 收口 ----
-group('cost-engine SK 收口', () => {
-  const out = cost.calc({
-    cabinets: [{ label: '左下1', code: 'a', w: 100, h: 230, kind: 'standard' }],
-    materials: { panel: '爱格', doorPanel: '钢琴烤漆', doorCraft: '骨格线', hardware: '中国品牌', lighting: '无' },
-    wall: { w: 480, h: 260 },
-  });
-  truthy(out.sk, '应输出 sk');
-  // 面积 = (2*260)/10000*2 + ((480-4)*2)/10000 = 0.104 + 0.0952 = 0.1992
-  truthy(Math.abs(out.sk.area - 0.1992) < 0.0005, 'SK 面积≈0.1992');
-  truthy(out.sk.total > 0, 'SK 总价 > 0');
-  truthy(out.grandTotal > 0, '总价含 SK 后 > 0');
 });
 
 // ---- plan-store ----
