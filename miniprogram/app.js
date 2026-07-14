@@ -78,6 +78,17 @@ App({
       console.warn('[model-sync] init failed:', e);
     }
 
+    // 成本模块 3 字典 (价格/板件中英/glb元数据) 启动预拉:不 await, 后台跑;
+    // 成本页会再校验字典状态, 缺则 toast + "——" 降级 (Task 9 处理)。
+    try {
+      var bootstrap = require('./utils/bootstrap.js');
+      bootstrap.ensureCostDataReady().catch(function (err) {
+        console.warn('[bootstrap] ensureCostDataReady failed:', err);
+      });
+    } catch (e) {
+      console.warn('[bootstrap] init failed:', e);
+    }
+
     // 读取本地缓存的用户信息（老用户刷新小程序后仍能立即渲染账号卡）
     var userInfo = wx.getStorageSync('userInfo');
     if (userInfo) {
