@@ -1,45 +1,50 @@
+// 选项 id 直接用 price / brand code, 保存到 plan.materials 后由 cost-engine v2 用 code 查价字典。
+// name / desc 仅用于 UI 显示 —— 见 docs/superpowers/specs/2026-07-14-cost-calculation-redesign-design.md §4。
+
 const PANEL_OPTIONS = [
-  { id: 'E2国产板', name: 'E2 国产板', desc: '性价比之选' },
-  { id: '兔宝宝', name: '兔宝宝', desc: '国产环保板材' },
-  { id: '克诺斯帮', name: '克诺斯帮', desc: '中国制造，欧洲品牌' },
-  { id: '德国克诺斯帮', name: '德国克诺斯帮', desc: '德国原装进口' },
-  { id: '爱格', name: '爱格', desc: '奥地利顶级板材' },
+  { id: 'panel_e2_domestic', name: 'E2 国产板', desc: '性价比之选' },
+  { id: 'panel_tu_baby_domestic', name: '兔宝宝', desc: '国产环保板材' },
+  { id: 'panel_kronospan_domestic', name: '国产克诺斯帮', desc: '中国制造，欧洲品牌' },
+  { id: 'panel_kronospan_germany', name: '德国克诺斯帮', desc: '德国原装进口' },
+  { id: 'panel_egger', name: '爱格', desc: '奥地利顶级板材' },
 ];
 
 const DOOR_PANEL_OPTIONS = [
-  { id: '柜体相同', name: '与柜体相同', desc: '不加价' },
-  { id: '钢琴烤漆', name: '钢琴烤漆', desc: '光泽细腻' },
-  { id: '肤感烤漆', name: '肤感烤漆', desc: '柔和触感' },
-  { id: '铝框AG玻璃', name: '铝框 AG 玻璃', desc: '通透显大' },
-  { id: '实木贴皮', name: '实木贴皮', desc: '木纹纹理' },
-  { id: '橡胶实木', name: '橡胶实木', desc: '中等档次' },
-  { id: '白蜡实木', name: '白蜡实木', desc: '高端实木' },
+  { id: 'door_material_same_as_cabinet', name: '与柜体相同', desc: '不加价' },
+  { id: 'door_material_piano_lacquer', name: '钢琴烤漆', desc: '光泽细腻' },
+  { id: 'door_material_skin_feel_lacquer', name: '肤感烤漆', desc: '柔和触感' },
+  { id: 'door_material_aluminum_frame_ag_glass', name: '铝框 AG 玻璃', desc: '通透显大' },
+  { id: 'door_material_wood_veneer', name: '实木贴皮', desc: '木纹纹理' },
+  { id: 'door_material_rubber_solid_wood', name: '橡胶实木', desc: '中等档次' },
+  { id: 'door_material_ash_solid_wood', name: '白蜡实木', desc: '高端实木' },
 ];
 
 const DOOR_CRAFT_OPTIONS = [
-  { id: '无', name: '无' },
-  { id: '骨格线', name: '骨格线' },
-  { id: '欧式', name: '欧式' },
-  { id: '格栅门', name: '格栅门' },
+  { id: 'door_craft_none', name: '无' },
+  { id: 'door_craft_skeleton_line_shallow', name: '骨格线' },
+  { id: 'door_craft_european_deep', name: '欧式' },
+  { id: 'door_craft_grille_door', name: '格栅门' },
 ];
 
+// hardware 存的是 brand_type 本身 (domestic / import), 与 price code 的后缀对齐
 const HARDWARE_OPTIONS = [
-  { id: '中国品牌', name: '中国品牌', desc: '默认 DTC' },
-  { id: '海外品牌', name: '海外品牌', desc: '百隆 + 海福乐' },
+  { id: 'domestic', name: '中国品牌', desc: '默认 DTC' },
+  { id: 'import', name: '海外品牌', desc: '百隆 + 海福乐' },
 ];
 
+// lighting 是分流: none / led_domestic / led_import, 与 hardware 独立
 const LIGHTING_OPTIONS = [
-  { id: '无', name: '无' },
-  { id: '国产', name: '国产灯带', desc: '10mm × 10mm 超薄' },
-  { id: '进口', name: '海福乐灯带', desc: '柔光均匀' },
+  { id: 'none', name: '无' },
+  { id: 'led_domestic', name: '国产灯带', desc: '10mm × 10mm 超薄' },
+  { id: 'led_import', name: '海福乐灯带', desc: '柔光均匀' },
 ];
 
 const DEFAULT_MATERIALS = {
-  panel: 'E2国产板',
-  doorPanel: '柜体相同',
-  doorCraft: '无',
-  hardware: '中国品牌',
-  lighting: '无',
+  panel: 'panel_e2_domestic',
+  doorPanel: 'door_material_same_as_cabinet',
+  doorCraft: 'door_craft_none',
+  hardware: 'domestic',
+  lighting: 'none',
 };
 
 Page({
