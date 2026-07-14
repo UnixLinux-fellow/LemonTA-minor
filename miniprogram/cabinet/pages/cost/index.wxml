@@ -2,6 +2,11 @@
 <view class="page">
   <image class="bg-image bg-image-light" src="{{assets.bg('T3')}}" mode="aspectFill" lazy-load />
 
+  <view class="data-notice" wx:if="{{dataNotice}}">
+    <text>{{dataNotice}}</text>
+    <view class="retry" bindtap="onRetryDataFetch">重试</view>
+  </view>
+
   <view class="section wireframe">
     <view class="title">{{plan.name}}</view>
     <view class="wf-wrap" wx:if="{{plan.wireframeImage}}">
@@ -101,7 +106,7 @@
         </view>
         <view class="tbl-row" wx:for="{{currentDetail.detail.hardware}}" wx:key="name">
           <view class="c1">{{item.name}}</view>
-          <view class="c2">数量</view>
+          <view class="c2">{{item.spec}}</view>
           <view class="c3">{{item.qty}}</view>
           <view class="c4">¥{{item.unit}}</view>
           <view class="c5">¥{{item.total}}</view>

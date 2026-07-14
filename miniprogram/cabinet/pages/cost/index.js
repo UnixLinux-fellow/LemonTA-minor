@@ -2,6 +2,7 @@ const costEngine = require('../../../utils/cost-engine.js');
 const cloud = require('../../../utils/cloud.js');
 const wireframeLabels = require('../../utils/wireframe-labels.js');
 const imgCache = require('../../../utils/img-cache.js');
+const bootstrap = require('../../../utils/bootstrap.js');
 
 Page({
   data: {
@@ -17,6 +18,8 @@ Page({
     downloadOpen: false,
     downloadInfo: { link: '', code: '' },
     floatToast: '',
+    dataReady: true,
+    dataNotice: '',
   },
 
   onLoad(query) {
@@ -32,12 +35,9 @@ Page({
       wx.navigateBack();
       return;
     }
+    this._plan = plan;
+    this._from = from;
     const cabinets = plan.cabinets || [];
-    const cost = costEngine.calc({
-      cabinets,
-      materials: plan.materials || {},
-      wall: plan.wall,
-    });
     const bottomRow = cabinets.filter((c) => c.kind !== 'raise');
     const topRow = cabinets.filter((c) => c.kind === 'raise');
     // wireframeReady：图片本身已经烧了编号（且是当前版本）。true 时 wxml 里 DOM 编号
@@ -47,13 +47,38 @@ Page({
     this.setData({
       plan,
       from,
-      cost,
       bottomRow,
       topRow,
       labelPositions: wireframeLabels.computeLabelPositions(plan),
       wireframeReady,
     });
     this._maybeBakeWireframe();
+    this._computeCost();
+  },
+
+  async _computeCost() {
+    // 后台字典可能还没就绪; 保底再触发一次(有本地缓存立即返回, 无缓存则阻塞拉云)
+    await bootstrap.ensureCostDataReady();
+    const plan = this._plan;
+    if (!bootstrap.isAllReady()) {
+      this.setData({
+        dataReady: false,
+        dataNotice: '价格数据未就绪, 请重试',
+        cost: { modules: [], grandTotal: '——' },
+      });
+      return;
+    }
+    const cost = costEngine.calc({
+      cabinets: plan.cabinets || [],
+      materials: plan.materials || {},
+      wall: plan.wall,
+    });
+    this.setData({ dataReady: true, dataNotice: '', cost });
+  },
+
+  onRetryDataFetch() {
+    this.setData({ dataNotice: '正在重试…' });
+    bootstrap.ensureCostDataReady({ force: true }).then(() => this._computeCost());
   },
 
   _maybeBakeWireframe() {
