@@ -170,10 +170,21 @@ panelDict.preloadAll(force)       // Promise
 modelMetaCache.preloadAll(force)  // Promise
 ```
 
-每个 preload:
-1. `force=false` 且本地有整表缓存(key `cost_data_v1_<name>`)→ 直接 return
-2. 拉云表 → 写 storage → return
-3. 拉失败 → warn + return(不抛)
+每个 preload 采用 **"读老 + 后台悄悄刷新"** 策略,保证价格/中文/元数据变更能在下一次进成本页时被看到:
+
+1. `force=true`:阻塞拉云 → 覆盖 storage 与内存 → return
+2. `force=false`:
+   - 本地有缓存 → 立即 ingest 让 `isReady()=true`,同时 **fire-and-forget** 启一个后台 `_refreshInBackground()` 拉云;拉成功 → 静默覆写 storage 与内存;拉失败 → 静默(保留老数据)
+   - 本地无缓存 → 阻塞拉云 → 写 storage → return
+3. 阻塞拉云失败 → warn + `isReady()=false` + return(不抛)
+
+`model-meta-cache.preloadAll` 的后台刷新:遍历所有 `is_online=true` 的元数据,**force 覆盖已有 fileName 单条缓存**(和字典模块不同,这里不需要区分 force 参数;拉到什么就覆盖什么 —— 因为一个 glb 的板件/五金后台被修正是常见情况)。
+
+**效果**:
+- 用户第一次进 cost 页:命中本地缓存, `< 100ms` 出结果
+- 后台在几百 ms 内把 3 张表刷新
+- 用户下一次进 cost 页(或退出后重进)看到的就是最新版本
+- 网络挂:静默保留老数据,不打扰用户
 
 `ensureCostDataReady` 不 throw;`cost.onLoad` 用 `getReadyState()` 判断三张表状态,任一 miss 则 UI 走 §7 的降级路径。
 
