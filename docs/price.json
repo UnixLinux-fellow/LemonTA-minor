@@ -25,7 +25,7 @@
 {"_id":"78167c7f6a54b0771e4f324361bb2072","code":"led_light_switch_domestic","name":"12V 双头门碰感应器","price":47.0,"category":"hardware","brand_type":"domestic","unit":"个"}
 {"_id":"78167c7f6a54b0771e4f32442ce97755","code":"minifix_domestic","name":"常规三合一","price":0.2,"category":"hardware","brand_type":"domestic","unit":"套"}
 {"_id":"78167c7f6a54b0771e4f32452894fde4","code":"slide_domestic","name":"国产海蒂诗 Quadro跨卓 S 全拉出阻尼滑轨 推入式 30KG","price":60.0,"category":"hardware","brand_type":"domestic","unit":"副"}
-{"_id":"78167c7f6a54b0771e4f32460c4c94e5","code":"plinth_system_domestic","name":"Hafele AXILO® 78调整脚","price":9.95,"category":"hardware","brand_type":"domestic","unit":"只"}
+{"_id":"78167c7f6a54b0771e4f32460c4c94e5","code":"plinth_domestic","name":"Hafele AXILO® 78调整脚","price":9.95,"category":"hardware","brand_type":"domestic","unit":"只"}
 {"_id":"78167c7f6a54b0771e4f32470e3b6876","code":"door_bumper_domestic","name":"静音胶粒","price":0.02,"category":"hardware","brand_type":"domestic","unit":"粒"}
 {"_id":"78167c7f6a54b0771e4f3248588c5096","code":"liquid_nails_domestic","name":"立邦MS免钉胶（配尖头）50g","price":15.9,"category":"hardware","brand_type":"domestic","unit":"支"}
 {"_id":"78167c7f6a54b0771e4f324950aa05d2","code":"self_tapping_screw_16_domestic","name":"国产M4x16mm自攻螺丝","price":0.05,"category":"hardware","brand_type":"domestic","unit":"颗"}
@@ -46,7 +46,7 @@
 {"_id":"78167c7f6a54b0771e4f3258235ed5d4","code":"led_light_switch_import","name":"Loox5模块化门感应模块+导线","price":49.39,"category":"hardware","brand_type":"import","unit":"个"}
 {"_id":"78167c7f6a54b0771e4f3259470313fe","code":"minifix_import","name":"Hafele 抽屉三合一连接件","price":0.8,"category":"hardware","brand_type":"import","unit":"套"}
 {"_id":"78167c7f6a54b0771e4f325a0344b08c","code":"slide_import","name":"进口海蒂诗 Quadro跨卓 S 全拉出阻尼滑轨 推入式 30KG","price":120.0,"category":"hardware","brand_type":"import","unit":"副"}
-{"_id":"78167c7f6a54b0771e4f325b55ff72c0","code":"plinth_system_import","name":"Hafele AXILO® 78调整脚","price":9.95,"category":"hardware","brand_type":"import","unit":"只"}
+{"_id":"78167c7f6a54b0771e4f325b55ff72c0","code":"plinth_import","name":"Hafele AXILO® 78调整脚","price":9.95,"category":"hardware","brand_type":"import","unit":"只"}
 {"_id":"78167c7f6a54b0771e4f325c13c9711a","code":"door_bumper_import","name":"静音胶粒","price":0.02,"category":"hardware","brand_type":"import","unit":"粒"}
 {"_id":"78167c7f6a54b0771e4f325d1c0048b3","code":"liquid_nails_import","name":"立邦MS免钉胶（配尖头）50g","price":15.9,"category":"hardware","brand_type":"import","unit":"支"}
 {"_id":"78167c7f6a54b0771e4f325e20a4258f","code":"self_tapping_screw_16_import","name":"伍尔特M4x16mm自攻螺丝","price":0.05,"category":"hardware","brand_type":"import","unit":"颗"}

@@ -31,7 +31,7 @@ Page({
     standardWidth: 0,
     standardUsed: 0,
     nonStandardWidth: 0,
-    sizeTab: 50,
+    sizeTab: 100,
     selectedModelIdx: 0,
     modelList: [],
     colors: COLORS,
@@ -85,7 +85,7 @@ Page({
         this.setData({
           plan,
           cornerLabel: CORNER_LABEL[plan.cornerType],
-          modelList: grouped.s50,
+          modelList: grouped.s100,
           items: state.items,
           meta: state.meta,
           standardWidth: state.meta.standardWidth,
@@ -326,8 +326,19 @@ Page({
     let show100 = true;
     let sizeTab = this.data.sizeTab;
     if (state.meta.isFull) {
-      show50 = false;
-      show100 = false;
+      // 布满后仍允许通过 picker 替换末块 standard 柜 (同宽度换型号, 例如 50a→50b/50c, 100a→100b/100c)。
+      // 只显示与末块同宽的 tab, 避免用户点错宽度触发 replaceLast 越界失败。
+      if (last && last.w === 50) {
+        show100 = false;
+        sizeTab = 50;
+      } else if (last && last.w === 100) {
+        show50 = false;
+        sizeTab = 100;
+      } else {
+        // 无 standard (左转角初始态 + isFull, 罕见): 全隐藏
+        show50 = false;
+        show100 = false;
+      }
     } else if (remaining < 100) {
       // 末块若是 50 且换 100 后仍能装下，则允许 100cm tab
       const replaceTo100Ok = last && (state.meta.standardUsed - last.w + 100) <= state.meta.standardWidth;

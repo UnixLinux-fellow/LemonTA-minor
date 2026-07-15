@@ -36,14 +36,20 @@ function init({ wall, cornerType, hasRaise }) {
     cursor += CORNER_WIDTH;
   }
 
-  // 第一个标准模块默认 50cm a 型（左转角/双侧转角场景下，首位由 z 转角占据，
-  // 不再放默认柜；标准段从转角右侧 cursor 起算，由用户主动添加）
+  // 第一个标准模块默认 100cm a 型（左转角/双侧转角场景下，首位由 z 转角占据，
+  // 不再放默认柜；标准段从转角右侧 cursor 起算，由用户主动添加）。
+  // 小墙 fallback：标准段 <100 但 ≥50 时退回放 50A；<50 不放默认柜。
   const hasLeftCorner = cornerType === rules.CORNER.ZZJ || cornerType === rules.CORNER.ZYZJ;
-  if (!hasLeftCorner && standardWidth >= 50) {
+  let firstW = 0;
+  if (!hasLeftCorner) {
+    if (standardWidth >= 100) firstW = 100;
+    else if (standardWidth >= 50) firstW = 50;
+  }
+  if (firstW > 0) {
     items.push({
       kind: 'standard',
       code: 'a',
-      w: 50,
+      w: firstW,
       h: STD_HEIGHT,
       isFirst: true,
     });
@@ -56,7 +62,7 @@ function init({ wall, cornerType, hasRaise }) {
     cornerType,
     hasRaise,
     standardWidth, // 总标准段宽度
-    standardUsed: !hasLeftCorner && standardWidth >= 50 ? 50 : 0, // 已占用标准段宽度
+    standardUsed: firstW, // 已占用标准段宽度
     nonStandardWidth: nonStandardWidth > 0 ? nonStandardWidth : 0,
     color: 'white',
     showDoor: false,
@@ -84,8 +90,23 @@ function addNext(state, { code, size }) {
     return { ok: false, message: '已布满，请点击确认布局' };
   }
 
-  // 标准模块
+  // 尾段合并规则：标准段剩余 <100 (已放不下整块 100A) 且 剩余+非标 落在单块非标覆盖范围
+  // [40,120] 时, 直接把这两段合并成一块非标 e1/e2 收尾, 而不是 "50A + 更小的非标" 两块。
+  // 对应文档: 剩余 41~61 用 50A (chooseNonStandardCode → e1), 61~120 用 100A 缩放 (→ e2)。
+  // 忽略传入的 code/size —— 本次点击语义变成 "收尾", 单块非标由 chooseNonStandardCode 选型。
   const remaining = standardRemaining(state);
+  if (remaining > 0 && remaining < 100) {
+    const merged = remaining + state.meta.nonStandardWidth;
+    if (merged >= 40 && merged <= 120) {
+      state.meta.standardWidth = state.meta.standardUsed;
+      state.meta.nonStandardWidth = merged;
+      placeNonStandardAndClose(state);
+      return { ok: true, merged: true };
+    }
+    // merged 超出单块非标范围 → 退回老路径 (下面分支照旧: 塞个 50 + 后续更小非标)
+  }
+
+  // 标准模块
   if (remaining >= size) {
     state.items.push({
       kind: 'standard',

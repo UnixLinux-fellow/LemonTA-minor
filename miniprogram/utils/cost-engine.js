@@ -42,9 +42,9 @@ function resolveGlbFile(cabinet) {
   }
 }
 
-// —— 非标/加高: 按公式重算 board_list 尺寸, 五金 hardware_list 保留 —— //
+// —— 非标/加高: 按公式重算 board_list & door_list 尺寸, 五金 hardware_list 保留 —— //
 function rescaleMetadata(baseMeta, W, H) {
-  const newBoards = (baseMeta.board_list || []).map((b) => {
+  const rescaleList = (list) => (list || []).map((b) => {
     const f = PANEL_FORMULAS[b.node_name];
     if (!f) {
       console.warn('[cost-engine] panel-formula miss', b.node_name);
@@ -59,16 +59,23 @@ function rescaleMetadata(baseMeta, W, H) {
       area: round4(dims.length * dims.width / 10000),
     };
   });
-  let bodyArea = 0, doorArea = 0;
-  newBoards.forEach((b) => {
+  const rescaledBoards = rescaleList(baseMeta.board_list);
+  const rescaledDoors = rescaleList(baseMeta.door_list);
+
+  // 迁移期兼容: 旧云数据 board_list 里可能混入 door_panel 分类的老门板行,
+  // 分拣出去合并进 door_list, 保证只走一条门板路径。
+  const newBoards = [];
+  const strayDoors = [];
+  rescaledBoards.forEach((b) => {
     const dictEntry = panelDict.get(b.node_name);
     const cat = dictEntry ? dictEntry.category : 'cabinet_frame';
     if (cat === 'hanging_component') return;
-    if (cat === 'door_panel') doorArea += b.area;
-    else bodyArea += b.area;
+    if (cat === 'door_panel') { strayDoors.push(b); return; }
+    newBoards.push(b);
   });
-  bodyArea = round4(bodyArea);
-  doorArea = round4(doorArea);
+  const newDoors = rescaledDoors.concat(strayDoors);
+  const bodyArea = round4(newBoards.reduce((s, b) => s + b.area, 0));
+  const doorArea = round4(newDoors.reduce((s, d) => s + d.area, 0));
   return {
     ...baseMeta,
     overall_size: {
@@ -77,30 +84,51 @@ function rescaleMetadata(baseMeta, W, H) {
       total_depth: (baseMeta.overall_size && baseMeta.overall_size.total_depth) || 60,
     },
     board_list: newBoards,
+    door_list: newDoors,
     total_body_area: bodyArea,
     total_door_area: doorArea,
     total_raw_board_area: round4(bodyArea + doorArea),
   };
 }
 
-// —— 板材明细: 每块板一条 —— //
-function buildPanelDetail(boardList, panelUnit, doorMatUnit, doorCraftUnit) {
-  const doorUnit = panelUnit + doorMatUnit + doorCraftUnit;
+// —— 板材明细: 每块板一条 (只取柜身板, 门板由 buildDoorDetail 负责) —— //
+function buildPanelDetail(boardList, panelUnit) {
   const out = [];
   (boardList || []).forEach((b) => {
     const dictEntry = panelDict.get(b.node_name);
     const cat = dictEntry ? dictEntry.category : 'cabinet_frame';
     if (cat === 'hanging_component') return;
+    // 迁移期兼容: 旧数据 board_list 里可能混入门板, 由 buildDoorDetail 单独出行, 这里跳过。
+    if (cat === 'door_panel') return;
     const name = dictEntry ? dictEntry.display_name : b.node_name;
-    const unit = cat === 'door_panel' ? doorUnit : panelUnit;
     out.push({
       name,
       code: b.node_name,
       size: `${b.length}×${b.width}×${b.thickness}`,
       qty: 1,
       area: round4(b.area),
-      unit,
-      total: round2(b.area * unit),
+      unit: panelUnit,
+      total: round2(b.area * panelUnit),
+    });
+  });
+  return out;
+}
+
+// —— 门板明细: 每块门板一条, 单价 = 基材 + 门材 + 门艺 —— //
+function buildDoorDetail(doorList, panelUnit, doorMatUnit, doorCraftUnit) {
+  const doorUnit = panelUnit + doorMatUnit + doorCraftUnit;
+  const out = [];
+  (doorList || []).forEach((d) => {
+    const dictEntry = panelDict.get(d.node_name);
+    const name = dictEntry ? dictEntry.display_name : d.node_name;
+    out.push({
+      name,
+      code: d.node_name,
+      size: `${d.length}×${d.width}×${d.thickness}`,
+      qty: 1,
+      area: round4(d.area),
+      unit: doorUnit,
+      total: round2(d.area * doorUnit),
     });
   });
   return out;
@@ -143,11 +171,13 @@ function calcModule(cabinet, cfg) {
   const brand = cfg.hardware;
   const lighting = cfg.lighting;
   const ledBrand = lighting === 'led_import' ? 'import' : 'domestic';
+  const isRaise = cabinet.kind === 'raise';
 
   let hardwareCost = 0;
   const hardwareDetail = [];
   // v1 曾根据 lighting='无' 强制清零 access_panel_handle 与 cable_channel 数量;
   // v2 以 glb 元数据的数量为准 — 有无灯槽应在建模时决定, 通过 model_panel_hardware.hardware_list 表达。
+  // 例外: 加高柜不落地, 不算调整脚(plinth); 与 LED 三项一样, 由业务规则强制清零, 不依赖每份 glb 元数据手工填 0。
   Object.entries(meta.hardware_list || {}).forEach(([key, qty]) => {
     let priceCode;
     let effectiveQty = qty;
@@ -155,6 +185,7 @@ function calcModule(cabinet, cfg) {
       if (lighting === 'none') effectiveQty = 0;
       priceCode = `${key}_${ledBrand}`;
     } else {
+      if (key === 'plinth' && isRaise) effectiveQty = 0;
       priceCode = `${key}_${brand}`;
     }
     if (!effectiveQty) return; // 过滤 qty=0 行 (与旧版 pushHw 行为一致)
@@ -181,7 +212,11 @@ function calcModule(cabinet, cfg) {
     panelCost: round2(bodyCost + doorCost),
     hardwareCost: round2(hardwareCost),
     detail: {
-      panels: buildPanelDetail(meta.board_list, panelUnit, doorMatUnit, doorCraftUnit),
+      // 板材表: 柜身板 (board_list) + 门板 (door_list), 每块单独一条。
+      // 数量始终由 door_list 决定, 板材合计里的门板费用取 total_door_area × doorUnit (在上面 doorCost 里),
+      // 与逐块 area × doorUnit 之和可能存在小的四舍五入差异 (设计如此)。
+      panels: buildPanelDetail(meta.board_list, panelUnit)
+        .concat(buildDoorDetail(meta.door_list, panelUnit, doorMatUnit, doorCraftUnit)),
       hardware: hardwareDetail,
     },
   };

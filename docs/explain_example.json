@@ -78,6 +78,15 @@
       "area": 0.07424
     }
   ],
+  "door_list": [
+  {
+    "node_name": "door_left_18",
+    "length": 224,
+    "width": 49.8,
+    "thickness": 1.8,
+    "area": 0.07424
+  }
+],
   "total_body_area": 3.20384,
   "total_door_area": 0.78,
   "total_raw_board_area": 3.98384,

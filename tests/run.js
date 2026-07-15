@@ -227,9 +227,9 @@ group('layout-engine', () => {
   const state = layout.init({ wall: { w: 480, h: 260 }, cornerType: 'WZJ', hasRaise: false });
   eq(state.meta.standardWidth, 400, '初始化标准段=400');
   eq(state.meta.nonStandardWidth, 76, '非标=76 (480-4-400)');
-  eq(state.meta.standardUsed, 50, '初始放第一格 50cm');
-  // 添加 7 个 50cm 凑满
-  for (let i = 0; i < 7; i++) {
+  eq(state.meta.standardUsed, 100, '初始放第一格 100cm (默认首柜 100A)');
+  // 首柜 100A 占 100, 再加 6 个 50cm 凑满 400
+  for (let i = 0; i < 6; i++) {
     layout.addNext(state, { code: 'a', size: 50 });
   }
   eq(state.meta.isFull, true, '加满后 isFull');
@@ -248,10 +248,10 @@ group('layout-engine.removeLast 第一格保护', () => {
 
 group('layout-engine.replaceLast 单柜场景（等价于 replaceFirst）', () => {
   const state = layout.init({ wall: { w: 320, h: 240 }, cornerType: 'WZJ', hasRaise: false });
-  // standardWidth=250, 初始首块 50cm a, standardUsed=50
+  // standardWidth=250, 初始首块 100cm a, standardUsed=100
   const r = layout.replaceLast(state, { code: 'b', size: 100 });
   eq(r.ok, true, '单柜替换为 100b 成功');
-  eq(state.meta.standardUsed, 100, '标准已用=100');
+  eq(state.meta.standardUsed, 100, '标准已用=100 (100a→100b, 无净增减)');
   const stds = state.items.filter((it) => it.kind === 'standard');
   eq(stds.length, 1, '仍只有 1 个标准柜');
   eq(stds[0].code, 'b', '末块 code=b');
@@ -261,13 +261,15 @@ group('layout-engine.replaceLast 单柜场景（等价于 replaceFirst）', () =
 });
 
 group('layout-engine.replaceLast 多柜场景', () => {
-  const state = layout.init({ wall: { w: 320, h: 240 }, cornerType: 'WZJ', hasRaise: false });
+  // wall=380 → standardWidth=[212,292] 最大 50 倍数 = 250. hmm 一样;
+  // 用 wall=480, standardWidth=400 → 首柜 100 + 两个 50, standardUsed=200, 剩 200
+  const state = layout.init({ wall: { w: 480, h: 240 }, cornerType: 'WZJ', hasRaise: false });
   layout.addNext(state, { code: 'a', size: 50 }); // 第 2 柜
   layout.addNext(state, { code: 'a', size: 50 }); // 第 3 柜
-  // 此时 3 个 50a，standardUsed=150
+  // 此时 [100a, 50a, 50a], standardUsed=200
   const r = layout.replaceLast(state, { code: 'c', size: 100 });
   eq(r.ok, true, '第 3 柜替换为 100c 成功');
-  eq(state.meta.standardUsed, 200, '50+50+100=200');
+  eq(state.meta.standardUsed, 250, '100+50+100=250');
   const stds = state.items.filter((it) => it.kind === 'standard');
   eq(stds.length, 3, '仍是 3 个标准柜');
   eq(stds[0].isFirst, true, '首块 isFirst 不变');
@@ -275,18 +277,22 @@ group('layout-engine.replaceLast 多柜场景', () => {
   eq(stds[1].w, 50, '第 2 柜宽度未动');
   eq(stds[2].code, 'c', '第 3 柜替换为 c');
   eq(stds[2].w, 100, '第 3 柜宽=100');
-  eq(state.meta.isFull, false, '250-200=50 仍可放，未布满');
+  eq(state.meta.isFull, false, '400-250=150 仍可放，未布满');
 });
 
 group('layout-engine.replaceLast 替换后刚好填满 → 自动布满', () => {
-  const state = layout.init({ wall: { w: 320, h: 240 }, cornerType: 'WZJ', hasRaise: false });
-  layout.addNext(state, { code: 'a', size: 50 }); // standardUsed=100
+  // wall=380 → standardWidth=300; init 首柜 100 + 3 个 50 = 250, 差 50 到 300
+  const state = layout.init({ wall: { w: 380, h: 240 }, cornerType: 'WZJ', hasRaise: false });
+  eq(state.meta.standardWidth, 300, '标准段=300');
+  eq(state.meta.standardUsed, 100, '首柜 100A 占 100');
   layout.addNext(state, { code: 'a', size: 50 }); // standardUsed=150
   layout.addNext(state, { code: 'a', size: 50 }); // standardUsed=200
-  // 还差 50 才到 standardWidth=250
+  layout.addNext(state, { code: 'a', size: 50 }); // standardUsed=250
+  eq(state.meta.isFull, false, '250 未布满');
+  // 还差 50 才到 standardWidth=300
   const r = layout.replaceLast(state, { code: 'b', size: 100 });
   eq(r.ok, true, '末块 50→100 成功');
-  eq(state.meta.standardUsed, 250, '正好填满');
+  eq(state.meta.standardUsed, 300, '正好填满');
   eq(state.meta.isFull, true, '触发 placeNonStandardAndClose');
   truthy(state.items.some((it) => it.kind === 'nonstandard'), '已落非标');
   truthy(state.items.some((it) => it.kind === 'sk' && it.side === 'right'), '已落右收口');
@@ -357,10 +363,11 @@ group('layout-engine.init 左转角不放默认柜', () => {
   eq(zy.items.filter((it) => it.kind === 'standard').length, 0, 'ZYZJ 初始无任何 standard');
   eq(zy.meta.standardUsed, 0, 'ZYZJ 初始 standardUsed=0');
 
-  // 右转角：保持原行为，首位放默认 50A
+  // 右转角：保持原行为，首位放默认 100A
+  // wall=480 YZJ: standardWidth = [480-124-110, 480-44-110] = [246, 326] 最大 50 倍数 = 300, 足够放 100A
   const y = layout.init({ wall: { w: 480, h: 260 }, cornerType: 'YZJ', hasRaise: false });
   eq(y.items.filter((it) => it.kind === 'standard').length, 1, 'YZJ 初始有 1 个 standard (默认柜)');
-  eq(y.meta.standardUsed, 50, 'YZJ 初始 standardUsed=50');
+  eq(y.meta.standardUsed, 100, 'YZJ 初始 standardUsed=100');
 });
 
 group('layout-engine.addNext 左转角零标准起始也能加柜', () => {
@@ -405,16 +412,73 @@ group('layout-engine.renderRows WZJ 不注入预览', () => {
 });
 
 group('layout-engine.renderRows YZJ 布满后不再注入预览', () => {
+  // wall=320 YZJ: standardWidth=150, 默认首柜 100A 占 100; 再加一个 50 布满
   const s = layout.init({ wall: { w: 320, h: 240 }, cornerType: 'YZJ', hasRaise: false });
-  // standardWidth = 320 - 124 - 110 = [86, 166] 内最大 50 倍数 = 150
-  // 默认放 50A 占 50；再加两个 50 把它填满到 150
-  layout.addNext(s, { code: 'a', size: 50 });
+  eq(s.meta.standardWidth, 150, 'standardWidth=150');
+  eq(s.meta.standardUsed, 100, '默认首柜 100A 占 100');
   layout.addNext(s, { code: 'a', size: 50 });
   truthy(s.meta.isFull, '已布满');
   const rows = layout.renderRows(s);
   const previewY = rows.bottom.filter((it) => it.kind === 'corner' && it.code === 'y');
   eq(previewY.length, 1, '布满后只有 placeNonStandardAndClose 的真实 y，没有重复预览');
   truthy(!previewY[0].preview, '该 y 不带 preview 标记（来自 state.items）');
+});
+
+group('layout-engine.addNext 尾段合并 — wall=500, [100×4] 后触发单块 e2(96)', () => {
+  // wall=500 WZJ: standardWidth=450, nonStandardWidth=46
+  // init 100a + 3×addNext 100 → used=400, remaining=50
+  // 第 5 次 addNext 触发合并: merged=50+46=96 in [40,120] → 落一块 e2(96), 不再是 [50a, e1(46)]
+  const s = layout.init({ wall: { w: 500, h: 240 }, cornerType: 'WZJ', hasRaise: false });
+  eq(s.meta.standardWidth, 450, 'standardWidth=450');
+  eq(s.meta.nonStandardWidth, 46, 'nonStandardWidth=46');
+  eq(s.meta.standardUsed, 100, '首柜 100A 占 100');
+  for (let i = 0; i < 3; i++) layout.addNext(s, { code: 'a', size: 100 });
+  eq(s.meta.standardUsed, 400, '4×100 后 standardUsed=400');
+  eq(s.meta.isFull, false, '尾段合并前未布满');
+  const r = layout.addNext(s, { code: 'a', size: 100 });
+  eq(r.ok, true, '第 5 次 addNext 触发合并成功');
+  eq(r.merged, true, '返回 merged: true 标记');
+  truthy(s.meta.isFull, '合并后 isFull');
+  const nonstd = s.items.filter((it) => it.kind === 'nonstandard');
+  eq(nonstd.length, 1, '只有一块非标');
+  eq(nonstd[0].w, 96, '非标宽度=50+46=96');
+  eq(nonstd[0].code, 'e2', 'width>60 → e2 (100A 缩放)');
+  // 标准柜段: 首柜 100a + 3×100a = 4 块, 没有额外 50a
+  const stds = s.items.filter((it) => it.kind === 'standard');
+  eq(stds.length, 4, '标准柜 4 块 (无 50a 补齐)');
+  truthy(stds.every((it) => it.w === 100), '每块都是 100');
+});
+
+group('layout-engine.addNext 尾段合并 — 无论 tab 选 50 还是 100 都合并', () => {
+  // 用户 sizeTab=50 也应触发合并 (per rule): design 页 fallback 传的 size 被 addNext 忽略
+  const s = layout.init({ wall: { w: 500, h: 240 }, cornerType: 'WZJ', hasRaise: false });
+  for (let i = 0; i < 3; i++) layout.addNext(s, { code: 'a', size: 100 });
+  const r = layout.addNext(s, { code: 'a', size: 50 });   // ← size=50, 但触发合并
+  eq(r.merged, true, 'size=50 也走合并');
+  const nonstd = s.items.filter((it) => it.kind === 'nonstandard');
+  eq(nonstd[0].w, 96, '非标 96 与 size 参数无关');
+});
+
+group('layout-engine.addNext 尾段合并 — 合并宽度 >120 时退回老路径', () => {
+  // wall=540 WZJ: standardWidth=450, nonStandardWidth=86
+  // 4×100 后 remaining=50, merged=50+86=136 > 120 → 不合并, 走 fallback 老路径 (50a + e2(86))
+  const s = layout.init({ wall: { w: 540, h: 240 }, cornerType: 'WZJ', hasRaise: false });
+  eq(s.meta.standardWidth, 450, 'standardWidth=450');
+  eq(s.meta.nonStandardWidth, 86, 'nonStandardWidth=86');
+  for (let i = 0; i < 3; i++) layout.addNext(s, { code: 'a', size: 100 });
+  // 第 5 次 addNext(100): remaining=50 < 100, merged=136 超范围 → 返回 ok:false (无法合并且塞不下 100)
+  const r100 = layout.addNext(s, { code: 'a', size: 100 });
+  eq(r100.ok, false, 'size=100 时既不合并也塞不下 → 失败');
+  // 用户 (或 design 页 fallback) 改传 size=50 → 走老路径
+  const r50 = layout.addNext(s, { code: 'a', size: 50 });
+  eq(r50.ok, true, 'size=50 成功');
+  truthy(!r50.merged, '未走合并');
+  truthy(s.meta.isFull, '50a 触发标准段填满 → 自动落 e2(86)');
+  const stds = s.items.filter((it) => it.kind === 'standard');
+  eq(stds.length, 5, '标准段 4×100 + 1×50 = 5 块');
+  const nonstd = s.items.filter((it) => it.kind === 'nonstandard');
+  eq(nonstd[0].w, 86, '非标保持原 86');
+  eq(nonstd[0].code, 'e2', 'e2');
 });
 
 // ---- pdf-exporter._countCabinets ----

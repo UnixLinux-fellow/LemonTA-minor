@@ -23,6 +23,16 @@ test('_classifyMesh: board', () => {
   assert.equal(glb._classifyMesh('drawer_back_board'), 'board');
 });
 
+// 100D 中的抽屉左右抽帮 (drawer_box_left/right_XX_18):
+// 以往关键字表缺 left/right, 这两块被归 other 直接丢弃, 不进 board_list。
+// 修复后必须归 board — 覆盖此 regression。
+test('_classifyMesh: 抽屉左右抽帮 (drawer_box_left/right_XX_18)', () => {
+  assert.equal(glb._classifyMesh('drawer_box_left_01_18'), 'board');
+  assert.equal(glb._classifyMesh('drawer_box_right_01_18'), 'board');
+  assert.equal(glb._classifyMesh('drawer_box_left_02_18'), 'board');
+  assert.equal(glb._classifyMesh('drawer_box_right_03_18'), 'board');
+});
+
 test('_classifyMesh: other', () => {
   assert.equal(glb._classifyMesh('camera'), 'other');
   assert.equal(glb._classifyMesh('lamp_light'), 'other');
@@ -196,14 +206,25 @@ test('parse: 端到端拼装 (mock deps)', async () => {
   assert.equal(meta.overall_size.total_width, 50);
   assert.equal(meta.overall_size.total_height, 230);
   assert.equal(meta.overall_size.total_depth, 60);
+  // board_list 只含柜身板 (2 块); 门板独立进 door_list
   assert.equal(meta.board_list.length, 2);
   assert.equal(meta.board_list[0].node_name, 'left_vertical_board');
+  assert.ok(!meta.board_list.some((b) => b.node_name === 'door_panel'),
+    'board_list 不应含门板 (已分流到 door_list)');
+  // door_list: 1 块门板, 结构和 board_list 元素一致
+  assert.equal(meta.door_list.length, 1);
+  const doorEntry = meta.door_list[0];
+  assert.equal(doorEntry.node_name, 'door_panel');
+  assert.equal(doorEntry.length, 230);
+  assert.equal(doorEntry.width, 50);
+  assert.equal(doorEntry.thickness, 1.8);
+  assert.equal(doorEntry.area, glb._computeArea(230, 50));
   assert.equal(meta.hanging_rail_list.length, 1);
   assert.equal(meta.hanging_rail_list[0].node_name, 'hanging_rail_01');
   assert.equal(meta.hanging_rail_list[0].length, 50);
   // total_door_area 应等于门板面积
   assert.equal(meta.total_door_area, glb._computeArea(230, 50));
-  // total_body_area 应等于两板件面积之和
+  // total_body_area 只累加柜身板 (kind==='board'), 不含门板, 避免与 total_door_area 双算
   const expBody = glb._computeArea(230, 60) + glb._computeArea(60, 50);
   assert.equal(meta.total_body_area, Math.round(expBody * 10000) / 10000);
   // total_raw_board_area = body + door

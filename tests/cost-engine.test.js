@@ -122,6 +122,9 @@ const META_50A = {
     { node_name: 'shelf_panel_02_18', length: 56.2, width: 46.4, thickness: 1.8, area: 0.2608 },
     { node_name: 'shelf_panel_01_18', length: 56.2, width: 46.4, thickness: 1.8, area: 0.2608 },
   ],
+  door_list: [
+    { node_name: 'door_single_18', length: 223.6, width: 49.7, thickness: 1.8, area: 1.11 },
+  ],
   total_body_area: 4.7084,
   total_door_area: 1.11,
   total_raw_board_area: 5.8184,
@@ -148,6 +151,10 @@ const META_100A = {
     { node_name: 'shelf_panel_02_18', length: 96.4, width: 56.2, thickness: 1.8, area: 0.5418 },
     { node_name: 'shelf_panel_01_18', length: 96.4, width: 56.2, thickness: 1.8, area: 0.5418 },
   ],
+  door_list: [
+    { node_name: 'door_left_18', length: 223.6, width: 49.7, thickness: 1.8, area: 1.1135 },
+    { node_name: 'door_right_18', length: 223.6, width: 49.7, thickness: 1.8, area: 1.1135 },
+  ],
   total_body_area: 6.9799,
   total_door_area: 2.227,
   total_raw_board_area: 9.2069,
@@ -170,6 +177,9 @@ const META_100G1 = {
     { node_name: 'top_panel_18', length: 58, width: 96.4, thickness: 1.8, area: 0.5591 },
     { node_name: 'bottom_panel_18', length: 58, width: 96.4, thickness: 1.8, area: 0.5591 },
     { node_name: 'back_panel_18', length: 60.4, width: 96.4, thickness: 1.8, area: 0.5822 },
+  ],
+  door_list: [
+    { node_name: 'door_single_18', length: 63.56, width: 99.4, thickness: 1.8, area: 0.6 },
   ],
   total_body_area: 2.4428,
   total_door_area: 0.6,
@@ -398,6 +408,141 @@ test('case 9: 明细 panel 名称从 panelDict 查中文, miss fallback 到 node
     assert.equal(top.name, 'top_panel_18');
     const sideL = m.detail.panels.find((p) => p.name === '左侧板');
     assert.ok(sideL, '侧板中文命中');
+  } finally { delete global.wx; }
+});
+
+test('case 11: 模块明细门板行按 door_list 每块一行, 单价 = 基材+门材+门艺', async () => {
+  const { costEngine } = await primeDicts({
+    price: PRICES, panel_name_dict: PANELS,
+    model_panel_hardware: [META_50A, META_100A, META_100G1],
+  });
+  try {
+    // 单门 (door_list 长度=1)
+    const c1 = costEngine.calc({
+      cabinets: [{ kind: 'standard', code: 'a', w: 50, h: 230, label: 'A柜' }],
+      materials: {
+        panel: 'panel_egger', doorPanel: 'door_material_piano_lacquer',
+        doorCraft: 'door_craft_none', hardware: 'domestic', lighting: 'none',
+      },
+      wall: null,
+    });
+    const m1 = c1.modules[0];
+    const doors1 = m1.detail.panels.filter((p) => p.code && p.code.indexOf('door') === 0);
+    assert.equal(doors1.length, 1, '50A 一块单门 → 明细一行门板');
+    assert.equal(doors1[0].code, 'door_single_18');
+    assert.equal(doors1[0].name, '门板');
+    assert.equal(doors1[0].qty, 1);
+    // 单价 = 195 (爱格) + 200 (钢琴烤漆) + 0 (无工艺)
+    assert.equal(doors1[0].unit, 395);
+    assert.equal(doors1[0].total, _round2(doors1[0].area * 395));
+
+    // 双门 (door_list 长度=2)
+    const c2 = costEngine.calc({
+      cabinets: [{ kind: 'standard', code: 'a', w: 100, h: 230, label: '100A' }],
+      materials: {
+        panel: 'panel_e2_domestic', doorPanel: 'door_material_same_as_cabinet',
+        doorCraft: 'door_craft_none', hardware: 'domestic', lighting: 'none',
+      },
+      wall: null,
+    });
+    const m2 = c2.modules[0];
+    const doors2 = m2.detail.panels.filter((p) => p.code && p.code.indexOf('door') === 0);
+    assert.equal(doors2.length, 2, '100A 两块门 → 明细两行');
+    const codes2 = doors2.map((d) => d.code).sort();
+    assert.deepEqual(codes2, ['door_left_18', 'door_right_18']);
+  } finally { delete global.wx; }
+});
+
+test('case 12: 板材合计里的门板费用取自元数据 total_door_area (不是逐块加总)', async () => {
+  // 用一份 total_door_area 与 door_list 逐块之和刻意不一致的 meta, 验证走的是哪个。
+  const meta = Object.assign({}, META_50A, {
+    door_list: [
+      // 逐块加总 = 0.6 + 0.6 = 1.2, 与 total_door_area=1.11 差 0.09
+      { node_name: 'door_left_18', length: 100, width: 60, thickness: 1.8, area: 0.6 },
+      { node_name: 'door_right_18', length: 100, width: 60, thickness: 1.8, area: 0.6 },
+    ],
+    total_door_area: 1.11,
+  });
+  const { costEngine } = await primeDicts({
+    price: PRICES, panel_name_dict: PANELS,
+    model_panel_hardware: [meta, META_100A, META_100G1],
+  });
+  try {
+    const cost = costEngine.calc({
+      cabinets: [{ kind: 'standard', code: 'a', w: 50, h: 230, label: 'A' }],
+      materials: {
+        panel: 'panel_egger', doorPanel: 'door_material_same_as_cabinet',
+        doorCraft: 'door_craft_none', hardware: 'domestic', lighting: 'none',
+      },
+      wall: null,
+    });
+    const m = cost.modules[0];
+    // panelCost = total_body_area * 195 + total_door_area * 195 (同柜体, doorMat/doorCraft 皆 0)
+    assert.equal(m.panelCost, _round2(4.7084 * 195 + 1.11 * 195));
+    // 而明细里门板行数 = door_list 长度 = 2
+    const doors = m.detail.panels.filter((p) => p.code && p.code.indexOf('door') === 0);
+    assert.equal(doors.length, 2);
+  } finally { delete global.wx; }
+});
+
+test('case 13: 迁移期兼容 — 旧数据 board_list 混门板, 分拣到 door_list 一起出行', async () => {
+  const legacyMeta = Object.assign({}, META_100G1, {
+    // 老数据: 门板混在 board_list, door_list 缺失
+    board_list: META_100G1.board_list.concat([
+      { node_name: 'door_single_18', length: 63.56, width: 99.4, thickness: 1.8, area: 0.6 },
+    ]),
+    door_list: undefined,
+  });
+  // 非标/加高路径 → 走 rescaleMetadata, 覆盖迁移期分拣逻辑
+  const { costEngine } = await primeDicts({
+    price: PRICES, panel_name_dict: PANELS,
+    model_panel_hardware: [META_50A, META_100A, legacyMeta],
+  });
+  try {
+    const cost = costEngine.calc({
+      cabinets: [{ kind: 'raise', code: 'g', w: 100, h: 60, label: '加高60' }],
+      materials: {
+        panel: 'panel_egger', doorPanel: 'door_material_piano_lacquer',
+        doorCraft: 'door_craft_none', hardware: 'domestic', lighting: 'none',
+      },
+      wall: null,
+    });
+    const m = cost.modules[0];
+    const doors = m.detail.panels.filter((p) => p.code && p.code.indexOf('door') === 0);
+    assert.equal(doors.length, 1, '老数据门板行仍应出现在明细');
+    assert.equal(doors[0].code, 'door_single_18');
+    // 板材行不再包含门板 (已被分拣)
+    const boardDoorRows = m.detail.panels.filter(
+      (p) => p.code === 'door_single_18' && p.unit === 195
+    );
+    assert.equal(boardDoorRows.length, 0, '门板不应以板材单价出现');
+  } finally { delete global.wx; }
+});
+
+test('case 14: 加高柜不算调整脚 (plinth 强制清零); 标柜/转角保留 plinth', async () => {
+  const { costEngine } = await primeDicts({
+    price: PRICES, panel_name_dict: PANELS,
+    model_panel_hardware: [META_50A, META_100A, META_100G1],
+  });
+  try {
+    const cost = costEngine.calc({
+      cabinets: [
+        { kind: 'standard', code: 'a', w: 50, h: 230, label: 'A' },   // plinth=4 应保留
+        { kind: 'raise', code: 'g', w: 100, h: 60, label: '加高60' },  // plinth 应清零
+      ],
+      materials: {
+        panel: 'panel_egger', doorPanel: 'door_material_same_as_cabinet',
+        doorCraft: 'door_craft_none', hardware: 'domestic', lighting: 'none',
+      },
+      wall: null,
+    });
+    const std = cost.modules[0];
+    const raise = cost.modules[1];
+    const stdPlinth = std.detail.hardware.find((h) => h.code === 'plinth_domestic');
+    assert.ok(stdPlinth, '标柜 hardware 明细含 plinth');
+    assert.equal(stdPlinth.qty, 4);
+    const raisePlinth = raise.detail.hardware.find((h) => h.code === 'plinth_domestic');
+    assert.equal(raisePlinth, undefined, '加高柜 hardware 明细不应含 plinth');
   } finally { delete global.wx; }
 });
 

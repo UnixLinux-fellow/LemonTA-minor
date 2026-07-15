@@ -31,7 +31,9 @@ function _classifyMesh(name) {
   const n = String(name || '').toLowerCase();
   if (n.indexOf('door') >= 0) return 'door';
   if (n.indexOf('rail') >= 0) return 'rail';
-  const boardKws = ['board', 'shelf', 'vertical', 'top', 'bottom', 'side', 'front', 'back'];
+  // left/right 用于识别抽屉左右抽帮 (drawer_box_left/right_XX_18) —
+  // 这两块以往没关键字命中会被归 other 直接丢弃,不进 board_list。
+  const boardKws = ['board', 'shelf', 'vertical', 'top', 'bottom', 'side', 'front', 'back', 'left', 'right'];
   for (let i = 0; i < boardKws.length; i++) {
     if (n.indexOf(boardKws[i]) >= 0) return 'board';
   }
@@ -146,7 +148,9 @@ async function parse(opts, deps) {
   };
 
   const board_list = [];
+  const door_list = [];
   const hanging_rail_list = [];
+  let total_body_area_raw = 0;   // 柜身板面积累加 (不含门板), 最后 round
   let total_door_area = 0;
 
   root.traverse((node) => {
@@ -155,27 +159,38 @@ async function parse(opts, deps) {
     if (kind === 'other') return;
     const size = _sizeFromObject(node, THREE);
     const dims = _meshDimsFromSize(size, unitToCm);
+    const area = _computeArea(dims.length, dims.width);
     if (kind === 'board') {
       board_list.push({
         node_name: node.name,
         length: dims.length,
         width: dims.width,
         thickness: dims.thickness,
-        area: _computeArea(dims.length, dims.width),
+        area,
       });
+      total_body_area_raw += area;
     } else if (kind === 'rail') {
       hanging_rail_list.push({
         node_name: node.name,
         length: dims.length,
       });
     } else if (kind === 'door') {
-      total_door_area += _computeArea(dims.length, dims.width);
+      // 门板独立进 door_list, 不进 board_list;
+      // 下游成本明细"板材" 表按 board_list 逐块列出柜身板,
+      // "门板" 表按 door_list 逐块列出门板;
+      // total_door_area 单独累加, 供板材合计的门板成本计算用 (取自元数据)。
+      door_list.push({
+        node_name: node.name,
+        length: dims.length,
+        width: dims.width,
+        thickness: dims.thickness,
+        area,
+      });
+      total_door_area += area;
     }
   });
 
-  const total_body_area = Math.round(
-    board_list.reduce((s, b) => s + b.area, 0) * 10000
-  ) / 10000;
+  const total_body_area = Math.round(total_body_area_raw * 10000) / 10000;
   total_door_area = Math.round(total_door_area * 10000) / 10000;
   const total_raw_board_area = Math.round(
     (total_body_area + total_door_area) * 10000
@@ -195,6 +210,7 @@ async function parse(opts, deps) {
     remark: '',
     overall_size,
     board_list,
+    door_list,
     total_body_area,
     total_door_area,
     total_raw_board_area,
