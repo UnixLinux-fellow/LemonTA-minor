@@ -147,6 +147,13 @@ Page({
             console.warn('snap2d canvas missing, iOS screenshot will fail');
           }
           renderer.setItems(layoutEngine.renderRows(this._state));
+          renderer.setDimensionsInfo({
+            wallW: this._state.meta.wall.w,
+            wallH: this._state.meta.wall.h,
+            hasRaise: this._state.meta.hasRaise,
+            isFull: this._state.meta.isFull,
+            cornerType: this._state.meta.cornerType,
+          });
 
           // 给当前 picker 里每个 cell 各起一个 mini 3D 渲染
           this._ThreeRendererCls = ThreeRendererCls;
@@ -384,6 +391,13 @@ Page({
       this._renderer.setColor(state.meta.color);
       this._renderer.setShowDoor(state.meta.showDoor);
       this._renderer.setItems(layoutEngine.renderRows(state));
+      this._renderer.setDimensionsInfo({
+        wallW: state.meta.wall.w,
+        wallH: state.meta.wall.h,
+        hasRaise: state.meta.hasRaise,
+        isFull: state.meta.isFull,
+        cornerType: state.meta.cornerType,
+      });
     }
   },
 
