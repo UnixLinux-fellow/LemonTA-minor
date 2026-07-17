@@ -104,15 +104,10 @@
       </view>
     </view>
     <view class="sub">铰链、滑轨等五金件品牌</view>
-    <view class="opts row-2">
-      <view class="opt {{materials.hardware === item.id ? 'active' : ''}}"
-            wx:for="{{hardwareOpts}}" wx:key="id"
-            data-id="{{item.id}}"
-            bindtap="pickHardware">
-        <view class="opt-name">{{item.name}}</view>
-        <view class="opt-desc">{{item.desc}}</view>
-      </view>
-    </view>
+    <option-scroll-card
+      options="{{hardwareOpts}}"
+      selectedId="{{materials.hardware}}"
+      bind:change="onPickHardware" />
   </view>
 
   <view class="section">
@@ -124,15 +119,10 @@
       </view>
     </view>
     <view class="sub">柜体灯光配置</view>
-    <view class="opts row-3">
-      <view class="opt {{materials.lighting === item.id ? 'active' : ''}}"
-            wx:for="{{lightingOpts}}" wx:key="id"
-            data-id="{{item.id}}"
-            bindtap="pickLighting">
-        <view class="opt-name">{{item.name}}</view>
-        <view class="opt-desc">{{item.desc}}</view>
-      </view>
-    </view>
+    <option-scroll-card
+      options="{{lightingOpts}}"
+      selectedId="{{materials.lighting}}"
+      bind:change="onPickLighting" />
   </view>
 
   <view class="bottom-bar">

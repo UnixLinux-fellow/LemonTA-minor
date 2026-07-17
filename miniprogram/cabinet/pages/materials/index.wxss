@@ -140,47 +140,7 @@
   margin: 6rpx 0 20rpx;
 }
 
-.opts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16rpx;
-}
-
-.opts.row-4 {
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-}
-
-.opts.row-3 {
-  grid-template-columns: 1fr 1fr 1fr;
-}
-
-.opts.row-2 {
-  grid-template-columns: 1fr 1fr;
-}
-
-.opt {
-  border: 2rpx solid #e5e7eb;
-  border-radius: 14rpx;
-  padding: 22rpx 18rpx;
-  background: #fff;
-}
-
-.opt.active {
-  border-color: #1f2937;
-  background: #fef9c3;
-}
-
-.opt-name {
-  font-size: 28rpx;
-  color: #1f2937;
-  font-weight: 500;
-}
-
-.opt-desc {
-  font-size: 22rpx;
-  color: #6b7280;
-  margin-top: 4rpx;
-}
+/* .opts / .opt* 网格样式已随所有 5 组选项迁移到 option-scroll-card 组件而废弃 */
 
 .bottom-bar {
   position: fixed;

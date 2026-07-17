@@ -112,11 +112,11 @@ Page({
   onPickDoorCraft(e) {
     this._pick('doorCraft', e.detail.id);
   },
-  pickHardware(e) {
-    this._pick('hardware', e.currentTarget.dataset.id);
+  onPickHardware(e) {
+    this._pick('hardware', e.detail.id);
   },
-  pickLighting(e) {
-    this._pick('lighting', e.currentTarget.dataset.id);
+  onPickLighting(e) {
+    this._pick('lighting', e.detail.id);
   },
   _pick(key, id) {
     const m = Object.assign({}, this.data.materials, { [key]: id });
