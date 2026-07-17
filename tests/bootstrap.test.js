@@ -8,6 +8,7 @@ function loadFreshBootstrap() {
     '../miniprogram/utils/price-dict.js',
     '../miniprogram/utils/panel-dict.js',
     '../miniprogram/utils/model-meta-cache.js',
+    '../miniprogram/utils/text-desc-dict.js',
   ];
   modulesToClear.forEach((rel) => {
     const p = path.resolve(__dirname, rel);
@@ -18,6 +19,7 @@ function loadFreshBootstrap() {
     priceDict: require(path.resolve(__dirname, '../miniprogram/utils/price-dict.js')),
     panelDict: require(path.resolve(__dirname, '../miniprogram/utils/panel-dict.js')),
     modelMeta: require(path.resolve(__dirname, '../miniprogram/utils/model-meta-cache.js')),
+    textDesc: require(path.resolve(__dirname, '../miniprogram/utils/text-desc-dict.js')),
   };
 }
 
@@ -123,4 +125,43 @@ test('无 wx: ensureCostDataReady 不抛, isAllReady=false', async () => {
   const { bootstrap } = loadFreshBootstrap();
   await bootstrap.ensureCostDataReady();
   assert.equal(bootstrap.isAllReady(), false);
+});
+
+test('ensureUiDescReady: 拉 text_desc 后 text-desc-dict.isReady=true', async () => {
+  const wx = makeStorageMock();
+  global.wx = Object.assign({}, wx, {
+    cloud: makeCloudMock({
+      text_desc: [{ desc_code: 'WZJ', desc_name: '无转角', desc_type: 'text_desc' }],
+    }),
+  });
+  try {
+    const { bootstrap, textDesc } = loadFreshBootstrap();
+    assert.equal(textDesc.isReady(), false);
+    await bootstrap.ensureUiDescReady();
+    assert.equal(textDesc.isReady(), true);
+    assert.equal(textDesc.getDesc('WZJ'), '无转角');
+  } finally { delete global.wx; }
+});
+
+test('ensureUiDescReady: 云失败不抛', async () => {
+  const wx = makeStorageMock();
+  const cloud = {
+    database() {
+      return {
+        collection() {
+          return {
+            where() { return this; }, skip() { return this; }, limit() { return this; },
+            count: async () => { throw new Error('down'); },
+            get: async () => ({ data: [] }),
+          };
+        },
+      };
+    },
+  };
+  global.wx = Object.assign({}, wx, { cloud });
+  try {
+    const { bootstrap, textDesc } = loadFreshBootstrap();
+    await bootstrap.ensureUiDescReady();  // 不抛
+    assert.equal(textDesc.isReady(), false);
+  } finally { delete global.wx; }
 });
