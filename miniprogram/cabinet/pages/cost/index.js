@@ -2,6 +2,7 @@ const costEngine = require('../../../utils/cost-engine.js');
 const wireframeLabels = require('../../utils/wireframe-labels.js');
 const imgCache = require('../../../utils/img-cache.js');
 const bootstrap = require('../../../utils/bootstrap.js');
+const materialsCostCache = require('../../../utils/materials-cost-cache.js');
 const pdfExporter = require('../../../utils/pdf-exporter.js');
 const planImageCache = require('../../../utils/plan-image-cache.js');
 const filenameCleaner = require('../../../utils/filename-cleaner.js');
@@ -82,12 +83,19 @@ Page({
       });
       return;
     }
+    // 若 materials 页刚算过 (或本页上次算过), 直接命中缓存
+    const cached = materialsCostCache.get(plan, plan.materials || {});
+    if (cached) {
+      this.setData({ dataReady: true, dataNotice: '', cost: cached });
+      return;
+    }
     const cost = costEngine.calc({
       cabinets: plan.cabinets || [],
       materials: plan.materials || {},
       wall: plan.wall,
     });
     this.setData({ dataReady: true, dataNotice: '', cost });
+    materialsCostCache.set(plan, plan.materials || {}, cost);
   },
 
   onRetryDataFetch() {

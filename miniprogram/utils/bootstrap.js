@@ -9,9 +9,11 @@ const priceDict = require('./price-dict.js');
 const panelDict = require('./panel-dict.js');
 const modelMetaCache = require('./model-meta-cache.js');
 const textDescDict = require('./text-desc-dict.js');
+const materialsCostCache = require('./materials-cost-cache.js');
 
 async function ensureCostDataReady(opts) {
   const force = !!(opts && opts.force);
+  if (force) materialsCostCache.clearAll();
   await Promise.all([
     priceDict.preloadAll({ force }).catch((e) => console.warn('[bootstrap] price fail', e)),
     panelDict.preloadAll({ force }).catch((e) => console.warn('[bootstrap] panel fail', e)),

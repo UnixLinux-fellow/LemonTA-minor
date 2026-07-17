@@ -9,6 +9,7 @@ function loadFreshBootstrap() {
     '../miniprogram/utils/panel-dict.js',
     '../miniprogram/utils/model-meta-cache.js',
     '../miniprogram/utils/text-desc-dict.js',
+    '../miniprogram/utils/materials-cost-cache.js',
   ];
   modulesToClear.forEach((rel) => {
     const p = path.resolve(__dirname, rel);
@@ -163,5 +164,37 @@ test('ensureUiDescReady: 云失败不抛', async () => {
     const { bootstrap, textDesc } = loadFreshBootstrap();
     await bootstrap.ensureUiDescReady();  // 不抛
     assert.equal(textDesc.isReady(), false);
+  } finally { delete global.wx; }
+});
+
+test('ensureCostDataReady({force:true}) 触发 materials-cost-cache.clearAll', async () => {
+  const wx = makeStorageMock();
+  global.wx = Object.assign({}, wx, {
+    cloud: makeCloudMock({
+      price: [{ code: 'panel_egger', price: 195, category: 'panel' }],
+      panel_name_dict: [{ panel_code: 'top_panel_18', display_name: '顶板', category: 'cabinet_frame', enable: true }],
+      model_panel_hardware: [{ glb_file_name: '50A.glb', is_online: true, total_body_area: 4.7 }],
+    }),
+  });
+  try {
+    // 重要: 让 bootstrap 与 materials-cost-cache 使用同一份 require
+    const cachePath = path.resolve(__dirname, '../miniprogram/utils/materials-cost-cache.js');
+    delete require.cache[cachePath];
+    const { bootstrap } = loadFreshBootstrap();
+    const cache = require(cachePath);
+
+    // 先塞一条数据
+    const plan = { id: 'p1', cabinets: [{ kind: 'standard', w: 50, h: 230, code: 'a' }], wall: { w: 100, h: 240 } };
+    const materials = { panel: 'x', doorPanel: 'x', doorCraft: 'x', hardware: 'x', lighting: 'none' };
+    cache.set(plan, materials, { grandTotal: 1 });
+    assert.equal(cache.get(plan, materials).grandTotal, 1);
+
+    // force=false: 缓存不清
+    await bootstrap.ensureCostDataReady();
+    assert.equal(cache.get(plan, materials).grandTotal, 1, 'force=false 不清缓存');
+
+    // force=true: 缓存清空
+    await bootstrap.ensureCostDataReady({ force: true });
+    assert.equal(cache.get(plan, materials), null, 'force=true 应清缓存');
   } finally { delete global.wx; }
 });

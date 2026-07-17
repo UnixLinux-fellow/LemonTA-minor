@@ -9,6 +9,7 @@ const {
 } = require('../../../utils/materials-options.js');
 const costEngine = require('../../../utils/cost-engine.js');
 const bootstrap = require('../../../utils/bootstrap.js');
+const materialsCostCache = require('../../../utils/materials-cost-cache.js');
 
 Page({
   data: {
@@ -60,6 +61,12 @@ Page({
       bottomRow,
       topRow,
     });
+    // 若同 plan + 同 materials 已算过, 命中缓存直接展示, 跳过 ensureCostDataReady 的 await
+    const cached = materialsCostCache.get(plan, materials);
+    if (cached) {
+      this.setData({ cost: cached, dataReady: true, dataNotice: '' });
+      return;
+    }
     this._computeCost();
   },
 
@@ -77,6 +84,8 @@ Page({
   // top 用页面坐标系 = rect.top (相对视口) + scrollTop (当前滚动位置), 与 onPageScroll
   // 收到的 e.scrollTop 同坐标系。
   // 仅在非吸顶状态测量: 吸顶时 .cost-preview 是 fixed, rect.top=0 会污染阈值。
+  // 浮空卡片: 吸顶后 cost-preview top=16rpx (不再贴顶), 需把阈值提前 16rpx 对应的 px,
+  // 让触发瞬间自然位置正好等于吸顶位置, 避免过渡时 16rpx 视觉抖动。
   _measureStickyThreshold() {
     if (this.data.isSticky) return;
     wx.createSelectorQuery().in(this)
@@ -86,7 +95,9 @@ Page({
         if (!res || !res[0]) return;
         const rect = res[0];
         const scrollTop = (res[1] && res[1].scrollTop) || 0;
-        this._stickyThreshold = rect.top + scrollTop;
+        const info = (wx.getWindowInfo && wx.getWindowInfo()) || wx.getSystemInfoSync();
+        const stickyTopPx = (info.windowWidth / 750) * 16; // 16rpx 转 px
+        this._stickyThreshold = rect.top + scrollTop - stickyTopPx;
         if (rect.height && rect.height !== this.data.previewHeight) {
           this.setData({ previewHeight: rect.height });
         }
@@ -145,6 +156,7 @@ Page({
         wall: plan.wall,
       });
       this.setData({ cost, dataReady: true, dataNotice: '' });
+      materialsCostCache.set(plan, this.data.materials, cost);
     } catch (err) {
       console.warn('[materials] _computeCost failed:', err);
       this.setData({ cost: null, dataReady: false, dataNotice: '计算失败，请重试' });
