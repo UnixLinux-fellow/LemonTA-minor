@@ -3,20 +3,40 @@
                bounces="{{true}}" bindscroll="onListScroll">
     <!-- 每组 = 上方图文说明区 + 下方选项卡, 整组作为一个横滑单元 -->
     <view wx:for="{{displayOptions}}" wx:key="id"
-          class="osc-group"
+          class="osc-group osc-group--{{variant}}"
           data-id="{{item.id}}" bindtap="onPick">
-      <!-- 上方图文说明区 (独立容器, 无边框, 浅灰底) -->
-      <view class="osc-desc" wx:if="{{showDesc}}">
-        <image wx:if="{{item.imagePath}}" class="osc-desc-img"
-               src="{{item.imagePath}}" mode="aspectFill" />
-        <view wx:else class="osc-desc-img osc-desc-img--placeholder"></view>
-        <view class="osc-desc-text">{{item.descText}}</view>
+
+      <!-- variant=card: 定宽 300rpx / 定高 400rpx (3:4) 卡牌样式, iOS 大圆角。
+           上部 [左图|右文] + 下部 [居中选项名 + 可选副标题]。
+           空间设置转角 + materials 5 组均用此变体 (统一视觉规格)。 -->
+      <view wx:if="{{variant === 'card'}}"
+            class="osc-card {{selectedId === item.id ? 'active' : ''}}">
+        <view class="osc-card-panel">
+          <image wx:if="{{item.imagePath}}" class="osc-card-img"
+                 src="{{item.imagePath}}" mode="aspectFill" />
+          <view wx:else class="osc-card-img osc-card-img--placeholder"></view>
+          <view class="osc-card-text">{{item.descText}}</view>
+        </view>
+        <view class="osc-card-footer">
+          <view class="osc-card-name">{{item.name}}</view>
+          <view wx:if="{{item.desc}}" class="osc-card-desc">{{item.desc}}</view>
+        </view>
       </view>
-      <!-- 下方选项卡: 保持之前样式 (白底 + 灰边 + 圆角 + 选中变黄) -->
-      <view class="osc-item {{selectedId === item.id ? 'active' : ''}}">
-        <view class="osc-item-name">{{item.name}}</view>
-        <view wx:if="{{item.desc}}" class="osc-item-desc">{{item.desc}}</view>
-      </view>
+
+      <!-- default 变体 (保留兼容, 目前无引用): 上方图文 + 下方选项卡 两块独立容器 -->
+      <block wx:else>
+        <view class="osc-desc" wx:if="{{showDesc}}">
+          <image wx:if="{{item.imagePath}}" class="osc-desc-img"
+                 src="{{item.imagePath}}" mode="aspectFill" />
+          <view wx:else class="osc-desc-img osc-desc-img--placeholder"></view>
+          <view class="osc-desc-text">{{item.descText}}</view>
+        </view>
+        <view class="osc-item {{selectedId === item.id ? 'active' : ''}}">
+          <view class="osc-item-name">{{item.name}}</view>
+          <view wx:if="{{item.desc}}" class="osc-item-desc">{{item.desc}}</view>
+        </view>
+      </block>
+
     </view>
   </scroll-view>
 

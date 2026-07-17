@@ -21,7 +21,8 @@
 
 .osc-group:last-child { margin-right: 0; }
 
-/* 上方图文说明区: 独立容器, 浅灰底, 无边框; 与下方选项卡视觉分离 */
+/* ================ default 变体 (materials 页): 图文 + 选项卡 两块分离 ================ */
+
 .osc-desc {
   display: flex;
   align-items: flex-start;
@@ -40,9 +41,7 @@
   flex-shrink: 0;
 }
 
-.osc-desc-img--placeholder {
-  /* 灰底 + 无 src, 已足够表达"加载中/无图" */
-}
+.osc-desc-img--placeholder { /* 灰底占位 */ }
 
 .osc-desc-text {
   flex: 1;
@@ -51,14 +50,12 @@
   line-height: 1.5;
   white-space: normal;
   word-break: break-all;
-  /* 4 行截断, 避免顶部说明块把整组撑得过高 */
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* 下方选项卡: 保持之前样式 (白底 + 灰边 + 圆角 + 选中变黄) */
 .osc-item {
   padding: 22rpx 18rpx;
   box-sizing: border-box;
@@ -76,7 +73,7 @@
   font-size: 28rpx;
   color: #1f2937;
   font-weight: 500;
-  white-space: normal;         /* 单独放开, 避免 osc-list 的 nowrap 影响卡片内 */
+  white-space: normal;
   word-break: break-all;
 }
 
@@ -88,9 +85,97 @@
   word-break: break-all;
 }
 
-/* 自定义横向滑动条: 参照 cabinet/pages/design/index.wxss 的 .scroll-indicator。
-   scroll-view 原生 scrollbar 在小程序里各机型样式不一致, 走自定义 indicator。
-   通过 <scroll-view bindscroll> 反馈 scrollLeft, 组件里同步算 thumb 位置。 */
+/* ================ card 变体 (空间设置转角): 竖长卡牌 · iOS 大圆角 ================ */
+
+/* 定宽 300rpx, 高 400rpx (300 * 4/3) → 精确 3:4;
+   首屏默认可见 2 张 (section 内宽 ~694rpx, 2 张 + gap = 616rpx, 剩 78rpx 露 3 张的头) */
+.osc-group--card {
+  width: 300rpx;
+  margin-right: 16rpx;
+}
+.osc-group--card:last-child { margin-right: 0; }
+
+.osc-card {
+  display: flex;
+  flex-direction: column;
+  height: 400rpx;            /* 3:4 (300 * 4/3) */
+  overflow: hidden;
+  background: #fff;
+  border: 2rpx solid #e5e7eb;
+  border-radius: 32rpx;      /* iOS 感的大圆角 */
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.15s ease;
+}
+
+.osc-card.active {
+  border-color: #1f2937;
+  background: #fef9c3;
+  box-shadow: 0 6rpx 20rpx rgba(31, 41, 55, 0.15);
+}
+
+/* 上部: 左图 + 右文 (卡宽 300rpx 可以承载左右分隔布局), flex:1 撑满除底部选项名以外 */
+.osc-card-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12rpx;
+  padding: 18rpx 16rpx;
+}
+
+.osc-card-img {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 14rpx;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+
+.osc-card-img--placeholder { /* 灰底占位 */ }
+
+.osc-card-text {
+  flex: 1;
+  font-size: 22rpx;
+  color: #4b5563;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 下部: 居中选项名 (+ 可选副标题), 细分隔线与上部隔开 */
+.osc-card-footer {
+  padding: 14rpx 16rpx 18rpx;
+  border-top: 2rpx solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.osc-card-name {
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: normal;
+  word-break: break-all;
+}
+
+.osc-card-desc {
+  text-align: center;
+  font-size: 22rpx;
+  color: #6b7280;
+  white-space: normal;
+  word-break: break-all;
+}
+
+/* ================ 自定义横向滑动条 ================ */
+
+/* 参照 cabinet/pages/design/index.wxss 的 .scroll-indicator。 */
 .osc-indicator {
   position: relative;
   height: 16rpx;

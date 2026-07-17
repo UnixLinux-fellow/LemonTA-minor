@@ -34,6 +34,7 @@
     <option-scroll-card
       options="{{cornerOptions}}"
       selectedId="{{cornerType}}"
+      variant="card"
       bind:change="onCornerChange" />
   </view>
 

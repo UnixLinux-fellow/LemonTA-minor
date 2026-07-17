@@ -62,6 +62,7 @@
     <option-scroll-card
       options="{{panelOpts}}"
       selectedId="{{materials.panel}}"
+      variant="card"
       bind:change="onPickPanel" />
   </view>
 
@@ -77,6 +78,7 @@
     <option-scroll-card
       options="{{doorPanelOpts}}"
       selectedId="{{materials.doorPanel}}"
+      variant="card"
       bind:change="onPickDoorPanel" />
   </view>
 
@@ -92,6 +94,7 @@
     <option-scroll-card
       options="{{doorCraftOpts}}"
       selectedId="{{materials.doorCraft}}"
+      variant="card"
       bind:change="onPickDoorCraft" />
   </view>
 
@@ -107,6 +110,7 @@
     <option-scroll-card
       options="{{hardwareOpts}}"
       selectedId="{{materials.hardware}}"
+      variant="card"
       bind:change="onPickHardware" />
   </view>
 
@@ -122,6 +126,7 @@
     <option-scroll-card
       options="{{lightingOpts}}"
       selectedId="{{materials.lighting}}"
+      variant="card"
       bind:change="onPickLighting" />
   </view>
 

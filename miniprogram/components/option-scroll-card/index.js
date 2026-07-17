@@ -18,6 +18,9 @@ Component({
     imageBase: { type: String, value: DEFAULT_IMAGE_BASE },
     fallbackImageId: { type: String, value: DEFAULT_FALLBACK },
     showDesc: { type: Boolean, value: true },
+    // 视觉变体: 'default' = 图文 + 选项卡 分离 (materials 页);
+    //           'card'    = 整合成一张 iOS 大圆角卡牌 (空间设置转角)
+    variant: { type: String, value: 'default' },
   },
   data: {
     // options 的富化版本: 每项额外挂 { imagePath, descText }, 供 wxml 直接渲染。
@@ -32,7 +35,8 @@ Component({
     // options / imageBase / fallback 变化都要重新构建 displayOptions
     'options, imageBase, fallbackImageId': function (opts) {
       this._rebuildDisplayOptions();
-      // 顺便算滑动条: 每屏可视 2 个, 超过 2 才需要滑
+      // 先按 (2/n) 估算个初值; 布局后 _reconcileScrollIndicator 会用真实测量覆盖,
+      // 全部装得下会关掉 scrollNeeded, 有溢出会覆写精确的 thumbWidthPct
       const n = (opts || []).length;
       if (n > 2) {
         this.setData({
@@ -43,16 +47,20 @@ Component({
       } else {
         this.setData({ scrollNeeded: false, thumbWidthPct: 100, thumbLeftPct: 0 });
       }
+      wx.nextTick(() => this._reconcileScrollIndicator());
     },
   },
   lifetimes: {
     attached() {
       this._rebuildDisplayOptions();
+      // 布局落地后再 measure 滑动条状态 (需要真实 DOM 尺寸)
+      wx.nextTick(() => this._reconcileScrollIndicator());
       // 冷启动首次进页 text-desc-dict preload 可能还没完成; 挂一次补偿, 300ms 内基本就绪
       if (!textDescDict.isReady()) {
         setTimeout(() => {
           if (this._detached) return;
           this._rebuildDisplayOptions();
+          wx.nextTick(() => this._reconcileScrollIndicator());
         }, 300);
       }
     },
@@ -107,17 +115,42 @@ Component({
       });
     },
 
-    // scroll-view 横滑回调: 把 scrollLeft 归一化到 thumb 的 left 百分比。
-    // 参照 cabinet/pages/design/index.js#onPickerScroll 但简化 —— 不允许用户拖 thumb, thumb 只反显。
+    // scroll-view 横滑回调: 用真实 scrollWidth / 可视宽算 thumb 位置。
     onListScroll(e) {
       if (!this.data.scrollNeeded) return;
       const { scrollLeft, scrollWidth } = e.detail;
-      const visibleRatio = this.data.thumbWidthPct / 100;
-      const visibleWidth = scrollWidth * visibleRatio;
-      const maxScroll = Math.max(scrollWidth - visibleWidth, 1);
-      const progress = Math.min(1, Math.max(0, scrollLeft / maxScroll));
+      const viewport = this._viewportPx || scrollWidth * (this.data.thumbWidthPct / 100);
+      const maxScroll = Math.max(scrollWidth - viewport, 1);
       const range = 100 - this.data.thumbWidthPct;
+      const progress = Math.min(1, Math.max(0, scrollLeft / maxScroll));
       this.setData({ thumbLeftPct: progress * range });
+    },
+
+    // 布局后测量: 内容总宽度 vs 可视宽度; 全部装得下就隐藏滑动条,
+    // 否则用真实比例覆盖 observer 里 (2/n) 的估算, thumb 更准。
+    // 由 attached 和每次 _rebuildDisplayOptions 后 nextTick 触发。
+    _reconcileScrollIndicator() {
+      wx.createSelectorQuery().in(this)
+        .select('.osc-list').boundingClientRect()
+        .selectAll('.osc-group').boundingClientRect()
+        .exec((res) => {
+          if (this._detached) return;
+          if (!res || !res[0] || !res[1] || !res[1].length) return;
+          const viewport = res[0].width;
+          const items = res[1];
+          const contentPx = items[items.length - 1].right - items[0].left;
+          this._viewportPx = viewport;
+          if (contentPx <= viewport + 1) {
+            // 全部装得下, 隐藏滑动条
+            if (this.data.scrollNeeded) this.setData({ scrollNeeded: false });
+          } else {
+            const widthPct = (viewport / contentPx) * 100;
+            this.setData({
+              scrollNeeded: true,
+              thumbWidthPct: widthPct,
+            });
+          }
+        });
     },
   },
 });
