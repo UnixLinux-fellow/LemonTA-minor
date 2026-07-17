@@ -80,10 +80,14 @@ App({
 
     // 成本模块 3 字典 (价格/板件中英/glb元数据) 启动预拉:不 await, 后台跑;
     // 成本页会再校验字典状态, 缺则 toast + "——" 降级 (Task 9 处理)。
+    // text_desc UI 文案字典同样 fire-and-forget, 供 option-scroll-card 组件使用。
     try {
       var bootstrap = require('./utils/bootstrap.js');
       bootstrap.ensureCostDataReady().catch(function (err) {
         console.warn('[bootstrap] ensureCostDataReady failed:', err);
+      });
+      bootstrap.ensureUiDescReady().catch(function (err) {
+        console.warn('[bootstrap] ensureUiDescReady failed:', err);
       });
     } catch (e) {
       console.warn('[bootstrap] init failed:', e);
