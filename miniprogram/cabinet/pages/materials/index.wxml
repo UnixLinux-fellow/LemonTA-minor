@@ -9,6 +9,7 @@
            class="pw-image"
            src="{{plan.previewImage}}"
            mode="widthFix"
+           bindload="onPreviewImageLoaded"
            show-menu-by-longpress="{{false}}"></image>
   </view>
   <view class="space-info">
@@ -16,7 +17,9 @@
     <view class="space-meta">墙体 {{plan.wall.w}}×{{plan.wall.h}}cm · 共 {{cabinetCount}} 个柜子</view>
   </view>
 
-  <view class="cost-preview">
+  <!-- 占位: is-sticky 时预览抽离文档流, 占位块保等高防跳。isSticky=false 时高度 0, 不影响布局 -->
+  <view class="cost-preview-placeholder" style="height: {{isSticky ? previewHeight + 'px' : '0px'}};"></view>
+  <view class="cost-preview {{isSticky ? 'is-sticky' : ''}}">
     <view class="cp-grand">
       <text class="cp-grand-lbl">总成本</text>
       <text class="cp-grand-val">¥ {{dataReady ? fmt.money(cost.grandTotal) : '——'}}</text>

@@ -207,18 +207,31 @@
 }
 
 /* —— 费用预览 (吸顶) ——
-   注意: .page 上有 overflow-x: hidden, 在 web 环境下会破坏 position: sticky。
-   微信小程序里页面的滚动容器不是 .page 本身而是外层 window, sticky 仍然生效 —
-   若未来把此页面嵌入到自定义 scroll-view 中, 需要重新验证吸顶行为。 */
+   原始方案用 position:sticky, 但 .page 上有 overflow-x: hidden 会让 .page 本身
+   成为 sticky 的 nearest scrolling ancestor, 而实际滚动容器是小程序 native page,
+   sticky 永远拿不到滚动信号, 表现为完全不吸顶。改成 JS 驱动: onPageScroll 达阈值
+   后加 .is-sticky 切到 position:fixed。占位块 .cost-preview-placeholder 保持
+   文档流高度, 避免切换瞬间页面往上跳。 */
 .cost-preview {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 10;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: saturate(180%) blur(30px);
   -webkit-backdrop-filter: saturate(180%) blur(30px);
   padding: 20rpx 28rpx;
   box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
+}
+
+.cost-preview.is-sticky {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+/* 占位: is-sticky 时把 .cost-preview 抽离文档流, 用占位块占等高避免页面跳动 */
+.cost-preview-placeholder {
+  width: 100%;
 }
 
 .cp-grand {
