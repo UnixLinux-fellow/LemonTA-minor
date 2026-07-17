@@ -7,6 +7,8 @@ const {
   LIGHTING_OPTIONS,
   DEFAULT_MATERIALS,
 } = require('../../../utils/materials-options.js');
+const costEngine = require('../../../utils/cost-engine.js');
+const bootstrap = require('../../../utils/bootstrap.js');
 
 Page({
   data: {
@@ -21,6 +23,10 @@ Page({
     cabinetCount: 0,
     bottomRow: [],
     topRow: [],
+    // —— 费用预览 —— //
+    cost: null,           // { grandTotal, panelTotal, hardwareTotal, transport, install, categoryCost }
+    dataReady: true,      // 价格字典是否就绪
+    dataNotice: '',       // 未就绪时的提示文案
   },
 
   onLoad(query) {
@@ -48,6 +54,7 @@ Page({
       bottomRow,
       topRow,
     });
+    this._computeCost();
   },
 
   pickPanel(e) {
@@ -68,6 +75,37 @@ Page({
   _pick(key, id) {
     const m = Object.assign({}, this.data.materials, { [key]: id });
     this.setData({ materials: m });
+    this._computeCost();
+  },
+
+  async _computeCost() {
+    await bootstrap.ensureCostDataReady();
+    const plan = this.data.plan;
+    if (!plan) return;
+    if (!bootstrap.isAllReady()) {
+      this.setData({
+        cost: null,
+        dataReady: false,
+        dataNotice: '价格数据未就绪，请重试',
+      });
+      return;
+    }
+    try {
+      const cost = costEngine.calc({
+        cabinets: plan.cabinets || [],
+        materials: this.data.materials,
+        wall: plan.wall,
+      });
+      this.setData({ cost, dataReady: true, dataNotice: '' });
+    } catch (err) {
+      console.warn('[materials] _computeCost failed:', err);
+      this.setData({ cost: null, dataReady: false, dataNotice: '计算失败，请重试' });
+    }
+  },
+
+  onRetryDataFetch() {
+    this.setData({ dataNotice: '正在重试…' });
+    bootstrap.ensureCostDataReady({ force: true }).then(() => this._computeCost());
   },
 
   async onCalc() {
