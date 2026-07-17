@@ -263,6 +263,44 @@ function calc({ cabinets, materials, wall }) {
   }
 
   const grandTotal = round2(sumPanel + sumHw + transport + install + (sk ? sk.total : 0));
+
+  // —— categoryCost: 按 5 组材料选项归属 —— //
+  // 定义见 docs/superpowers/specs/2026-07-17-materials-page-cost-preview-design.md §3.1
+  //  panel     = Σ (bodyArea + doorArea) × panelUnit           (含柜身板 + 门板基材)
+  //  doorPanel = Σ doorArea × doorMatUnit                      (门板材质加价)
+  //  doorCraft = Σ doorArea × doorCraftUnit                    (门板工艺加价)
+  //  hardware  = Σ 非 LED 五金 total                            (直接从 detail 求和)
+  //  lighting  = Σ LED 三项 total                               (lighting=none → 0)
+  // sk 不计入任一 category (口径见 spec §3.1)。
+  const panelEntry = priceDict.get(cfg.panel);
+  const doorMatEntry = priceDict.get(cfg.doorPanel);
+  const doorCraftEntry = priceDict.get(cfg.doorCraft);
+  const panelUnit = panelEntry ? panelEntry.price : 0;
+  const doorMatUnit = doorMatEntry ? doorMatEntry.price : 0;
+  const doorCraftUnit = doorCraftEntry ? doorCraftEntry.price : 0;
+
+  const sumBodyArea = modules.reduce((s, m) => s + (m.totalBodyArea || 0), 0);
+  const sumDoorArea = modules.reduce((s, m) => s + (m.totalDoorArea || 0), 0);
+  let hwCatSum = 0;
+  let ledCatSum = 0;
+  modules.forEach((m) => {
+    const hw = (m.detail && m.detail.hardware) || [];
+    hw.forEach((row) => {
+      // row.code 形如 `${key}_${brand_type}`; 取前缀判断是否 LED 三项
+      const isLed = LED_KEYS.some((k) => row.code === `${k}_domestic` || row.code === `${k}_import`);
+      if (isLed) ledCatSum += row.total || 0;
+      else hwCatSum += row.total || 0;
+    });
+  });
+
+  const categoryCost = {
+    panel: round2((sumBodyArea + sumDoorArea) * panelUnit),
+    doorPanel: round2(sumDoorArea * doorMatUnit),
+    doorCraft: round2(sumDoorArea * doorCraftUnit),
+    hardware: round2(hwCatSum),
+    lighting: round2(ledCatSum),
+  };
+
   return {
     modules,
     sk,
@@ -270,6 +308,7 @@ function calc({ cabinets, materials, wall }) {
     panelTotal: round2(sumPanel),
     hardwareTotal: round2(sumHw),
     grandTotal,
+    categoryCost,
   };
 }
 
