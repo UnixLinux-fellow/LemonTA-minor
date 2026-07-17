@@ -1,4 +1,5 @@
 <wxs src="../../../utils/assets.wxs" module="assets" />
+<wxs src="./format.wxs" module="fmt" />
 <view class="page">
   <image class="bg-image bg-image-light" src="{{assets.bg('T3')}}" mode="aspectFill" lazy-load />
 
@@ -51,7 +52,7 @@
       <view class="title">衣柜板材品牌</view>
       <view class="cat-cost" wx:if="{{dataReady && cost}}">
         <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.panel}}</text>
-        <text class="cat-cost-pct">占 {{cost.grandTotal > 0 ? ((cost.categoryCost.panel / cost.grandTotal * 100).toFixed(1)) : '0.0'}}%</text>
+        <text class="cat-cost-pct">占 {{fmt.percent(cost.categoryCost.panel, cost.grandTotal)}}%</text>
       </view>
     </view>
     <view class="sub">板材品牌决定柜体环保等级与寿命</view>
@@ -71,7 +72,7 @@
       <view class="title">门板材质</view>
       <view class="cat-cost" wx:if="{{dataReady && cost}}">
         <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.doorPanel}}</text>
-        <text class="cat-cost-pct">占 {{cost.grandTotal > 0 ? ((cost.categoryCost.doorPanel / cost.grandTotal * 100).toFixed(1)) : '0.0'}}%</text>
+        <text class="cat-cost-pct">占 {{fmt.percent(cost.categoryCost.doorPanel, cost.grandTotal)}}%</text>
       </view>
     </view>
     <view class="sub">门板表面材质（加价项）</view>
@@ -91,7 +92,7 @@
       <view class="title">门板工艺</view>
       <view class="cat-cost" wx:if="{{dataReady && cost}}">
         <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.doorCraft}}</text>
-        <text class="cat-cost-pct">占 {{cost.grandTotal > 0 ? ((cost.categoryCost.doorCraft / cost.grandTotal * 100).toFixed(1)) : '0.0'}}%</text>
+        <text class="cat-cost-pct">占 {{fmt.percent(cost.categoryCost.doorCraft, cost.grandTotal)}}%</text>
       </view>
     </view>
     <view class="sub">门板造型工艺（加价项）</view>
@@ -110,7 +111,7 @@
       <view class="title">五金品牌</view>
       <view class="cat-cost" wx:if="{{dataReady && cost}}">
         <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.hardware}}</text>
-        <text class="cat-cost-pct">占 {{cost.grandTotal > 0 ? ((cost.categoryCost.hardware / cost.grandTotal * 100).toFixed(1)) : '0.0'}}%</text>
+        <text class="cat-cost-pct">占 {{fmt.percent(cost.categoryCost.hardware, cost.grandTotal)}}%</text>
       </view>
     </view>
     <view class="sub">铰链、滑轨等五金件品牌</view>
@@ -130,7 +131,7 @@
       <view class="title">照明系统</view>
       <view class="cat-cost" wx:if="{{dataReady && cost}}">
         <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.lighting}}</text>
-        <text class="cat-cost-pct">占 {{cost.grandTotal > 0 ? ((cost.categoryCost.lighting / cost.grandTotal * 100).toFixed(1)) : '0.0'}}%</text>
+        <text class="cat-cost-pct">占 {{fmt.percent(cost.categoryCost.lighting, cost.grandTotal)}}%</text>
       </view>
     </view>
     <view class="sub">柜体灯光配置</view>

@@ -1,0 +1,9 @@
+// materials 页格式化辅助. WXML 表达式对 toFixed 支持有历史坑, 下沉到 wxs 里更稳。
+function percent(val, total) {
+  if (!total || total <= 0) return '0.0';
+  var p = (val / total) * 100;
+  // toFixed 在 wxs 里可用 (基础库 2.4.0+)
+  return p.toFixed(1);
+}
+
+module.exports = { percent: percent };
