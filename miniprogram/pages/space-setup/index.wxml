@@ -37,11 +37,6 @@
       <view class="corner-cell {{cornerType === 'YZJ' ? 'active' : ''}}" data-v="YZJ" bindtap="onPickCorner">右转角柜</view>
       <view class="corner-cell {{cornerType === 'ZYZJ' ? 'active' : ''}}" data-v="ZYZJ" bindtap="onPickCorner">双侧转角柜</view>
     </view>
-
-    <view class="switch-row">
-      <view class="label">需要加高模块</view>
-      <switch checked="{{hasRaise}}" bindchange="onToggleRaise" color="#1f2937" />
-    </view>
   </view>
 
   <view class="confirm-bar">

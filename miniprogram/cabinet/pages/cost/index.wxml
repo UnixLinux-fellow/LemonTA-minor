@@ -116,20 +116,9 @@
     </view>
   </view>
 
-  <view class="modal" wx:if="{{downloadOpen}}">
-    <view class="mask" bindtap="closeDownload"></view>
-    <view class="card download">
-      <view class="dl-title">百度网盘下载链接</view>
-      <view class="dl-tip">复制链接后请打开 [百度网盘] App 粘贴访问</view>
-      <view class="dl-link">{{downloadInfo.link}} 提取码: {{downloadInfo.code}}</view>
-      <view class="dl-actions">
-        <view class="btn outline" bindtap="closeDownload">关闭</view>
-        <view class="btn primary" bindtap="onCopyLink">一键复制</view>
-      </view>
-    </view>
-  </view>
-
   <canvas type="2d" id="wf-canvas" class="wf-bake-canvas"></canvas>
+  <!-- 离屏 canvas —— 一键下载导出方案成本 PDF 时使用 -->
+  <canvas type="2d" id="pdf-canvas" class="pdf-canvas"></canvas>
 
   <view class="floating-toast" wx:if="{{floatToast}}">{{floatToast}}</view>
 </view>

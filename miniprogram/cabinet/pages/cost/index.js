@@ -1,8 +1,24 @@
 const costEngine = require('../../../utils/cost-engine.js');
-const cloud = require('../../../utils/cloud.js');
 const wireframeLabels = require('../../utils/wireframe-labels.js');
 const imgCache = require('../../../utils/img-cache.js');
 const bootstrap = require('../../../utils/bootstrap.js');
+const pdfExporter = require('../../../utils/pdf-exporter.js');
+const planImageCache = require('../../../utils/plan-image-cache.js');
+const filenameCleaner = require('../../../utils/filename-cleaner.js');
+
+function getPdfCanvas(page) {
+  return new Promise((resolve, reject) => {
+    wx.createSelectorQuery().in(page)
+      .select('#pdf-canvas').fields({ node: true, size: true })
+      .exec((res) => {
+        if (!res || !res[0] || !res[0].node) {
+          reject(new Error('pdf-canvas node missing'));
+          return;
+        }
+        resolve(res[0].node);
+      });
+  });
+}
 
 Page({
   data: {
@@ -15,8 +31,6 @@ Page({
     wireframeReady: false,
     detailOpen: false,
     currentDetail: null,
-    downloadOpen: false,
-    downloadInfo: { link: '', code: '' },
     floatToast: '',
     dataReady: true,
     dataNotice: '',
@@ -212,35 +226,39 @@ Page({
     });
   },
 
-  onDownload() {
-    cloud.requestDownload(this.data.plan.id).then((res) => {
-      const data = (res && res.data) || {};
-      this.setData({
-        downloadOpen: true,
-        downloadInfo: {
-          link: data.link || 'https://pan.baidu.com/s/lemonta-demo',
-          code: data.code || 'lmt8',
+  // 一键下载：直接导出当前方案的"方案成本 PDF"（含成本透视），
+  // 复用 plan-list 页的 exportPlansWithCost 流程。
+  async onDownload() {
+    const plan = this.data.plan;
+    if (!plan) return;
+    const fileName = filenameCleaner.cleanFileName(plan.name || '');
+
+    wx.showLoading({ title: '正在生成 PDF…', mask: true });
+    try {
+      await planImageCache.resolvePlanImages([plan]);
+      const canvas = await getPdfCanvas(this);
+      const filePath = await pdfExporter.exportPlansWithCost({
+        canvas,
+        plans: [plan],
+        fileName,
+      });
+      wx.hideLoading();
+      wx.openDocument({
+        filePath,
+        fileType: 'pdf',
+        showMenu: true,
+        fail: (err) => {
+          wx.showModal({
+            title: '预览失败',
+            content: 'PDF 已生成在 ' + filePath + '\n错误: ' + (err && err.errMsg),
+            showCancel: false,
+          });
         },
       });
-    });
-  },
-
-  closeDownload() {
-    this.setData({ downloadOpen: false });
-  },
-
-  onCopyLink() {
-    const text =
-      this.data.downloadInfo.link + ' 提取码: ' + this.data.downloadInfo.code;
-    wx.setClipboardData({
-      data: text,
-      success: () => {
-        this.setData({
-          downloadOpen: false,
-          floatToast: '已复制，请5到10分钟后到百度网盘App复制下载',
-        });
-        setTimeout(() => this.setData({ floatToast: '' }), 3000);
-      },
-    });
+    } catch (err) {
+      wx.hideLoading();
+      console.error('[cost] exportPlansWithCost failed:', err);
+      wx.showToast({ title: '生成失败', icon: 'none', duration: 3000 });
+    }
   },
 });

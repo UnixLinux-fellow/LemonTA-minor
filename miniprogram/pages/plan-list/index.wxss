@@ -146,11 +146,7 @@
 .export-btn-wrap {
   display: flex;
   gap: 20rpx;
-  padding: 16rpx 0 20rpx;
-}
-
-.export-btn-wrap-cost {
-  padding: 0 0 40rpx;
+  padding: 16rpx 0 40rpx;
 }
 
 .export-btn {
@@ -158,10 +154,6 @@
   text-align: center;
   padding: 22rpx 0;
   font-size: 30rpx;
-}
-
-.export-btn-wrap-cost .export-btn {
-  width: 100%;
 }
 
 /* 离屏 canvas —— PDF 导出必需 */

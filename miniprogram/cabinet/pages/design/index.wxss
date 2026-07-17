@@ -79,6 +79,18 @@
   color: #fef9c3;
 }
 
+.raise-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.raise-label {
+  font-size: 26rpx;
+  color: #4b5563;
+}
+
 .color-row {
   display: flex;
   gap: 24rpx;

@@ -150,8 +150,7 @@ Page({
         }
       }
 
-      // 4) 写库
-      this.setData({ stageTitle: '写入数据库...' });
+      // 4) 写库(不刷新 stageTitle, 避免向用户暴露"写入数据库"字样)
       const db = wx.cloud.database();
       await db.collection(MODEL_PANEL_HARDWARE).add({ data: meta });
 

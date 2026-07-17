@@ -3,6 +3,7 @@
 const jspdfModule = require('../vendor/jspdf.min.js');
 const costEngine = require('./cost-engine.js');
 const { materialName } = require('./materials-options.js');
+const pdfAppender = require('./pdf-appender.js');
 const jsPDF = jspdfModule.jsPDF || jspdfModule;
 
 const A4_W_PT = 595.28;
@@ -1210,4 +1211,72 @@ async function exportPlansWithCost({ canvas, plans, fileName }) {
   return _writeToTempFile(buf, fileName);
 }
 
-module.exports = { exportPlans, exportPlansWithCost, _countCabinets };
+// exportPlans 的合并变体：先按 exportPlans 的流程拼出方案信息 PDF，再把 appendPdfPath
+// 指向的 PDF（拆单规范）追加到末尾，追加进来的每页会按 A4 纵向 letterbox 排版以保持
+// 与方案信息页一致。合并阶段失败会抛错，交给上层降级（去掉 appendPdfPath 再调 exportPlans）。
+async function exportPlansWithAppendix({ canvas, plans, fileName, appendPdfPath }) {
+  if (!canvas) throw new Error('canvas is required');
+  if (!Array.isArray(plans) || plans.length === 0) throw new Error('plans is empty');
+  if (!appendPdfPath) {
+    // 没有追加内容：等价于 exportPlans
+    return exportPlans({ canvas, plans, fileName });
+  }
+
+  const ctx = canvas.getContext('2d');
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
+
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  let isFirst = true;
+
+  // 与 exportPlans 一致：总览目录 → 方案 overview + layout；无成本列
+  const tocEntries = _renderOverviewTable(ctx, plans);
+  await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+
+  const planEntryPage = new Map();
+  const planEntryTop = new Map();
+
+  for (let i = 0; i < plans.length; i++) {
+    const plan = plans[i];
+    if (i > 0) {
+      _renderSeparator(ctx, plan, i + 1, plans.length);
+      await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+      planEntryPage.set(plan.id, doc.internal.getNumberOfPages());
+      planEntryTop.set(plan.id, 370);
+    }
+    await _renderOverview(canvas, ctx, plan);
+    await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+    if (i === 0) {
+      planEntryPage.set(plan.id, doc.internal.getNumberOfPages());
+      planEntryTop.set(plan.id, 20);
+    }
+
+    await _renderLayout(canvas, ctx, plan);
+    await _addCanvasPage(doc, canvas, isFirst); isFirst = false;
+  }
+
+  tocEntries.forEach((e) => {
+    if (e.planId != null && planEntryPage.has(e.planId)) {
+      e.pageNumber = planEntryPage.get(e.planId);
+      e.top = planEntryTop.get(e.planId);
+    }
+  });
+
+  if (doc.setPage && tocEntries.length) {
+    try {
+      doc.setPage(1);
+      tocEntries.forEach((e) => {
+        doc.link(e.x, e.y, e.w, e.h, { pageNumber: e.pageNumber, top: e.top != null ? e.top : 20 });
+      });
+    } catch (err) {
+      console.warn('[pdf] add toc links failed', err && err.message);
+    }
+  }
+
+  // 主 PDF 字节 → 合并拆单规范 → 落盘
+  const mainAB = doc.output('arraybuffer');
+  const mergedAB = await pdfAppender.appendPdfToArrayBuffer(mainAB, appendPdfPath);
+  return _writeToTempFile(mergedAB, fileName);
+}
+
+module.exports = { exportPlans, exportPlansWithCost, exportPlansWithAppendix, _countCabinets };

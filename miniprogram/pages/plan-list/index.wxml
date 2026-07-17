@@ -61,9 +61,6 @@
     <!-- 导出按钮组 -->
     <view class="export-btn-wrap">
       <view class="export-btn btn-outline" bindtap="onTapExport">导出方案信息</view>
-      <view class="export-btn btn-outline" bindtap="onTapExportHardware">导出拆单规范</view>
-    </view>
-    <view class="export-btn-wrap-cost">
       <view class="export-btn btn-outline" bindtap="onTapExportCost">导出方案成本</view>
     </view>
   </view>

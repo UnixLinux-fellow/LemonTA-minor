@@ -8,7 +8,6 @@ Page({
     wallW: '',
     wallH: '',
     cornerType: 'WZJ',
-    hasRaise: false,
     errorMsg: '',
     canSubmit: false,
   },
@@ -22,7 +21,6 @@ Page({
         wallW: draft.wall && draft.wall.w ? String(draft.wall.w) : '',
         wallH: draft.wall && draft.wall.h ? String(draft.wall.h) : '',
         cornerType: draft.cornerType || 'WZJ',
-        hasRaise: !!draft.hasRaise,
       });
       this.validate();
     }
@@ -60,13 +58,8 @@ Page({
     this.validate();
   },
 
-  onToggleRaise(e) {
-    this.setData({ hasRaise: e.detail.value });
-    this.validate();
-  },
-
   validate() {
-    const { name, wallW, wallH, cornerType, hasRaise } = this.data;
+    const { name, wallW, wallH, cornerType } = this.data;
     const w = parseInt(wallW, 10);
     const h = parseInt(wallH, 10);
 
@@ -98,13 +91,7 @@ Page({
         errorMsg = cornerCheck.message;
       }
     }
-    if (ok && wallH) {
-      const raiseCheck = rules.validateRaise(h, hasRaise);
-      if (!raiseCheck.ok) {
-        ok = false;
-        errorMsg = raiseCheck.message;
-      }
-    }
+    // 加高开关已搬到设计衣柜页，wall.h ≤ 250 时是否可开由那边 onToggleRaise 拦截
     // 标准段必须 >= 50
     if (ok && wallW) {
       const range = rules.computeStandardRange(w, cornerType);
@@ -121,7 +108,7 @@ Page({
   },
 
   onConfirm() {
-    const { name, wallW, wallH, cornerType, hasRaise, photoPath } = this.data;
+    const { name, wallW, wallH, cornerType, photoPath } = this.data;
     if (!this.data.canSubmit) return;
     if ((getApp().globalData.designs || []).length >= 30) {
       wx.showToast({ title: '设计库已满30条', icon: 'none' });
@@ -129,12 +116,13 @@ Page({
     }
     const draft = getApp().globalData.draftPlan || {};
     const now = new Date();
+    // 不再显式写 hasRaise —— 编辑既有方案时 Object.assign 会保留 draft.hasRaise，
+    // 首创方案时留 undefined，设计页 layoutEngine.init 会当 false 处理。
     const plan = Object.assign({}, draft, {
       id: draft.id || planStore.makeId(),
       name,
       wall: { w: parseInt(wallW, 10), h: parseInt(wallH, 10), d: 150 },
       cornerType,
-      hasRaise,
       photoPath,
       photoName: photoPath ? planStore.photoName(name, now) : '',
       timestamp: planStore.timestamp(now),

@@ -439,6 +439,24 @@ Page({
     this.recompute();
   },
 
+  // 加高开关（原在空间设置页，2026-07-16 搬到 3D 场景旁，切换即刻能看到效果）
+  // renderer.hasRaise 只是初始化时存了一份未被读取 —— 真正驱动上排渲染的是
+  // state.meta.hasRaise，通过 renderRows(state) 每次 recompute 时重算，所以这里
+  // 不必重建 3D 场景，flip 一下 meta + recompute 就够了。
+  onToggleRaise(e) {
+    const value = e.detail.value;
+    const plan = this.data.plan;
+    if (value && plan && plan.wall && plan.wall.h <= 250) {
+      this.showToast('墙面高度需大于250cm才能加高');
+      // 回滚 switch UI 状态：checked 绑到 plan.hasRaise，把它强制刷成 false
+      this.setData({ plan: Object.assign({}, plan, { hasRaise: false }) });
+      return;
+    }
+    this._state.meta.hasRaise = value;
+    this.setData({ plan: Object.assign({}, plan, { hasRaise: value }) });
+    this.recompute();
+  },
+
   onResetWall() {
     wx.redirectTo({ url: '/pages/space-setup/index' });
   },

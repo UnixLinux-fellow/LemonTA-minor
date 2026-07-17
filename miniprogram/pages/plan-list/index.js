@@ -194,12 +194,31 @@ Page({
       .map((id) => app.getDesignById(id))
       .filter(Boolean);
 
+    // 拆单规范：命中缓存直接用；未命中在 loading 面板里拉云端。拉失败降级为不追加 + toast。
+    let appendPath = hardwarePdfCloud.getCachedPdfPath();
+    let appendWarn = '';
+    if (!appendPath) {
+      wx.showLoading({ title: '正在下载拆单规范…', mask: true });
+      try {
+        appendPath = await hardwarePdfCloud.fetchHardwarePdf({
+          onProgress: (p) => wx.showLoading({ title: '下载拆单规范 ' + p + '%', mask: true }),
+        });
+      } catch (err) {
+        console.warn('[plan-list] 拆单规范拉取失败:', err);
+        appendPath = '';
+        appendWarn = '拆单规范拉取失败，本次未附入';
+      }
+    }
+
     wx.showLoading({ title: '正在生成 PDF…', mask: true });
     try {
       await planImageCache.resolvePlanImages(plans);
       const canvas = await getPdfCanvas(this);
-      const filePath = await pdfExporter.exportPlans({ canvas, plans, fileName });
+      const filePath = appendPath
+        ? await pdfExporter.exportPlansWithAppendix({ canvas, plans, fileName, appendPdfPath: appendPath })
+        : await pdfExporter.exportPlans({ canvas, plans, fileName });
       wx.hideLoading();
+      if (appendWarn) wx.showToast({ title: appendWarn, icon: 'none', duration: 2500 });
       wx.openDocument({
         filePath,
         fileType: 'pdf',
@@ -217,52 +236,6 @@ Page({
       console.error('exportPlans failed:', err);
       wx.showToast({ title: '生成失败', icon: 'none', duration: 3000 });
     }
-  },
-
-  onTapExportHardware() {
-    const openPdf = (filePath) => {
-      wx.openDocument({
-        filePath,
-        fileType: 'pdf',
-        showMenu: true,
-        fail: (err) => {
-          wx.showModal({
-            title: '预览失败',
-            content: 'PDF 已下载到 ' + filePath + '\n错误: ' + (err && err.errMsg),
-            showCancel: false,
-          });
-        },
-      });
-    };
-
-    // 本地已有缓存：立即打开，不显示 loading；后台静默拉一次远端更新缓存
-    const cachedPath = hardwarePdfCloud.getCachedPdfPath();
-    if (cachedPath) {
-      openPdf(cachedPath);
-      hardwarePdfCloud.fetchHardwarePdf().catch((err) => {
-        console.warn('[plan-list] background refresh hardware pdf failed:', err);
-      });
-      return;
-    }
-
-    // 无缓存：正常展示 loading + 下载
-    wx.showLoading({ title: '正在下载文档…', mask: true });
-    hardwarePdfCloud
-      .fetchHardwarePdf({
-        onProgress: (p) => wx.showLoading({ title: '正在下载 ' + p + '%', mask: true }),
-      })
-      .then((filePath) => {
-        wx.hideLoading();
-        openPdf(filePath);
-      })
-      .catch(() => {
-        wx.hideLoading();
-        wx.showModal({
-          title: '下载失败',
-          content: '请检查网络后重试',
-          showCancel: false,
-        });
-      });
   },
 
   onTapExportCost() {

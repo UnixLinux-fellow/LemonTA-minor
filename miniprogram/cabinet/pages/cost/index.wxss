@@ -348,6 +348,15 @@
   z-index: -1;
 }
 
+/* 离屏 canvas —— PDF 导出必需（尺寸需与 A4 pt 对齐，与 plan-list 保持一致）*/
+.pdf-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 595px;
+  height: 842px;
+}
+
 .data-notice {
   background: #fff5e6;
   color: #8a5a00;

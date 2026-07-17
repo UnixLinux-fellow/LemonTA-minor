@@ -16,15 +16,21 @@ function _drawerBottom(W, H) { return { length: 47.2, width: round(W - 8.5), thi
 function _drawerSide(W, H) { return { length: 56.2, width: 16, thickness: 1.8 }; }
 
 const PANEL_FORMULAS = {
+  w1_side_left_panel_18:  (W, H) => ({ length: round(H - 6),   width: 58, thickness: 1.8 }),
+  w1_side_right_panel_18: (W, H) => ({ length: round(H - 6),   width: 58, thickness: 1.8 }),
   side_left_panel_18:  (W, H) => ({ length: round(H - 6),   width: 58, thickness: 1.8 }),
   side_right_panel_18: (W, H) => ({ length: round(H - 6),   width: 58, thickness: 1.8 }),
   top_panel_18:        (W, H) => ({ length: 58, width: round(W - 3.6), thickness: 1.8 }),
   bottom_panel_18:     (W, H) => ({ length: 58, width: round(W - 3.6), thickness: 1.8 }),
   back_panel_18:       (W, H) => ({ length: round(H - 9.6), width: round(W - 3.6), thickness: 1.8 }),
+  w1_top_panel_18:        (W, H) => ({ length: 58, width: round(W - 3.6), thickness: 1.8 }),
+  w1_bottom_panel_18:     (W, H) => ({ length: 58, width: round(W - 3.6), thickness: 1.8 }),
+  w1_back_panel_18:       (W, H) => ({ length: round(H - 9.6), width: round(W - 3.6), thickness: 1.8 }),
   kick_front_18:       (W, H) => ({ length: round(W), width: 5.5, thickness: 1.8 }),
   access_panel_18:     (W, H) => ({ length: 19.8, width: round(W - 4), thickness: 1.8 }),
-
   door_single_18: (W, H) => ({ length: round(H - 6.44), width: round(W - 0.6), thickness: 1.8 }),
+  door_flip_18: (W, H) => ({ length: round(H - 6.44), width: round(W - 0.6), thickness: 1.8 }),
+  w1_door_single_18: (W, H) => ({ length: round(H - 6.44), width: round(W - 0.6), thickness: 1.8 }),
   door_left_18:   (W, H) => ({ length: round(H - 6.44), width: round((W - 0.6) / 2), thickness: 1.8 }),
   door_right_18:  (W, H) => ({ length: round(H - 6.44), width: round((W - 0.6) / 2), thickness: 1.8 }),
 };
