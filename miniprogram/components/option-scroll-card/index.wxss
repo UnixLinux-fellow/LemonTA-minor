@@ -45,6 +45,26 @@
   word-break: break-all;
 }
 
+/* 自定义横向滑动条: 参照 cabinet/pages/design/index.wxss 的 .scroll-indicator。
+   scroll-view 原生 scrollbar 在小程序里各机型样式不一致, 走自定义 indicator。
+   通过 <scroll-view bindscroll> 反馈 scrollLeft, 组件里同步算 thumb 位置。 */
+.osc-indicator {
+  position: relative;
+  height: 16rpx;
+  background: #e5e7eb;
+  border-radius: 8rpx;
+  margin: 14rpx 8rpx 0 8rpx;
+}
+
+.osc-indicator-thumb {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: #1f2937;
+  border-radius: 8rpx;
+  pointer-events: none;
+}
+
 .osc-panel {
   display: flex;
   align-items: flex-start;

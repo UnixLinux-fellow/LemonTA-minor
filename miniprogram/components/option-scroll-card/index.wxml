@@ -1,6 +1,6 @@
 <view class="osc-wrap">
-  <scroll-view class="osc-list" scroll-x="{{true}}" show-scrollbar="{{true}}"
-               enhanced="{{true}}" bounces="{{true}}">
+  <scroll-view class="osc-list" scroll-x="{{true}}" show-scrollbar="{{false}}"
+               bounces="{{true}}" bindscroll="onListScroll">
     <view wx:for="{{options}}" wx:key="id"
           class="osc-item {{selectedId === item.id ? 'active' : ''}}"
           data-id="{{item.id}}" bindtap="onPick">
@@ -8,6 +8,14 @@
       <view wx:if="{{item.desc}}" class="osc-item-desc">{{item.desc}}</view>
     </view>
   </scroll-view>
+
+  <!-- 自定义横向滑动条 (参照 cabinet/pages/design 的 scroll-indicator 样式);
+       超过 2 个选项 (需要横滑) 时才显示 -->
+  <view wx:if="{{scrollNeeded}}" class="osc-indicator">
+    <view class="osc-indicator-thumb"
+          style="width: {{thumbWidthPct}}%; left: {{thumbLeftPct}}%;">
+    </view>
+  </view>
 
   <view class="osc-panel" wx:if="{{showDesc}}">
     <image wx:if="{{descImagePath}}" class="osc-panel-img"

@@ -22,6 +22,10 @@ Component({
   data: {
     descImagePath: '',
     descText: '',
+    // 自定义横向滑动条状态 (参照 cabinet/pages/design 的 .scroll-indicator)
+    scrollNeeded: false,   // 选项数 > 2 (内容超出可视宽度) 才显示
+    thumbWidthPct: 100,    // thumb 宽度 = 可视宽 / 内容宽 (首屏用 2/n 估算)
+    thumbLeftPct: 0,       // thumb 距左端百分比 (由 bindscroll 反馈驱动)
   },
   observers: {
     // selectedId 变 或 imageBase/fallback 变 → 重刷图文;
@@ -31,6 +35,19 @@ Component({
         this._refreshDesc(id);
       } else {
         this.setData({ descText: '', descImagePath: '' });
+      }
+    },
+    // options 变化 → 重算滑动条: 每屏可视 2 个, 超过 2 才需要滑
+    'options': function (opts) {
+      const n = (opts || []).length;
+      if (n > 2) {
+        this.setData({
+          scrollNeeded: true,
+          thumbWidthPct: (2 / n) * 100,   // 与 design 页 visibleCells/total 同构
+          thumbLeftPct: 0,
+        });
+      } else {
+        this.setData({ scrollNeeded: false, thumbWidthPct: 100, thumbLeftPct: 0 });
       }
     },
   },
@@ -89,6 +106,19 @@ Component({
             .then(setIfCurrent)
             .catch(() => setIfCurrent(''));
         });
+    },
+
+    // scroll-view 横滑回调: 把 scrollLeft 归一化到 thumb 的 left 百分比。
+    // 参照 cabinet/pages/design/index.js#onPickerScroll 但简化 —— 不用户拖 thumb, thumb 只反显。
+    onListScroll(e) {
+      if (!this.data.scrollNeeded) return;
+      const { scrollLeft, scrollWidth } = e.detail;
+      const visibleRatio = this.data.thumbWidthPct / 100;
+      const visibleWidth = scrollWidth * visibleRatio;
+      const maxScroll = Math.max(scrollWidth - visibleWidth, 1);
+      const progress = Math.min(1, Math.max(0, scrollLeft / maxScroll));
+      const range = 100 - this.data.thumbWidthPct;
+      this.setData({ thumbLeftPct: progress * range });
     },
   },
 });
