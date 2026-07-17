@@ -10,6 +10,10 @@
   z-index: 1;
   background: linear-gradient(180deg, rgba(255, 247, 194, 0.85) 0%, rgba(253, 230, 138, 0.85) 100%);
   padding: 24rpx 28rpx 32rpx;
+  margin: 16rpx 24rpx 0; /* 浮空卡片: 左右留白 */
+  border-radius: 32rpx; /* iOS 感的大圆角 */
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
 }
 
 .pw-title {
@@ -104,6 +108,10 @@
   backdrop-filter: saturate(180%) blur(30px);
   -webkit-backdrop-filter: saturate(180%) blur(30px);
   padding: 28rpx;
+  margin: 16rpx 24rpx 0; /* 浮空卡片: 左右留白 */
+  border-radius: 32rpx; /* iOS 感的大圆角 */
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
 }
 
 .space-name {
@@ -124,8 +132,11 @@
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: saturate(180%) blur(30px);
   -webkit-backdrop-filter: saturate(180%) blur(30px);
-  margin-top: 16rpx;
+  margin: 16rpx 24rpx 0; /* 浮空卡片: 左右留白 + 卡片间距 */
   padding: 28rpx;
+  border-radius: 32rpx; /* iOS 感的大圆角 */
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
 }
 
 .title {
@@ -142,28 +153,30 @@
 
 /* .opts / .opt* 网格样式已随所有 5 组选项迁移到 option-scroll-card 组件而废弃 */
 
+/* 底栏样式与 cost 页 .bottom-bar 完全对齐: 全宽贴底、无浮空、border-top 分隔 */
 .bottom-bar {
   position: fixed;
-  bottom: 0;
   left: 0;
   right: 0;
-  background: #fff;
+  bottom: 0;
+  display: flex;
+  gap: 16rpx;
   padding: 24rpx 28rpx env(safe-area-inset-bottom);
-  box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.05);
+  background: #fff;
+  border-top: 2rpx solid #f3f4f6;
 }
 
-.bottom-bar .primary {
-  width: 100%;
+.btn {
+  flex: 1;
+  text-align: center;
+  padding: 26rpx 0;
+  border-radius: 999rpx;
+  font-size: 30rpx;
+}
+
+.btn.primary {
   background: #1f2937;
   color: #fef9c3;
-  font-size: 32rpx;
-  border-radius: 999rpx;
-  padding: 26rpx 0;
-  border: none;
-}
-
-.bottom-bar .primary::after {
-  border: none;
 }
 
 /* —— 费用预览 (吸顶) ——
@@ -179,14 +192,18 @@
   backdrop-filter: saturate(180%) blur(30px);
   -webkit-backdrop-filter: saturate(180%) blur(30px);
   padding: 20rpx 28rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
+  margin: 16rpx 24rpx 0; /* 浮空卡片: 左右留白 */
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+  border-radius: 32rpx; /* iOS 感的大圆角 */
+  overflow: hidden;
 }
 
 .cost-preview.is-sticky {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 16rpx;
+  left: 24rpx;
+  right: 24rpx;
+  margin: 0; /* fixed 定位时 margin 不再需要 */
 }
 
 /* 占位: is-sticky 时把 .cost-preview 抽离文档流, 用占位块占等高避免页面跳动 */

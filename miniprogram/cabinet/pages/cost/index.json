@@ -1,5 +1,7 @@
 {
   "navigationBarTitleText": "成本透视",
-  "usingComponents": {},
+  "usingComponents": {
+    "bg-image": "/components/bg-image/index"
+  },
   "navigationStyle": "default"
 }

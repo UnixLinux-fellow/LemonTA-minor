@@ -1,4 +1,7 @@
 {
   "navigationBarTitleText": "注册",
-  "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "bg-image": "/components/bg-image/index"
+  }
 }

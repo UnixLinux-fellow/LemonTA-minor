@@ -13,7 +13,7 @@
   }
 </wxs>
 <view class="page-container">
-  <image class="bg-image" src="{{assets.bg('T2')}}" mode="aspectFill" lazy-load />
+  <bg-image name="T2" bg-class="bg-image" />
 
   <!-- 自定义导航栏 -->
   <view class="custom-nav" style="padding-top: {{statusBarHeight}}px;">

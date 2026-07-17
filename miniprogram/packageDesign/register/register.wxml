@@ -1,7 +1,7 @@
 <!--packageDesign/register/register.wxml-->
 <wxs src="../../utils/assets.wxs" module="assets" />
 <view class="container">
-  <image class="bg-image bg-image-light" src="{{assets.bg('T3')}}" mode="aspectFill" lazy-load />
+  <bg-image name="T3" bg-class="bg-image bg-image-light" />
 
   <!-- 自定义导航栏 -->
   <view class="custom-nav" style="padding-top: {{statusBarHeight}}px;">

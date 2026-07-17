@@ -1,6 +1,6 @@
 <wxs src="../../utils/assets.wxs" module="assets" />
 <view class="page">
-  <image class="bg-image bg-image-light" src="{{assets.bg('T3')}}" mode="aspectFill" lazy-load />
+  <bg-image name="T3" bg-class="bg-image bg-image-light" />
 
   <view class="section">
     <view class="label">空间照片</view>

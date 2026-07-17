@@ -1,0 +1,1 @@
+<image class="bg-class" src="{{resolvedSrc}}" mode="aspectFill" lazy-load />

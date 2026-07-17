@@ -118,7 +118,6 @@ class ThreeRenderer {
     // 提前异步加载原木贴图：用户切到原木色时一般已经就绪；就绪后若当前色仍是 wood
     // 会自动重新刷一遍所有柜体材质，把贴图盖上去。
     this._ensureWoodTexture();
-    this._ensureWoodNormalTexture();
     // 同样提前预加载白色柜面贴图
     this._ensureWhiteTexture();
 
@@ -178,7 +177,6 @@ class ThreeRenderer {
 
     // 预览缩略图同样可能用到原木贴图，提前加载
     this._ensureWoodTexture();
-    this._ensureWoodNormalTexture();
     // 预览缩略图同样可能用到白色贴图，提前加载
     this._ensureWhiteTexture();
   }
@@ -1109,47 +1107,6 @@ class ThreeRenderer {
     return this._woodTexturePromise;
   }
 
-  // 懒加载 utils/wood_NormalMap.jpg → THREE.Image，作为原木色柜体的凹凸贴图。
-  // 法线贴图比 bumpMap 能准确表达木纹方向（凹凸 + 光照角度），让木板有真正的浮雕感；
-  // 但 threejs-miniprogram 下 GLTF 缺切线 attribute → 走 bumpMap 灰度分支代替。
-  // 与 wood.jpg 同理只保留 Image，Texture 在 _applyMaterial 里按柜尺寸新建。
-  // 失败时静默回退（仅 wood map 生效，没有凹凸浮雕，与未做这一步等价）。
-  _ensureWoodNormalTexture() {
-    if (this._woodNormalImage) return Promise.resolve(this._woodNormalImage);
-    if (this._woodNormalTexturePromise) return this._woodNormalTexturePromise;
-    if (!this.canvas || !this.THREE || !this.canvas.createImage) {
-      return Promise.resolve(null);
-    }
-    this._woodNormalTexturePromise = new Promise((resolve) => {
-      const img = this.canvas.createImage();
-      img.onload = () => {
-        this._woodNormalImage = img;
-        // 就绪后若当前色是原木，把已落地的柜体 & 预览柜体重刷一遍把 bumpMap 盖上去
-        if (this._color === 'wood') {
-          if (this._cabinets && this._cabinets.length) {
-            this._cabinets.forEach((c) => this._applyMaterial(c.mesh, 'wood', c.item));
-          }
-          if (this._previewGroup) {
-            this._previewGroup.children.forEach((g) => {
-              this._applyMaterial(g, 'wood', g.userData && g.userData._item);
-            });
-            if (this._isPreview && this.renderer && this.scene && this.camera) {
-              try { this.renderer.render(this.scene, this.camera); } catch (e) { /* ignore */ }
-            }
-          }
-        }
-        resolve(img);
-      };
-      img.onerror = (e) => {
-        console.warn('[3D] wood normal map load failed', e && (e.errMsg || e.message));
-        this._woodNormalTexturePromise = null; // 允许下次重试
-        resolve(null);
-      };
-      img.src = '/cabinet/utils/wood_NormalMap.jpg';
-    });
-    return this._woodNormalTexturePromise;
-  }
-
   // 懒加载 utils/wall.png → 挂到 _wallMat.map 上，给左/右/后墙（以及共享同材质的
   // floorBase 8cm 基底）做颜色贴图。tile 密度按物理尺寸 ~每 80cm 一格估算，避免
   // 大墙面看到明显接缝。失败时静默保留原乳胶漆纯色 + 噪声 bump。
@@ -1298,10 +1255,9 @@ class ThreeRenderer {
       whiteTex.needsUpdate = true;
     }
 
-    // 原木色：wood.jpg + wood_NormalMap.jpg 都按"1 张 = 100cm × 100cm"重复。
+    // 原木色：wood.jpg 按"1 张 = 100cm × 100cm"重复。
     // 之前没设 repeat，一张图被拉伸盖满整个柜面 → 木纹稀疏、模糊、像色块。
-    // 两张贴图共用同一 repeat，纹理与凹凸保持对齐。
-    let woodTex = null, woodBumpTex = null;
+    let woodTex = null;
     if (useWood) {
       woodTex = new THREE.Texture(this._woodImage);
       if (THREE.sRGBEncoding) woodTex.encoding = THREE.sRGBEncoding;
@@ -1312,17 +1268,6 @@ class ThreeRenderer {
       woodTex.repeat.set(w / 100, h / 100);
       if (maxAniso) woodTex.anisotropy = Math.min(8, maxAniso);
       woodTex.needsUpdate = true;
-      if (this._woodNormalImage) {
-        woodBumpTex = new THREE.Texture(this._woodNormalImage);
-        // bumpMap 走灰度梯度算法，不加 sRGB encoding，保持 linear
-        if (THREE.RepeatWrapping) {
-          woodBumpTex.wrapS = THREE.RepeatWrapping;
-          woodBumpTex.wrapT = THREE.RepeatWrapping;
-        }
-        woodBumpTex.repeat.set(w / 100, h / 100);
-        if (maxAniso) woodBumpTex.anisotropy = Math.min(8, maxAniso);
-        woodBumpTex.needsUpdate = true;
-      }
     }
 
     group.traverse((node) => {
@@ -1335,14 +1280,12 @@ class ThreeRenderer {
         if (!m) return;
         if (useWood) {
           if ('map' in m) m.map = woodTex;
-          // wood_NormalMap.jpg 作为 bumpMap 使用：threejs-miniprogram 下 GLTF 模型缺少
-          // 切线 attribute，normalMap 路径会让柜面渲染成全黑。bumpMap 走灰度梯度算法，
-          // 不依赖切线，能稳定表达木纹凹凸。
-          // bumpScale 0.9：之前 0.4 配合"1 张贴图撑满整柜"时凹凸太糊；
-          // 改为按 100×100cm 重复后木纹密度已够，凹凸可以适度加强。
+          // 无凹凸贴图：仅靠 wood.jpg 颜色纹理表达木纹，牺牲浮雕感换 519K 包体积。
+          // threejs-miniprogram 下 GLTF 缺切线 attribute，normalMap 路径会渲染成全黑，
+          // 因此这里显式清掉 normalMap/bumpMap，避免 GLTF 自带贴图残留。
           if ('normalMap' in m) m.normalMap = null;
-          if ('bumpMap' in m) m.bumpMap = woodBumpTex;
-          if ('bumpScale' in m) m.bumpScale = woodBumpTex ? 0.9 : 0;
+          if ('bumpMap' in m) m.bumpMap = null;
+          if ('bumpScale' in m) m.bumpScale = 0;
           // map 需要 color 为白才不会被反向 tint
           if (m.color) m.color.copy(whiteTintColor);
         } else if (useWhiteTex) {

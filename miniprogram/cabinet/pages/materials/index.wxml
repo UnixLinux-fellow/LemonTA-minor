@@ -1,7 +1,7 @@
 <wxs src="../../../utils/assets.wxs" module="assets" />
 <wxs src="./format.wxs" module="fmt" />
 <view class="page">
-  <image class="bg-image bg-image-light" src="{{assets.bg('T3')}}" mode="aspectFill" lazy-load />
+  <bg-image name="T3" bg-class="bg-image bg-image-light" />
 
   <view class="preview-wireframe">
     <view class="pw-title">空间衣柜布置预览</view>
@@ -17,8 +17,9 @@
     <view class="space-meta">墙体 {{plan.wall.w}}×{{plan.wall.h}}cm · 共 {{cabinetCount}} 个柜子</view>
   </view>
 
-  <!-- 占位: is-sticky 时预览抽离文档流, 占位块保等高防跳。isSticky=false 时高度 0, 不影响布局 -->
-  <view class="cost-preview-placeholder" style="height: {{isSticky ? previewHeight + 'px' : '0px'}};"></view>
+  <!-- 占位: is-sticky 时预览抽离文档流, 占位块保等高防跳。isSticky=false 时高度 0, 不影响布局。
+       margin-top 与 .cost-preview 保持一致 (16rpx), 使吸顶前后下方 section 不产生 16rpx 抖动。 -->
+  <view class="cost-preview-placeholder" style="height: {{isSticky ? previewHeight + 'px' : '0px'}}; margin-top: {{isSticky ? '16rpx' : '0'}};"></view>
   <view class="cost-preview {{isSticky ? 'is-sticky' : ''}}">
     <view class="cp-grand">
       <text class="cp-grand-lbl">总成本</text>
@@ -131,6 +132,6 @@
   </view>
 
   <view class="bottom-bar">
-    <button class="primary" bindtap="onCalc">计算成本</button>
+    <view class="btn primary" bindtap="onCalc">计算成本</view>
   </view>
 </view>

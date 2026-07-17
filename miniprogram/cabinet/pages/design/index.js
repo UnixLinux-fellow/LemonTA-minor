@@ -1,6 +1,15 @@
 const cabinetModel = require('../../utils/cabinet-model.js');
 const layoutEngine = require('../../utils/layout-engine.js');
 const imgCache = require('../../../utils/img-cache.js');
+const textDescDict = require('../../../utils/text-desc-dict.js');
+
+// 用模型 glb 文件名 (如 "50A.glb") 作 desc_code 查 text_desc, 返回 desc_name。
+// text-desc-dict 已在 app.onLaunch 里 preload, 这里同步读缓存, miss 返回 ''。
+function enrichWithDesc(list) {
+  return (list || []).map((m) => Object.assign({}, m, {
+    descText: textDescDict.getDesc(m.name),
+  }));
+}
 
 const COLORS = [
   { id: 'white', label: '白色', css: '#f0f0e7' },
@@ -85,7 +94,7 @@ Page({
         this.setData({
           plan,
           cornerLabel: CORNER_LABEL[plan.cornerType],
-          modelList: grouped.s100,
+          modelList: enrichWithDesc(grouped.s100),
           items: state.items,
           meta: state.meta,
           standardWidth: state.meta.standardWidth,
@@ -167,10 +176,12 @@ Page({
   },
 
   // 按当前 modelList 长度更新底部自定义滑动条的状态
-  // 设计假设：picker-bar 内宽可见 3 个 cell（cell 220rpx + margin 14rpx，3*234=702rpx 正好）
+  // 设计假设：picker-bar 内宽默认可见 2 个 cell (cell 310rpx + margin 14rpx, 2*310+14=634rpx),
+  //          剩余 ~68rpx 露出第 3 张的头 (~22%) 作为"还有更多"的提示;
+  //          超过 2 个才走 scroll-x 横向滑动。
   _updateScrollIndicator() {
     const total = (this.data.modelList || []).length;
-    const visibleCells = 3;
+    const visibleCells = 2;
     if (total <= visibleCells) {
       this.setData({ scrollNeeded: false, thumbLeftPct: 0, scrollViewLeft: 0 });
       return;
@@ -197,7 +208,7 @@ Page({
     const sys = wx.getSystemInfoSync();
     const rpxToPx = sys.windowWidth / 750;
     const N = (this.data.modelList || []).length;
-    const cellPx = 220 * rpxToPx;
+    const cellPx = 310 * rpxToPx;
     const marginPx = 14 * rpxToPx;
     const contentPx = N * cellPx + Math.max(0, N - 1) * marginPx;
     // picker-bar 左右各 24rpx padding，scroll-view 可见宽 = window - 48rpx
@@ -375,7 +386,7 @@ Page({
       confirmReady: state.meta.isFull,
       nextBtnText: state.meta.isFull ? '确认布局' : '下一模块',
       sizeTab,
-      modelList: list,
+      modelList: enrichWithDesc(list),
       show50,
       show100,
       remainingStd: remaining,

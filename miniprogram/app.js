@@ -93,6 +93,18 @@ App({
       console.warn('[bootstrap] init failed:', e);
     }
 
+    // 背景图 T1/T2/T3 (原本地 assets/bg/*.jpg) 迁移到云存储 + img-cache 磁盘缓存。
+    // fire-and-forget: 冷启动首次进页 bg-image 组件会用 cloud fileID 兜底 (WeChat 内建缓存),
+    // 下载落盘后走 img-cache 本地路径。
+    try {
+      var bgCache = require('./utils/bg-cache.js');
+      bgCache.preloadAll().catch(function (err) {
+        console.warn('[bg-cache] preloadAll failed:', err);
+      });
+    } catch (e) {
+      console.warn('[bg-cache] init failed:', e);
+    }
+
     // 读取本地缓存的用户信息（老用户刷新小程序后仍能立即渲染账号卡）
     var userInfo = wx.getStorageSync('userInfo');
     if (userInfo) {

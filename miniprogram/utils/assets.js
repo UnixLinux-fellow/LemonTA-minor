@@ -45,12 +45,14 @@ module.exports = {
   },
 
   /**
-   * 获取背景图路径
-   * @param {string} name - 背景图名称，如 'T1'、'T2'、'T3'
+   * 获取背景图 cloud fileID (T1/T2/T3 已迁移到云存储)。
+   * 页面推荐用 <bg-image name="T3" bg-class="..." /> 组件, 走 img-cache 磁盘缓存;
+   * 此方法保留是给 app.js 的 tutorials 数据用 (WeChat <image> 直接渲染 cloud://)。
+   * @param {string} name - 'T1' / 'T2' / 'T3'
    * @returns {string}
    */
   bg: function(name) {
-    return getAssetPath('bg/' + name + '.jpg');
+    return CDN_BASE_URL + '/bg/' + name + '.jpg';
   },
 
   /**

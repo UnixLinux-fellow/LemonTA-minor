@@ -17,8 +17,10 @@ function getAssetPath(relativePath) {
 }
 
 module.exports = {
+  // 背景图 T1/T2/T3 已迁移到云存储; 直接返回 cloud fileID, <image> 原生支持渲染。
+  // 页面推荐用 <bg-image name="Tn" bg-class="..." /> 组件走 img-cache 磁盘缓存。
   bg: function(name) {
-    return getAssetPath('bg/' + name + '.jpg');
+    return CDN_BASE_URL + '/bg/' + name + '.jpg';
   },
   picture: function(subPath) {
     if (USE_CDN && CDN_BASE_URL) {

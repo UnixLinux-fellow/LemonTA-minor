@@ -1,4 +1,6 @@
 {
   "navigationStyle": "custom",
-  "usingComponents": {}
+  "usingComponents": {
+    "bg-image": "/components/bg-image/index"
+  }
 }

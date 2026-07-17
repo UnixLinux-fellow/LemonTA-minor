@@ -53,9 +53,12 @@
             wx:key="name"
             data-idx="{{idx}}"
             bindtap="onPickModel">
+        <!-- 左 70%: 3D 缩略图 -->
         <view class="model-thumb">
           <canvas type="webgl" id="thumb-canvas-{{idx}}" class="thumb-canvas"></canvas>
         </view>
+        <!-- 右 30%: 文字说明 (来自 text_desc, desc_code = m.name) -->
+        <view class="model-desc">{{item.descText}}</view>
       </view>
     </scroll-view>
 
