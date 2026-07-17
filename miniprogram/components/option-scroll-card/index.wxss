@@ -29,6 +29,40 @@
   background: #fef9c3;
 }
 
+/* 卡片顶部图文子面板: 左图 + 右文 */
+.osc-item-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+  margin-bottom: 16rpx;
+}
+
+.osc-item-img {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 10rpx;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+
+.osc-item-img--placeholder {
+  /* 灰底 + 无 src, 已足够表达"加载中/无图" */
+}
+
+.osc-item-text {
+  flex: 1;
+  font-size: 22rpx;
+  color: #4b5563;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: break-all;
+  /* 4 行截断, 避免顶部说明块把卡片撑得过高 */
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .osc-item-name {
   font-size: 28rpx;
   color: #1f2937;
@@ -63,34 +97,4 @@
   background: #1f2937;
   border-radius: 8rpx;
   pointer-events: none;
-}
-
-.osc-panel {
-  display: flex;
-  align-items: flex-start;
-  gap: 20rpx;
-  margin-top: 20rpx;
-  padding: 20rpx;
-  background: #f9fafb;
-  border-radius: 14rpx;
-}
-
-.osc-panel-img {
-  width: 200rpx;
-  height: 200rpx;
-  border-radius: 12rpx;
-  background: #e5e7eb;
-  flex-shrink: 0;
-}
-
-.osc-panel-img--placeholder {
-  /* 灰底 + 无 src, 已足够表达"加载中/无图" */
-}
-
-.osc-panel-text {
-  flex: 1;
-  font-size: 26rpx;
-  color: #4b5563;
-  line-height: 1.6;
-  word-break: break-all;
 }

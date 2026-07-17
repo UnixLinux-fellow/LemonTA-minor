@@ -1,9 +1,17 @@
 <view class="osc-wrap">
   <scroll-view class="osc-list" scroll-x="{{true}}" show-scrollbar="{{false}}"
                bounces="{{true}}" bindscroll="onListScroll">
-    <view wx:for="{{options}}" wx:key="id"
+    <view wx:for="{{displayOptions}}" wx:key="id"
           class="osc-item {{selectedId === item.id ? 'active' : ''}}"
           data-id="{{item.id}}" bindtap="onPick">
+      <!-- 卡片顶部图文说明: 左图 + 右文, 每张卡自己一块; 横滑时随卡片一起移动 -->
+      <view class="osc-item-panel" wx:if="{{showDesc}}">
+        <image wx:if="{{item.imagePath}}" class="osc-item-img"
+               src="{{item.imagePath}}" mode="aspectFill" />
+        <view wx:else class="osc-item-img osc-item-img--placeholder"></view>
+        <view class="osc-item-text">{{item.descText}}</view>
+      </view>
+      <!-- 卡片底部: 选项名 + (可选) 副标题 -->
       <view class="osc-item-name">{{item.name}}</view>
       <view wx:if="{{item.desc}}" class="osc-item-desc">{{item.desc}}</view>
     </view>
@@ -15,12 +23,5 @@
     <view class="osc-indicator-thumb"
           style="width: {{thumbWidthPct}}%; left: {{thumbLeftPct}}%;">
     </view>
-  </view>
-
-  <view class="osc-panel" wx:if="{{showDesc}}">
-    <image wx:if="{{descImagePath}}" class="osc-panel-img"
-           src="{{descImagePath}}" mode="aspectFill" />
-    <view wx:else class="osc-panel-img osc-panel-img--placeholder"></view>
-    <view class="osc-panel-text">{{descText}}</view>
   </view>
 </view>
