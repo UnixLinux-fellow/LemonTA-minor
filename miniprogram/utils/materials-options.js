@@ -38,7 +38,7 @@ const HARDWARE_OPTIONS = [
 
 // lighting 是分流: none / led_domestic / led_import, 与 hardware 独立
 const LIGHTING_OPTIONS = [
-  { id: 'none', name: '无' },
+  { id: 'none', name: '无', desc: '不加装灯带' },
   { id: 'led_domestic', name: '国产灯带', desc: '10mm × 10mm 超薄' },
   { id: 'led_import', name: '海福乐灯带', desc: '柔光均匀' },
 ];
