@@ -1,0 +1,18 @@
+<view class="osc-wrap">
+  <scroll-view class="osc-list" scroll-x="{{true}}" show-scrollbar="{{false}}"
+               enhanced="{{true}}" bounces="{{true}}">
+    <view wx:for="{{options}}" wx:key="id"
+          class="osc-item {{selectedId === item.id ? 'active' : ''}}"
+          data-id="{{item.id}}" bindtap="onPick">
+      <view class="osc-item-name">{{item.name}}</view>
+      <view wx:if="{{item.desc}}" class="osc-item-desc">{{item.desc}}</view>
+    </view>
+  </scroll-view>
+
+  <view class="osc-panel" wx:if="{{showDesc}}">
+    <image wx:if="{{descImagePath}}" class="osc-panel-img"
+           src="{{descImagePath}}" mode="aspectFill" />
+    <view wx:else class="osc-panel-img osc-panel-img--placeholder"></view>
+    <view class="osc-panel-text">{{descText}}</view>
+  </view>
+</view>

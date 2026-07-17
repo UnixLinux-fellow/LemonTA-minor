@@ -1,0 +1,76 @@
+.osc-wrap {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 横向滚动: white-space:nowrap + inline-flex 消基线间隙 + 定宽让首屏刚好 2 个 */
+.osc-list {
+  white-space: nowrap;
+  width: 100%;
+}
+
+.osc-item {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: top;                       /* 与 inline-flex 一起消基线间隙 */
+  width: calc((100% - 16rpx) / 2);           /* 精确 2 列, 间距 16rpx */
+  margin-right: 16rpx;
+  padding: 22rpx 18rpx;
+  box-sizing: border-box;
+  background: #fff;
+  border: 2rpx solid #e5e7eb;
+  border-radius: 14rpx;
+}
+
+.osc-item:last-child { margin-right: 0; }
+
+.osc-item.active {
+  border-color: #1f2937;
+  background: #fef9c3;
+}
+
+.osc-item-name {
+  font-size: 28rpx;
+  color: #1f2937;
+  font-weight: 500;
+  white-space: normal;         /* 单独放开, 避免 osc-list 的 nowrap 影响卡片内 */
+  word-break: break-all;
+}
+
+.osc-item-desc {
+  font-size: 22rpx;
+  color: #6b7280;
+  margin-top: 4rpx;
+  white-space: normal;
+  word-break: break-all;
+}
+
+.osc-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  margin-top: 20rpx;
+  padding: 20rpx;
+  background: #f9fafb;
+  border-radius: 14rpx;
+}
+
+.osc-panel-img {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 12rpx;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+
+.osc-panel-img--placeholder {
+  /* 灰底 + 无 src, 已足够表达"加载中/无图" */
+}
+
+.osc-panel-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: #4b5563;
+  line-height: 1.6;
+  word-break: break-all;
+}
