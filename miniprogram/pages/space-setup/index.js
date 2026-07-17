@@ -10,9 +10,18 @@ Page({
     cornerType: 'WZJ',
     errorMsg: '',
     canSubmit: false,
+    cornerOptions: [
+      { id: 'WZJ',  name: '无转角' },
+      { id: 'ZZJ',  name: '左转角柜' },
+      { id: 'YZJ',  name: '右转角柜' },
+      { id: 'ZYZJ', name: '双侧转角柜' },
+    ],
   },
 
   onLoad() {
+    // 首次进页触发 UI 文案字典拉取 (fire-and-forget, 命中缓存即零耗时)
+    require('../../utils/bootstrap.js').ensureUiDescReady();
+
     const draft = getApp().globalData.draftPlan;
     if (draft) {
       this.setData({
@@ -53,8 +62,8 @@ Page({
     this.validate();
   },
 
-  onPickCorner(e) {
-    this.setData({ cornerType: e.currentTarget.dataset.v });
+  onCornerChange(e) {
+    this.setData({ cornerType: e.detail.id });
     this.validate();
   },
 

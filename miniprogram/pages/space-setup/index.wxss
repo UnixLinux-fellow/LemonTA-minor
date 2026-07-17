@@ -110,28 +110,6 @@
   line-height: 1.5;
 }
 
-.corner-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16rpx;
-}
-
-.corner-cell {
-  border: 2rpx solid #e5e7eb;
-  border-radius: 12rpx;
-  padding: 24rpx;
-  text-align: center;
-  font-size: 28rpx;
-  color: #4b5563;
-}
-
-.corner-cell.active {
-  border-color: #1f2937;
-  background: #fef9c3;
-  color: #1f2937;
-  font-weight: 500;
-}
-
 .confirm-bar {
   position: fixed;
   bottom: 0;

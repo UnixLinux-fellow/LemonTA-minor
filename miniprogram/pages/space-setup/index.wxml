@@ -31,12 +31,10 @@
 
   <view class="section">
     <view class="label">是否有转角衣柜</view>
-    <view class="corner-grid">
-      <view class="corner-cell {{cornerType === 'WZJ' ? 'active' : ''}}" data-v="WZJ" bindtap="onPickCorner">无转角</view>
-      <view class="corner-cell {{cornerType === 'ZZJ' ? 'active' : ''}}" data-v="ZZJ" bindtap="onPickCorner">左转角柜</view>
-      <view class="corner-cell {{cornerType === 'YZJ' ? 'active' : ''}}" data-v="YZJ" bindtap="onPickCorner">右转角柜</view>
-      <view class="corner-cell {{cornerType === 'ZYZJ' ? 'active' : ''}}" data-v="ZYZJ" bindtap="onPickCorner">双侧转角柜</view>
-    </view>
+    <option-scroll-card
+      options="{{cornerOptions}}"
+      selectedId="{{cornerType}}"
+      bind:change="onCornerChange" />
   </view>
 
   <view class="confirm-bar">

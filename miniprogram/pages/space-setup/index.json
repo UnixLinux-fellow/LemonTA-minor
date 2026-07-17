@@ -1,5 +1,7 @@
 {
   "navigationBarTitleText": "空间设置",
-  "usingComponents": {},
+  "usingComponents": {
+    "option-scroll-card": "/components/option-scroll-card/index"
+  },
   "navigationStyle": "default"
 }
