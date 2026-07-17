@@ -25,7 +25,7 @@ Page({
     topRow: [],
     // —— 费用预览 —— //
     cost: null,           // { grandTotal, panelTotal, hardwareTotal, transport, install, categoryCost }
-    dataReady: true,      // 价格字典是否就绪
+    dataReady: false,     // 价格字典是否就绪
     dataNotice: '',       // 未就绪时的提示文案
   },
 
@@ -90,6 +90,8 @@ Page({
       });
       return;
     }
+    // 与 cost/index.js 不同, 这里加 try/catch 防御性兜底: 用户在选择页会频繁切换选项,
+    // engine 若因字典部分 miss 抛错也不该让 UI 卡死。见 spec §6.2。
     try {
       const cost = costEngine.calc({
         cabinets: plan.cabinets || [],
