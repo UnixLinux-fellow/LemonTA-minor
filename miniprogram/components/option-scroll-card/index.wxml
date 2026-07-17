@@ -1,5 +1,5 @@
 <view class="osc-wrap">
-  <scroll-view class="osc-list" scroll-x="{{true}}" show-scrollbar="{{false}}"
+  <scroll-view class="osc-list" scroll-x="{{true}}" show-scrollbar="{{true}}"
                enhanced="{{true}}" bounces="{{true}}">
     <view wx:for="{{options}}" wx:key="id"
           class="osc-item {{selectedId === item.id ? 'active' : ''}}"
