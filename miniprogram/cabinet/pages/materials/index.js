@@ -33,6 +33,9 @@ Page({
   },
 
   onLoad(query) {
+    // 首次进页触发 UI 文案字典拉取 (fire-and-forget, 命中缓存即零耗时)
+    // 与 space-setup 页对称: 若冷深链直达 materials 而 app.onLaunch 的预拉尚未完成, 这里再补一次。
+    require('../../../utils/bootstrap.js').ensureUiDescReady();
     const from = query.from || 'design';
     let plan;
     if (from === 'list') {

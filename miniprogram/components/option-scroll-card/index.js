@@ -24,9 +24,14 @@ Component({
     descText: '',
   },
   observers: {
-    // selectedId 变 或 imageBase 变 → 重刷图文
+    // selectedId 变 或 imageBase/fallback 变 → 重刷图文;
+    // selectedId 清空 (deselect) → 清掉说明区避免残留上次的图文
     'selectedId, imageBase, fallbackImageId': function (id) {
-      if (id) this._refreshDesc(id);
+      if (id) {
+        this._refreshDesc(id);
+      } else {
+        this.setData({ descText: '', descImagePath: '' });
+      }
     },
   },
   lifetimes: {
@@ -37,13 +42,16 @@ Component({
       // 冷启动首次进页 preload 可能还没完成; 挂一次补偿, 300ms 内基本就绪。
       if (!textDescDict.isReady()) {
         setTimeout(() => {
-          // 只补文本, 图片链路是异步的自身会更新
+          if (this._detached) return;   // 组件已卸载, 不再 setData
           const cur = this.data.selectedId;
           if (cur) {
             this.setData({ descText: textDescDict.getDesc(cur) });
           }
         }, 300);
       }
+    },
+    detached() {
+      this._detached = true;
     },
   },
   methods: {
@@ -69,6 +77,7 @@ Component({
       this._reqSeq = (this._reqSeq || 0) + 1;
       const mySeq = this._reqSeq;
       const setIfCurrent = (path) => {
+        if (this._detached) return;           // 组件已卸载
         if (mySeq !== this._reqSeq) return;   // 已被后续点选覆盖
         this.setData({ descImagePath: path || '' });
       };
