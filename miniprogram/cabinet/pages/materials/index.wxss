@@ -205,3 +205,100 @@
 .bottom-bar .primary::after {
   border: none;
 }
+
+/* —— 费用预览 (吸顶) —— */
+.cost-preview {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(180%) blur(30px);
+  -webkit-backdrop-filter: saturate(180%) blur(30px);
+  padding: 20rpx 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
+}
+
+.cp-grand {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 12rpx;
+  border-bottom: 2rpx solid rgba(0,0,0,0.06);
+}
+
+.cp-grand-lbl {
+  font-size: 28rpx;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.cp-grand-val {
+  font-size: 40rpx;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.cp-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12rpx;
+  gap: 24rpx;
+}
+
+.cp-item {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.cp-item-lbl {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.cp-item-val {
+  font-size: 26rpx;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.cp-notice {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #b45309;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.cp-retry {
+  color: #EE822F;
+  font-weight: 600;
+}
+
+/* —— 分类头部 flex —— */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.cat-cost {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2rpx;
+}
+
+.cat-cost-fee {
+  font-size: 22rpx;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.cat-cost-pct {
+  font-size: 20rpx;
+  color: #6b7280;
+}
