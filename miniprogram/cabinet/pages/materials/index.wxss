@@ -206,7 +206,10 @@
   border: none;
 }
 
-/* —— 费用预览 (吸顶) —— */
+/* —— 费用预览 (吸顶) ——
+   注意: .page 上有 overflow-x: hidden, 在 web 环境下会破坏 position: sticky。
+   微信小程序里页面的滚动容器不是 .page 本身而是外层 window, sticky 仍然生效 —
+   若未来把此页面嵌入到自定义 scroll-view 中, 需要重新验证吸顶行为。 */
 .cost-preview {
   position: sticky;
   top: 0;

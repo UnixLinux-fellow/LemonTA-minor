@@ -19,26 +19,26 @@
   <view class="cost-preview">
     <view class="cp-grand">
       <text class="cp-grand-lbl">总成本</text>
-      <text class="cp-grand-val">¥ {{dataReady ? cost.grandTotal : '——'}}</text>
+      <text class="cp-grand-val">¥ {{dataReady ? fmt.money(cost.grandTotal) : '——'}}</text>
     </view>
     <view class="cp-row">
       <view class="cp-item">
         <text class="cp-item-lbl">板材合计</text>
-        <text class="cp-item-val">¥ {{dataReady ? cost.panelTotal : '——'}}</text>
+        <text class="cp-item-val">¥ {{dataReady ? fmt.money(cost.panelTotal) : '——'}}</text>
       </view>
       <view class="cp-item">
         <text class="cp-item-lbl">运输费用</text>
-        <text class="cp-item-val">¥ {{dataReady ? cost.transport : '——'}}</text>
+        <text class="cp-item-val">¥ {{dataReady ? fmt.money(cost.transport) : '——'}}</text>
       </view>
     </view>
     <view class="cp-row">
       <view class="cp-item">
         <text class="cp-item-lbl">五金配件</text>
-        <text class="cp-item-val">¥ {{dataReady ? cost.hardwareTotal : '——'}}</text>
+        <text class="cp-item-val">¥ {{dataReady ? fmt.money(cost.hardwareTotal) : '——'}}</text>
       </view>
       <view class="cp-item">
         <text class="cp-item-lbl">安装费用</text>
-        <text class="cp-item-val">¥ {{dataReady ? cost.install : '——'}}</text>
+        <text class="cp-item-val">¥ {{dataReady ? fmt.money(cost.install) : '——'}}</text>
       </view>
     </view>
     <view class="cp-notice" wx:if="{{dataNotice}}">
@@ -51,7 +51,7 @@
     <view class="section-head">
       <view class="title">衣柜板材品牌</view>
       <view class="cat-cost" wx:if="{{dataReady && cost}}">
-        <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.panel}}</text>
+        <text class="cat-cost-fee">费用 ¥ {{fmt.money(cost.categoryCost.panel)}}</text>
         <text class="cat-cost-pct">占 {{fmt.percent(cost.categoryCost.panel, cost.grandTotal)}}%</text>
       </view>
     </view>
@@ -71,7 +71,7 @@
     <view class="section-head">
       <view class="title">门板材质</view>
       <view class="cat-cost" wx:if="{{dataReady && cost}}">
-        <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.doorPanel}}</text>
+        <text class="cat-cost-fee">费用 ¥ {{fmt.money(cost.categoryCost.doorPanel)}}</text>
         <text class="cat-cost-pct">占 {{fmt.percent(cost.categoryCost.doorPanel, cost.grandTotal)}}%</text>
       </view>
     </view>
@@ -91,7 +91,7 @@
     <view class="section-head">
       <view class="title">门板工艺</view>
       <view class="cat-cost" wx:if="{{dataReady && cost}}">
-        <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.doorCraft}}</text>
+        <text class="cat-cost-fee">费用 ¥ {{fmt.money(cost.categoryCost.doorCraft)}}</text>
         <text class="cat-cost-pct">占 {{fmt.percent(cost.categoryCost.doorCraft, cost.grandTotal)}}%</text>
       </view>
     </view>
@@ -110,7 +110,7 @@
     <view class="section-head">
       <view class="title">五金品牌</view>
       <view class="cat-cost" wx:if="{{dataReady && cost}}">
-        <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.hardware}}</text>
+        <text class="cat-cost-fee">费用 ¥ {{fmt.money(cost.categoryCost.hardware)}}</text>
         <text class="cat-cost-pct">占 {{fmt.percent(cost.categoryCost.hardware, cost.grandTotal)}}%</text>
       </view>
     </view>
@@ -130,7 +130,7 @@
     <view class="section-head">
       <view class="title">照明系统</view>
       <view class="cat-cost" wx:if="{{dataReady && cost}}">
-        <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.lighting}}</text>
+        <text class="cat-cost-fee">费用 ¥ {{fmt.money(cost.categoryCost.lighting)}}</text>
         <text class="cat-cost-pct">占 {{fmt.percent(cost.categoryCost.lighting, cost.grandTotal)}}%</text>
       </view>
     </view>

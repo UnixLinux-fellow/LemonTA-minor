@@ -211,7 +211,7 @@ test('恒等: panel+doorPanel+doorCraft ≈ Σ panelCost;  hardware+lighting ≈
     assert.ok(Math.abs(catSumHw - sumHwCost) < 1,
       `五金类合计 ${catSumHw} 应 ≈ Σ hardwareCost ${sumHwCost}`);
     // 全高配下 5 项都 > 0
-    assert.ok(cost.categoryCost.panel > 0);
+    assert.ok(cost.categoryCost.panel > 0, 'panel > 0');
     assert.ok(cost.categoryCost.doorPanel > 0);
     assert.ok(cost.categoryCost.doorCraft > 0);
     assert.ok(cost.categoryCost.hardware > 0);
