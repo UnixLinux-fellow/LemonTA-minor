@@ -99,14 +99,15 @@ Page({
     }
   },
 
-  pickPanel(e) {
-    this._pick('panel', e.currentTarget.dataset.id);
+  // 三个 handler 名带 on 前缀, 从 e.detail.id 取值 (option-scroll-card 组件的 change 事件)
+  onPickPanel(e) {
+    this._pick('panel', e.detail.id);
   },
-  pickDoorPanel(e) {
-    this._pick('doorPanel', e.currentTarget.dataset.id);
+  onPickDoorPanel(e) {
+    this._pick('doorPanel', e.detail.id);
   },
-  pickDoorCraft(e) {
-    this._pick('doorCraft', e.currentTarget.dataset.id);
+  onPickDoorCraft(e) {
+    this._pick('doorCraft', e.detail.id);
   },
   pickHardware(e) {
     this._pick('hardware', e.currentTarget.dataset.id);

@@ -59,15 +59,10 @@
       </view>
     </view>
     <view class="sub">板材品牌决定柜体环保等级与寿命</view>
-    <view class="opts">
-      <view class="opt {{materials.panel === item.id ? 'active' : ''}}"
-            wx:for="{{panelOpts}}" wx:key="id"
-            data-id="{{item.id}}"
-            bindtap="pickPanel">
-        <view class="opt-name">{{item.name}}</view>
-        <view class="opt-desc">{{item.desc}}</view>
-      </view>
-    </view>
+    <option-scroll-card
+      options="{{panelOpts}}"
+      selectedId="{{materials.panel}}"
+      bind:change="onPickPanel" />
   </view>
 
   <view class="section">
@@ -79,15 +74,10 @@
       </view>
     </view>
     <view class="sub">门板表面材质（加价项）</view>
-    <view class="opts">
-      <view class="opt {{materials.doorPanel === item.id ? 'active' : ''}}"
-            wx:for="{{doorPanelOpts}}" wx:key="id"
-            data-id="{{item.id}}"
-            bindtap="pickDoorPanel">
-        <view class="opt-name">{{item.name}}</view>
-        <view class="opt-desc">{{item.desc}}</view>
-      </view>
-    </view>
+    <option-scroll-card
+      options="{{doorPanelOpts}}"
+      selectedId="{{materials.doorPanel}}"
+      bind:change="onPickDoorPanel" />
   </view>
 
   <view class="section">
@@ -99,14 +89,10 @@
       </view>
     </view>
     <view class="sub">门板造型工艺（加价项）</view>
-    <view class="opts row-4">
-      <view class="opt {{materials.doorCraft === item.id ? 'active' : ''}}"
-            wx:for="{{doorCraftOpts}}" wx:key="id"
-            data-id="{{item.id}}"
-            bindtap="pickDoorCraft">
-        <view class="opt-name">{{item.name}}</view>
-      </view>
-    </view>
+    <option-scroll-card
+      options="{{doorCraftOpts}}"
+      selectedId="{{materials.doorCraft}}"
+      bind:change="onPickDoorCraft" />
   </view>
 
   <view class="section">
