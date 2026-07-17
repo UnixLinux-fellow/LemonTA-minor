@@ -9,35 +9,30 @@
   width: 100%;
 }
 
-.osc-item {
+/* 每组 = 上图文 + 下选项卡, 整组横滑; 组本身无边框, 只提供宽度和间距 */
+.osc-group {
   display: inline-flex;
   flex-direction: column;
   vertical-align: top;                       /* 与 inline-flex 一起消基线间隙 */
   width: calc((100% - 16rpx) / 2);           /* 精确 2 列, 间距 16rpx */
   margin-right: 16rpx;
-  padding: 22rpx 18rpx;
   box-sizing: border-box;
-  background: #fff;
-  border: 2rpx solid #e5e7eb;
-  border-radius: 14rpx;
 }
 
-.osc-item:last-child { margin-right: 0; }
+.osc-group:last-child { margin-right: 0; }
 
-.osc-item.active {
-  border-color: #1f2937;
-  background: #fef9c3;
-}
-
-/* 卡片顶部图文子面板: 左图 + 右文 */
-.osc-item-panel {
+/* 上方图文说明区: 独立容器, 浅灰底, 无边框; 与下方选项卡视觉分离 */
+.osc-desc {
   display: flex;
   align-items: flex-start;
   gap: 14rpx;
-  margin-bottom: 16rpx;
+  padding: 18rpx;
+  margin-bottom: 12rpx;
+  background: #f9fafb;
+  border-radius: 12rpx;
 }
 
-.osc-item-img {
+.osc-desc-img {
   width: 120rpx;
   height: 120rpx;
   border-radius: 10rpx;
@@ -45,22 +40,36 @@
   flex-shrink: 0;
 }
 
-.osc-item-img--placeholder {
+.osc-desc-img--placeholder {
   /* 灰底 + 无 src, 已足够表达"加载中/无图" */
 }
 
-.osc-item-text {
+.osc-desc-text {
   flex: 1;
   font-size: 22rpx;
   color: #4b5563;
   line-height: 1.5;
   white-space: normal;
   word-break: break-all;
-  /* 4 行截断, 避免顶部说明块把卡片撑得过高 */
+  /* 4 行截断, 避免顶部说明块把整组撑得过高 */
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* 下方选项卡: 保持之前样式 (白底 + 灰边 + 圆角 + 选中变黄) */
+.osc-item {
+  padding: 22rpx 18rpx;
+  box-sizing: border-box;
+  background: #fff;
+  border: 2rpx solid #e5e7eb;
+  border-radius: 14rpx;
+}
+
+.osc-item.active {
+  border-color: #1f2937;
+  background: #fef9c3;
 }
 
 .osc-item-name {

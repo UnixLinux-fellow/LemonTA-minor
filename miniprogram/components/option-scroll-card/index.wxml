@@ -1,19 +1,22 @@
 <view class="osc-wrap">
   <scroll-view class="osc-list" scroll-x="{{true}}" show-scrollbar="{{false}}"
                bounces="{{true}}" bindscroll="onListScroll">
+    <!-- 每组 = 上方图文说明区 + 下方选项卡, 整组作为一个横滑单元 -->
     <view wx:for="{{displayOptions}}" wx:key="id"
-          class="osc-item {{selectedId === item.id ? 'active' : ''}}"
+          class="osc-group"
           data-id="{{item.id}}" bindtap="onPick">
-      <!-- 卡片顶部图文说明: 左图 + 右文, 每张卡自己一块; 横滑时随卡片一起移动 -->
-      <view class="osc-item-panel" wx:if="{{showDesc}}">
-        <image wx:if="{{item.imagePath}}" class="osc-item-img"
+      <!-- 上方图文说明区 (独立容器, 无边框, 浅灰底) -->
+      <view class="osc-desc" wx:if="{{showDesc}}">
+        <image wx:if="{{item.imagePath}}" class="osc-desc-img"
                src="{{item.imagePath}}" mode="aspectFill" />
-        <view wx:else class="osc-item-img osc-item-img--placeholder"></view>
-        <view class="osc-item-text">{{item.descText}}</view>
+        <view wx:else class="osc-desc-img osc-desc-img--placeholder"></view>
+        <view class="osc-desc-text">{{item.descText}}</view>
       </view>
-      <!-- 卡片底部: 选项名 + (可选) 副标题 -->
-      <view class="osc-item-name">{{item.name}}</view>
-      <view wx:if="{{item.desc}}" class="osc-item-desc">{{item.desc}}</view>
+      <!-- 下方选项卡: 保持之前样式 (白底 + 灰边 + 圆角 + 选中变黄) -->
+      <view class="osc-item {{selectedId === item.id ? 'active' : ''}}">
+        <view class="osc-item-name">{{item.name}}</view>
+        <view wx:if="{{item.desc}}" class="osc-item-desc">{{item.desc}}</view>
+      </view>
     </view>
   </scroll-view>
 
