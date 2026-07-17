@@ -15,8 +15,45 @@
     <view class="space-meta">墙体 {{plan.wall.w}}×{{plan.wall.h}}cm · 共 {{cabinetCount}} 个柜子</view>
   </view>
 
+  <view class="cost-preview">
+    <view class="cp-grand">
+      <text class="cp-grand-lbl">总成本</text>
+      <text class="cp-grand-val">¥ {{dataReady ? cost.grandTotal : '——'}}</text>
+    </view>
+    <view class="cp-row">
+      <view class="cp-item">
+        <text class="cp-item-lbl">板材合计</text>
+        <text class="cp-item-val">¥ {{dataReady ? cost.panelTotal : '——'}}</text>
+      </view>
+      <view class="cp-item">
+        <text class="cp-item-lbl">运输费用</text>
+        <text class="cp-item-val">¥ {{dataReady ? cost.transport : '——'}}</text>
+      </view>
+    </view>
+    <view class="cp-row">
+      <view class="cp-item">
+        <text class="cp-item-lbl">五金配件</text>
+        <text class="cp-item-val">¥ {{dataReady ? cost.hardwareTotal : '——'}}</text>
+      </view>
+      <view class="cp-item">
+        <text class="cp-item-lbl">安装费用</text>
+        <text class="cp-item-val">¥ {{dataReady ? cost.install : '——'}}</text>
+      </view>
+    </view>
+    <view class="cp-notice" wx:if="{{dataNotice}}">
+      <text>{{dataNotice}}</text>
+      <text class="cp-retry" bindtap="onRetryDataFetch">重试</text>
+    </view>
+  </view>
+
   <view class="section">
-    <view class="title">衣柜板材品牌</view>
+    <view class="section-head">
+      <view class="title">衣柜板材品牌</view>
+      <view class="cat-cost" wx:if="{{dataReady && cost}}">
+        <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.panel}}</text>
+        <text class="cat-cost-pct">占 {{cost.grandTotal > 0 ? ((cost.categoryCost.panel / cost.grandTotal * 100).toFixed(1)) : '0.0'}}%</text>
+      </view>
+    </view>
     <view class="sub">板材品牌决定柜体环保等级与寿命</view>
     <view class="opts">
       <view class="opt {{materials.panel === item.id ? 'active' : ''}}"
@@ -30,7 +67,13 @@
   </view>
 
   <view class="section">
-    <view class="title">门板材质</view>
+    <view class="section-head">
+      <view class="title">门板材质</view>
+      <view class="cat-cost" wx:if="{{dataReady && cost}}">
+        <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.doorPanel}}</text>
+        <text class="cat-cost-pct">占 {{cost.grandTotal > 0 ? ((cost.categoryCost.doorPanel / cost.grandTotal * 100).toFixed(1)) : '0.0'}}%</text>
+      </view>
+    </view>
     <view class="sub">门板表面材质（加价项）</view>
     <view class="opts">
       <view class="opt {{materials.doorPanel === item.id ? 'active' : ''}}"
@@ -44,7 +87,13 @@
   </view>
 
   <view class="section">
-    <view class="title">门板工艺</view>
+    <view class="section-head">
+      <view class="title">门板工艺</view>
+      <view class="cat-cost" wx:if="{{dataReady && cost}}">
+        <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.doorCraft}}</text>
+        <text class="cat-cost-pct">占 {{cost.grandTotal > 0 ? ((cost.categoryCost.doorCraft / cost.grandTotal * 100).toFixed(1)) : '0.0'}}%</text>
+      </view>
+    </view>
     <view class="sub">门板造型工艺（加价项）</view>
     <view class="opts row-4">
       <view class="opt {{materials.doorCraft === item.id ? 'active' : ''}}"
@@ -57,7 +106,13 @@
   </view>
 
   <view class="section">
-    <view class="title">五金品牌</view>
+    <view class="section-head">
+      <view class="title">五金品牌</view>
+      <view class="cat-cost" wx:if="{{dataReady && cost}}">
+        <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.hardware}}</text>
+        <text class="cat-cost-pct">占 {{cost.grandTotal > 0 ? ((cost.categoryCost.hardware / cost.grandTotal * 100).toFixed(1)) : '0.0'}}%</text>
+      </view>
+    </view>
     <view class="sub">铰链、滑轨等五金件品牌</view>
     <view class="opts row-2">
       <view class="opt {{materials.hardware === item.id ? 'active' : ''}}"
@@ -71,7 +126,13 @@
   </view>
 
   <view class="section">
-    <view class="title">照明系统</view>
+    <view class="section-head">
+      <view class="title">照明系统</view>
+      <view class="cat-cost" wx:if="{{dataReady && cost}}">
+        <text class="cat-cost-fee">费用 ¥ {{cost.categoryCost.lighting}}</text>
+        <text class="cat-cost-pct">占 {{cost.grandTotal > 0 ? ((cost.categoryCost.lighting / cost.grandTotal * 100).toFixed(1)) : '0.0'}}%</text>
+      </view>
+    </view>
     <view class="sub">柜体灯光配置</view>
     <view class="opts row-3">
       <view class="opt {{materials.lighting === item.id ? 'active' : ''}}"
