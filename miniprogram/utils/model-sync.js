@@ -11,7 +11,7 @@ const cloud = require('./cloud.js');
 
 const ROOT_DIRNAME = 'cabinet-model';
 const MANIFEST_NAME = 'manifest.json';
-const SUBDIRS = ['50cm', '100cm', 'zj'];
+const SUBDIRS = ['50cm', '100cm', '150cm', 'zj'];
 const MAX_CONCURRENT_DOWNLOADS = 3;
 
 // ---- 单例状态 ----
@@ -350,11 +350,12 @@ function parseName(name) {
   }
   return null;
 }
-// 与 cabinet-model.js:defaultHeightForCode 保持一致：加高柜 300cm，其余 230cm。
+// 与 cabinet-model.js:defaultHeightForCode 保持一致：加高柜 300cm，鞋柜(w=150) 240cm，其余 230cm。
 // 就地内联避免循环依赖（cabinet-model.js 反向 require 本模块）。
-function defaultHeightForCode(code) {
+function defaultHeightForCode(code, w) {
   const lc = (code || '').toLowerCase();
   if (lc.indexOf('g') === 0 || lc === 'yg' || lc === 'zg') return 300;
+  if (w === 150) return 240;
   return 230;
 }
 function inferKind(subdir, code) {
@@ -362,6 +363,7 @@ function inferKind(subdir, code) {
     if (code === 'yg' || code === 'zg') return 'corner-raise';
     return 'corner';
   }
+  if (subdir === '150cm') return 'shoe';
   if (/^g/.test(code)) return 'raise';
   return 'standard';
 }
@@ -377,9 +379,9 @@ function listModels() {
       subdir: m.subdir,
       name: m.name,
       w: p.w,
-      // h 由 code 兜底：加高柜 300cm，其余 230cm。picker 缩略图靠这个字段算相机距离与
+      // h 由 code 兜底：加高柜 300cm，鞋柜(w=150) 240cm，其余 230cm。picker 缩略图靠这个字段算相机距离与
       // 几何缩放，缺失会导致 renderSingle 计算出 NaN，画面上柜体不可见（现象："一片白"）。
-      h: defaultHeightForCode(p.code),
+      h: defaultHeightForCode(p.code, p.w),
       code: p.code,
       kind: inferKind(m.subdir, p.code),
       localPath: localFilePath(m),

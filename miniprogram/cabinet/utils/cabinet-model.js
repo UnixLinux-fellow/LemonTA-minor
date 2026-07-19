@@ -22,11 +22,17 @@ const CODE_MAP = {
   zg: '左侧转角柜加高模块',
 };
 
-function defaultHeightForCode(code) {
+function defaultHeightForCode(code, w) {
   const lc = code.toLowerCase();
   if (lc.indexOf('g') === 0 || lc === 'yg' || lc === 'zg') return 300;
   if (lc === 'sk') return 230;
+  if (w === 150) return 240;
   return 230;
+}
+
+function defaultDepthForWidth(w) {
+  if (w === 150) return 420;
+  return 600;
 }
 
 function parse(name) {
@@ -35,7 +41,7 @@ function parse(name) {
   if (shortMatch) {
     const w = parseInt(shortMatch[1], 10);
     const codeRaw = shortMatch[2];
-    return { w, h: defaultHeightForCode(codeRaw), d: 600, code: codeRaw.toLowerCase() };
+    return { w, h: defaultHeightForCode(codeRaw, w), d: defaultDepthForWidth(w), code: codeRaw.toLowerCase() };
   }
   const parts = base.split('-');
   if (parts.length >= 4) {
@@ -64,9 +70,9 @@ function localModels() {
   return modelSync.listModels();
 }
 
-// 按 subdir 归类：50cm → s50，100cm → s100，zj → corner；code 以 g 开头的走 raise。
+// 按 subdir 归类：50cm → s50，100cm → s100，150cm → shoe，zj → corner；code 以 g 开头的走 raise。
 function categorize(models) {
-  const out = { s50: [], s100: [], raise: [], corner: [], sk: [], other: [] };
+  const out = { s50: [], s100: [], shoe: [], raise: [], corner: [], sk: [], other: [] };
   models.forEach((m) => {
     if (m.subdir === 'zj') {
       out.corner.push(m);
@@ -76,6 +82,8 @@ function categorize(models) {
     } else if (m.subdir === '100cm') {
       if (/^g/.test(m.code || '')) out.raise.push(m);
       else out.s100.push(m);
+    } else if (m.subdir === '150cm') {
+      out.shoe.push(m);
     } else if (m.code === 'SK' || m.code === 'sk') {
       out.sk.push(m);
     } else {

@@ -96,7 +96,7 @@ Page({
     if (!subdir) {
       wx.showModal({
         title: '无法识别模型类别',
-        content: '文件名需要包含 50 (50cm 柜) / 100 (100cm 柜) / 或 Y/Z/YG/ZG 开头 (转角柜) 其中一种,以便自动归类。',
+        content: '文件名需要包含 50 (50cm 柜) / 100 (100cm 柜) / 150 (150cm 鞋柜) / 或 Y/Z/YG/ZG 开头 (转角柜) 其中一种,以便自动归类。',
         showCancel: false,
       });
       return;

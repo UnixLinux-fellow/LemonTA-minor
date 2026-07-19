@@ -52,6 +52,7 @@ Page({
     nextBtnText: '下一模块',
     show50: true,
     show100: true,
+    show150: true,
     remainingStd: 0,
     rotation: { x: 0, y: 0 },
     zoom: 1,
@@ -342,20 +343,29 @@ Page({
     const last = stds[stds.length - 1];
     let show50 = true;
     let show100 = true;
+    // 150cm 鞋柜 tab: 无论是否有可放位置、鞋柜组是否为空, 都常驻显示 (产品诉求)
+    let show150 = true;
     let sizeTab = this.data.sizeTab;
     if (state.meta.isFull) {
-      // 布满后仍允许通过 picker 替换末块 standard 柜 (同宽度换型号, 例如 50a→50b/50c, 100a→100b/100c)。
+      // 布满后仍允许通过 picker 替换末块 standard 柜 (同宽度换型号, 例如 50a→50b/50c, 100a→100b/100c, 150s→150x)。
       // 只显示与末块同宽的 tab, 避免用户点错宽度触发 replaceLast 越界失败。
       if (last && last.w === 50) {
         show100 = false;
+        show150 = false;
         sizeTab = 50;
       } else if (last && last.w === 100) {
         show50 = false;
+        show150 = false;
         sizeTab = 100;
+      } else if (last && last.w === 150) {
+        show50 = false;
+        show100 = false;
+        sizeTab = 150;
       } else {
         // 无 standard (左转角初始态 + isFull, 罕见): 全隐藏
         show50 = false;
         show100 = false;
+        show150 = false;
       }
     } else if (remaining < 100) {
       // 末块若是 50 且换 100 后仍能装下，则允许 100cm tab
@@ -364,8 +374,12 @@ Page({
         show100 = false;
         sizeTab = 50;
       }
+      // show150 保持 true (常驻)
     }
-    const list = sizeTab === 50 ? this._grouped.s50 : this._grouped.s100;
+    let list;
+    if (sizeTab === 50) list = this._grouped.s50 || [];
+    else if (sizeTab === 150) list = (this._grouped && this._grouped.shoe) || [];
+    else list = this._grouped.s100 || [];
     const prevModelKey = (this.data.modelList || []).map((m) => m.name).join('|');
     const nextModelKey = list.map((m) => m.name).join('|');
     const modelListChanged = prevModelKey !== nextModelKey;
@@ -389,6 +403,7 @@ Page({
       modelList: enrichWithDesc(list),
       show50,
       show100,
+      show150,
       remainingStd: remaining,
       selectedModelIdx: selIdx,
     }, () => {

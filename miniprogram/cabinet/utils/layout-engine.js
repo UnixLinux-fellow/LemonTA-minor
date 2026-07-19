@@ -5,6 +5,12 @@ const rules = require('../../utils/cabinet-rules.js');
 const SK_WIDTH = 2;
 const CORNER_WIDTH = 110;
 const STD_HEIGHT = 230;
+const SHOE_HEIGHT = 240;   // 鞋柜 (w=150) 专用高度; 与 cabinet-model.defaultHeightForCode 对齐
+
+// 标准柜按宽度决定默认高度: 鞋柜 240, 其余 230
+function heightForWidth(w) {
+  return w === 150 ? SHOE_HEIGHT : STD_HEIGHT;
+}
 
 // 默认非标拉伸所用的占位模型 code
 function chooseNonStandardCode(width) {
@@ -50,7 +56,7 @@ function init({ wall, cornerType, hasRaise }) {
       kind: 'standard',
       code: 'a',
       w: firstW,
-      h: STD_HEIGHT,
+      h: heightForWidth(firstW),
       isFirst: true,
     });
   }
@@ -112,7 +118,7 @@ function addNext(state, { code, size }) {
       kind: 'standard',
       code,
       w: size,
-      h: STD_HEIGHT,
+      h: heightForWidth(size),
     });
     state.meta.standardUsed += size;
   } else if (remaining === 50 && size === 50) {
@@ -120,7 +126,7 @@ function addNext(state, { code, size }) {
       kind: 'standard',
       code,
       w: 50,
-      h: STD_HEIGHT,
+      h: heightForWidth(50),
     });
     state.meta.standardUsed += 50;
   } else {
@@ -233,6 +239,7 @@ function replaceFirst(state, { code, size }) {
       state.meta.standardUsed = newUsed;
       it.code = code;
       it.w = size;
+      it.h = heightForWidth(size);
       // 替换后正好填满整段标准宽度 → 自动落非标 + 右转角 + 右收口（与 addNext 一致）
       if (state.meta.standardUsed >= state.meta.standardWidth) {
         placeNonStandardAndClose(state);
@@ -256,6 +263,7 @@ function replaceLast(state, { code, size }) {
     state.meta.standardUsed = newUsed;
     it.code = code;
     it.w = size;
+    it.h = heightForWidth(size);
     // 与 replaceFirst 一致：刚好填满则自动落非标 + 右转角 + 右收口
     if (state.meta.standardUsed >= state.meta.standardWidth) {
       placeNonStandardAndClose(state);

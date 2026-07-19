@@ -90,6 +90,18 @@ test('parseSubdir: 100 优先于 50 (100C 不应误判为 50cm)', () => {
   assert.equal(glb.parseSubdir('50-100-mix.glb'), '100cm');
 });
 
+test('parseSubdir: 150cm - 鞋柜档 (150S)', () => {
+  assert.equal(glb.parseSubdir('150S.glb'), '150cm');
+  assert.equal(glb.parseSubdir('150A.glb'), '150cm');
+});
+
+test('parseSubdir: 150 优先于 100/50 (150S 不应误判为 50cm/100cm)', () => {
+  // "150S" 含 "50" 子串, 若无优先级会被误判到 50cm; 也不含 "100"
+  assert.equal(glb.parseSubdir('150S.glb'), '150cm');
+  // 名字同时含 150 和 100, 按优先级归 150
+  assert.equal(glb.parseSubdir('100-150-mix.glb'), '150cm');
+});
+
 test('parseSubdir: zj - 沿用 Y/Z/YG/ZG 开头规则', () => {
   assert.equal(glb.parseSubdir('Y110.glb'), 'zj');
   assert.equal(glb.parseSubdir('Z.glb'), 'zj');
@@ -113,6 +125,7 @@ test('parseSubdir: 非 .glb 后缀 → null', () => {
 test('expectedWidthCm: 从文件名反推目标宽度', () => {
   assert.equal(glb.expectedWidthCm('50A.glb'), 50);
   assert.equal(glb.expectedWidthCm('100C.glb'), 100);
+  assert.equal(glb.expectedWidthCm('150S.glb'), 150);
   assert.equal(glb.expectedWidthCm('Y110.glb'), 110);
   assert.equal(glb.expectedWidthCm('YG120.glb'), 110);
   assert.equal(glb.expectedWidthCm('random.glb'), null);

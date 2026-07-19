@@ -170,7 +170,7 @@ const requestDownload = async (event) => {
   };
 };
 
-// 列 cabinet-model/{50cm,100cm,zj}/ 下全部 glb，供小程序做本地缓存对账
+// 列 cabinet-model/{50cm,100cm,150cm,zj}/ 下全部 glb，供小程序做本地缓存对账
 // 注：单一 subdir 失败不阻塞其他 subdir；但如果全部失败，返回 success:false
 // 让客户端走"本地兜底"分支，避免把 models=[] 当成"云上真的一个都没有"→ 误删全部本地缓存
 // 假设：单个 subdir 内 glb 数量 << 单次 listDirectoryFiles 分页上限（当前 21 个，上限典型 1000），
@@ -182,7 +182,7 @@ const listCabinetModels = async () => {
   // 通过 app.storage.cloudPathToFileId(key) 让 SDK 从当前 env 配置里读 Bucket 并拼装，避免手写 bucket。
   const envId = cloud.getWXContext().ENV;
   const app = CloudBase.init({ envId });
-  const subdirs = ["50cm", "100cm", "zj"];
+  const subdirs = ["50cm", "100cm", "150cm", "zj"];
   const models = [];
   let anyOk = false;
   for (const subdir of subdirs) {

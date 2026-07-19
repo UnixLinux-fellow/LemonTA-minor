@@ -996,6 +996,8 @@ class ThreeRenderer {
 
   _applyDoorVisibility(group) {
     if (!group) return;
+    // 鞋柜 (w=150) 门与柜体一体, 不参与"显示/隐藏门"切换, 否则整柜会被误隐藏
+    if (group.userData && group.userData._isShoe) return;
     group.traverse((node) => {
       const raw = node.name || '';
       const lower = raw.toLowerCase();
@@ -1346,15 +1348,29 @@ class ThreeRenderer {
         const bbox = new THREE.Box3().setFromObject(mesh);
         const size = new THREE.Vector3();
         bbox.getSize(size);
-        const sx = size.x > 0.001 ? it.w / size.x : 1;
-        const sy = size.y > 0.001 ? it.h / size.y : 1;
-        // 转角柜物理 depth = 宽 = 110cm，转角加高（yg/zg）同样 110；
-        // 其它柜体（标准/非标/普通加高 g）仍用 CABINET_DEPTH_CM(60)
+        // 鞋柜 (w=150) 按宽度反推等比缩放; 保持 GLB 原始三维比例, 不像标准柜按三轴独立拉伸。
+        // 目的: 让 GLB 里若 1 单位=1mm 时也能被拉到 cm 场景, 且高度 240、深度 42 由 GLB 比例自动带出。
+        // fallback 立方体已是 cm 单位, 不参与鞋柜缩放路径
+        const isShoe = (it.kind === 'standard' || it.kind === 'nonstandard')
+                       && it.w >= 125
+                       && !(mesh.userData && mesh.userData.isFallback);
+        // 转角柜物理 depth = 宽 = 110cm; 其它衣柜 CABINET_DEPTH_CM(60)
         const isCornerLike =
           it.kind === 'corner' ||
           (it.kind === 'raise' && (it.code === 'yg' || it.code === 'zg'));
-        const targetDepth = isCornerLike ? 110 : CABINET_DEPTH_CM;
-        const sz = size.z > 0.001 ? targetDepth / size.z : 1;
+        let sx, sy, sz, targetDepth;
+        if (isShoe) {
+          // 按宽度反推等比缩放: k = 目标宽 (cm) / GLB x 轴尺寸
+          // 例: GLB 是 mm 建 → size.x=1500 → k=0.1; GLB 是 cm 建 → size.x=150 → k=1
+          const k = size.x > 0.001 ? it.w / size.x : 1;
+          sx = sy = sz = k;
+          targetDepth = size.z * k;
+        } else {
+          sx = size.x > 0.001 ? it.w / size.x : 1;
+          sy = size.y > 0.001 ? it.h / size.y : 1;
+          targetDepth = isCornerLike ? 110 : CABINET_DEPTH_CM;
+          sz = size.z > 0.001 ? targetDepth / size.z : 1;
+        }
         mesh.scale.set(sx, sy, sz);
         const bbox2 = new THREE.Box3().setFromObject(mesh);
         mesh.position.y -= bbox2.min.y;
@@ -1371,6 +1387,7 @@ class ThreeRenderer {
           }
         });
         this._roomGroup.add(group);
+        if (isShoe) group.userData._isShoe = true;
         this._stripNonGeometryNodes(group);
         this._normalizeMaterials(group);
         this._applyMaterial(group, this._color, it);
@@ -1388,11 +1405,19 @@ class ThreeRenderer {
   _resolveTarget(it) {
     const code = (it.code || '').toLowerCase();
     if (it.kind === 'standard' || it.kind === 'nonstandard') {
-      const w = it.w >= 75 ? 100 : 50;
+      // w 归一到 50/100/150 三档: <75 → 50, 75~124 → 100, ≥125 → 150 (鞋柜)
+      let w;
+      if (it.w >= 125) w = 150;
+      else if (it.w >= 75) w = 100;
+      else w = 50;
       let realCode = code;
       if (code === 'e1' || code === 'e2') realCode = 'a';
       const letter = realCode.charAt(0);
-      return { subdir: w === 50 ? '50cm' : '100cm', name: `${w}${letter.toUpperCase()}.glb` };
+      let subdir;
+      if (w === 50) subdir = '50cm';
+      else if (w === 100) subdir = '100cm';
+      else subdir = '150cm';
+      return { subdir, name: `${w}${letter.toUpperCase()}.glb` };
     }
     if (it.kind === 'corner') {
       if (code === 'y') return { subdir: 'zj', name: 'Y-110-230.glb' };
@@ -1610,6 +1635,7 @@ class ThreeRenderer {
     });
     const m = new THREE.Mesh(geo, mat);
     m.position.y = it.h / 2;
+    m.userData.isFallback = true;
     return m;
   }
 
