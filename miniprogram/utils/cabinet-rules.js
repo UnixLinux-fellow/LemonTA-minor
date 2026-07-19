@@ -8,6 +8,8 @@ const CORNER = {
 };
 
 const WALL_LIMIT = { wMin: 44, wMax: 1000, hMin: 232, hMax: 1000 };
+const WALL_LIMIT_SHOE = { wMin: 80, wMax: 300, hMin: 220, hMax: 270 };
+const MODE = { WARDROBE: 'wardrobe', SHOE: 'shoe' };
 
 function isPositiveInt(v) {
   return typeof v === 'number' && Number.isInteger(v) && v > 0;
@@ -22,20 +24,21 @@ function validateName(name, existingNames) {
   return { ok: true };
 }
 
-function validateWall(width, height) {
+function validateWall(width, height, mode) {
+  const limit = mode === MODE.SHOE ? WALL_LIMIT_SHOE : WALL_LIMIT;
   if (!isPositiveInt(width) || !isPositiveInt(height)) {
     return { ok: false, message: '墙体尺寸需为正整数' };
   }
-  if (width < WALL_LIMIT.wMin || width > WALL_LIMIT.wMax) {
+  if (width < limit.wMin || width > limit.wMax) {
     return {
       ok: false,
-      message: `墙体宽度需在 ${WALL_LIMIT.wMin}cm ~ ${WALL_LIMIT.wMax}cm 之间`,
+      message: `墙体宽度需在 ${limit.wMin}cm ~ ${limit.wMax}cm 之间`,
     };
   }
-  if (height < WALL_LIMIT.hMin || height > WALL_LIMIT.hMax) {
+  if (height < limit.hMin || height > limit.hMax) {
     return {
       ok: false,
-      message: `墙体高度需在 ${WALL_LIMIT.hMin}cm ~ ${WALL_LIMIT.hMax}cm 之间`,
+      message: `墙体高度需在 ${limit.hMin}cm ~ ${limit.hMax}cm 之间`,
     };
   }
   return { ok: true };
@@ -102,6 +105,8 @@ function computeNonStandardWidth(width, cornerType, standardUsed) {
 module.exports = {
   CORNER,
   WALL_LIMIT,
+  WALL_LIMIT_SHOE,
+  MODE,
   validateName,
   validateWall,
   validateCorner,
