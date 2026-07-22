@@ -62,15 +62,31 @@ test('_computeArea: (length * width) / 10000 保留 4 位', () => {
   assert.equal(glb._computeArea(46.4, 15), 0.0696);
 });
 
+test('isValidFileName: 合法 (字母/数字/下划线/连字符 + .glb)', () => {
+  assert.equal(glb.isValidFileName('50A.glb'), true);
+  assert.equal(glb.isValidFileName('mini-50-wardrobe.glb'), true);
+  assert.equal(glb.isValidFileName('big_100_wardrobe.glb'), true);
+  assert.equal(glb.isValidFileName('abc.GLB'), true);
+});
+
+test('isValidFileName: 非法 (中文/空格/特殊字符/非 .glb)', () => {
+  assert.equal(glb.isValidFileName('衣柜_50cm.glb'), false);
+  assert.equal(glb.isValidFileName('50 A.glb'), false);
+  assert.equal(glb.isValidFileName('50A.txt'), false);
+  assert.equal(glb.isValidFileName('50A'), false);
+  assert.equal(glb.isValidFileName('a$b.glb'), false);
+  assert.equal(glb.isValidFileName(''), false);
+  assert.equal(glb.isValidFileName(null), false);
+});
+
 test('parseSubdir: 50cm - 严格命名', () => {
   assert.equal(glb.parseSubdir('50A.glb'), '50cm');
   assert.equal(glb.parseSubdir('50L.glb'), '50cm');
 });
 
 test('parseSubdir: 50cm - 宽松命名(含 50 子串)', () => {
-  assert.equal(glb.parseSubdir('衣柜_50cm.glb'), '50cm');
   assert.equal(glb.parseSubdir('mini-50-wardrobe.glb'), '50cm');
-  assert.equal(glb.parseSubdir('模型50标准.glb'), '50cm');
+  assert.equal(glb.parseSubdir('cabinet_50_std.glb'), '50cm');
 });
 
 test('parseSubdir: 100cm - 严格命名', () => {
@@ -79,8 +95,8 @@ test('parseSubdir: 100cm - 严格命名', () => {
 });
 
 test('parseSubdir: 100cm - 宽松命名(含 100 子串)', () => {
-  assert.equal(glb.parseSubdir('柜体100cm加高.glb'), '100cm');
   assert.equal(glb.parseSubdir('big_100_wardrobe.glb'), '100cm');
+  assert.equal(glb.parseSubdir('cabinet-100-tall.glb'), '100cm');
 });
 
 test('parseSubdir: 100 优先于 50 (100C 不应误判为 50cm)', () => {
@@ -90,13 +106,28 @@ test('parseSubdir: 100 优先于 50 (100C 不应误判为 50cm)', () => {
   assert.equal(glb.parseSubdir('50-100-mix.glb'), '100cm');
 });
 
-test('parseSubdir: 150cm - 鞋柜档 (150S)', () => {
+test('parseSubdir: 120cm - 严格命名与宽松命名', () => {
+  assert.equal(glb.parseSubdir('120A.glb'), '120cm');
+  assert.equal(glb.parseSubdir('120S.glb'), '120cm');
+  assert.equal(glb.parseSubdir('cabinet-120-std.glb'), '120cm');
+});
+
+test('parseSubdir: 120 与 100/50/150 独立不冲突', () => {
+  // 120 不含 100/50/150 子串, 独立命中
+  assert.equal(glb.parseSubdir('120X.glb'), '120cm');
+  // 同时含 150 和 120 时, 150 优先
+  assert.equal(glb.parseSubdir('120-150-mix.glb'), '150cm');
+  // 同时含 120 和 100 时, 120 优先
+  assert.equal(glb.parseSubdir('120-100-mix.glb'), '120cm');
+});
+
+test('parseSubdir: 150cm - 鞋柜档', () => {
   assert.equal(glb.parseSubdir('150S.glb'), '150cm');
   assert.equal(glb.parseSubdir('150A.glb'), '150cm');
 });
 
-test('parseSubdir: 150 优先于 100/50 (150S 不应误判为 50cm/100cm)', () => {
-  // "150S" 含 "50" 子串, 若无优先级会被误判到 50cm; 也不含 "100"
+test('parseSubdir: 150 优先于 120/100/50 (150S 不应误判为 50cm)', () => {
+  // "150S" 含 "50" 子串, 若无优先级会被误判到 50cm; 也不含 "100"/"120"
   assert.equal(glb.parseSubdir('150S.glb'), '150cm');
   // 名字同时含 150 和 100, 按优先级归 150
   assert.equal(glb.parseSubdir('100-150-mix.glb'), '150cm');
@@ -105,33 +136,41 @@ test('parseSubdir: 150 优先于 100/50 (150S 不应误判为 50cm/100cm)', () =
 test('parseSubdir: zj - 沿用 Y/Z/YG/ZG 开头规则', () => {
   assert.equal(glb.parseSubdir('Y110.glb'), 'zj');
   assert.equal(glb.parseSubdir('Z.glb'), 'zj');
-  assert.equal(glb.parseSubdir('YG120.glb'), 'zj');
   assert.equal(glb.parseSubdir('ZG-110-230.glb'), 'zj');
+  // 注: 'YG120' 里含 '120' 子串, 按优先级会归 120cm (数字优先)
 });
 
-test('parseSubdir: 不含 50/100/YZ 开头 → null', () => {
-  assert.equal(glb.parseSubdir('random.glb'), null);
-  assert.equal(glb.parseSubdir('abc.glb'), null);
-  assert.equal(glb.parseSubdir('200A.glb'), null);
+test('parseSubdir: 格式合法但无关键字命中 → "other"', () => {
+  assert.equal(glb.parseSubdir('random.glb'), 'other');
+  assert.equal(glb.parseSubdir('abc.glb'), 'other');
+  assert.equal(glb.parseSubdir('200A.glb'), 'other');
+});
+
+test('parseSubdir: 格式非法 → null', () => {
+  // 中文
   assert.equal(glb.parseSubdir('衣柜.glb'), null);
-});
-
-test('parseSubdir: 非 .glb 后缀 → null', () => {
+  assert.equal(glb.parseSubdir('衣柜_50cm.glb'), null);
+  // 非 .glb 后缀
   assert.equal(glb.parseSubdir('50A.txt'), null);
   assert.equal(glb.parseSubdir('100A'), null);
   assert.equal(glb.parseSubdir('Y110.gltf'), null);
+  // 空格/特殊字符
+  assert.equal(glb.parseSubdir('50 A.glb'), null);
 });
 
-test('expectedWidthCm: 从文件名反推目标宽度', () => {
+test('expectedWidthCm: 已知档位反推目标宽度', () => {
   assert.equal(glb.expectedWidthCm('50A.glb'), 50);
   assert.equal(glb.expectedWidthCm('100C.glb'), 100);
+  assert.equal(glb.expectedWidthCm('120A.glb'), 120);
   assert.equal(glb.expectedWidthCm('150S.glb'), 150);
   assert.equal(glb.expectedWidthCm('Y110.glb'), 110);
-  assert.equal(glb.expectedWidthCm('YG120.glb'), 110);
+  assert.equal(glb.expectedWidthCm('ZG-110-230.glb'), 110);
+});
+
+test('expectedWidthCm: other / 非法名 → null', () => {
   assert.equal(glb.expectedWidthCm('random.glb'), null);
-  // 宽松命名也能反推
-  assert.equal(glb.expectedWidthCm('衣柜_100cm.glb'), 100);
-  assert.equal(glb.expectedWidthCm('模型50.glb'), 50);
+  assert.equal(glb.expectedWidthCm('abc.glb'), null);
+  assert.equal(glb.expectedWidthCm('衣柜.glb'), null);
 });
 
 test('_classifyMesh: null/空串归 other', () => {

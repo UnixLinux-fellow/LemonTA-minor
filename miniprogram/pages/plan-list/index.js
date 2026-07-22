@@ -34,6 +34,13 @@ Page({
     statusBarHeight: 20,
     navBarHeight: 44,
     uploadModalVisible: false,
+    modePickerOpen: false,
+    selectedMode: 'wardrobe',
+    selectedModeLabel: '衣柜',
+    modeOptions: [
+      { id: 'wardrobe', label: '衣柜' },
+      { id: 'shoe', label: '鞋柜' },
+    ],
   },
 
   onLoad: function() {
@@ -72,8 +79,25 @@ Page({
       this.showToast('设计库已满30条，需删除部分设计后新建');
       return;
     }
-    app.globalData.draftPlan = null;
+    const mode = this.data.selectedMode || 'wardrobe';
+    this.setData({ modePickerOpen: false });
+    app.globalData.draftPlan = { mode };
     wx.navigateTo({ url: '/pages/space-setup/index' });
+  },
+
+  onToggleModeDropdown() {
+    this.setData({ modePickerOpen: !this.data.modePickerOpen });
+  },
+
+  onSelectMode(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    const opt = (this.data.modeOptions || []).find((o) => o.id === id);
+    this.setData({
+      selectedMode: id,
+      selectedModeLabel: (opt && opt.label) || id,
+      modePickerOpen: false,
+    });
   },
 
   onOpenUploadModal() {
@@ -92,15 +116,16 @@ Page({
       wx.showToast({ title: '未选择文件', icon: 'none' });
       return;
     }
-    const subdir = glbMetadata.parseSubdir(file.name);
-    if (!subdir) {
+    if (!glbMetadata.isValidFileName(file.name)) {
       wx.showModal({
-        title: '无法识别模型类别',
-        content: '文件名需要包含 50 (50cm 柜) / 100 (100cm 柜) / 150 (150cm 鞋柜) / 或 Y/Z/YG/ZG 开头 (转角柜) 其中一种,以便自动归类。',
+        title: '文件名不合法',
+        content: '文件名只能包含字母/数字/下划线/连字符,且后缀为 .glb。',
         showCancel: false,
       });
       return;
     }
+    // parseSubdir 保证格式合法时非 null: 命中关键字返回具体档位, 否则返回 'other'。
+    const subdir = glbMetadata.parseSubdir(file.name);
     // 数据通过 globalData 传给分包页面,避免 URL 参数长度限制与转义
     getApp().globalData.pendingUpload = { file, category, subdir };
     this.setData({ uploadModalVisible: false });

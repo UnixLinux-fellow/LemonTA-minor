@@ -25,9 +25,24 @@
 
     <!-- 新建 CTA -->
     <view class="cta-block">
-      <button class="btn-primary" bindtap="onTapStart">
-        <text>+ 开始新设计</text>
-      </button>
+      <view class="cta-row">
+        <view class="mode-select-field {{modePickerOpen ? 'open' : ''}}" bindtap="onToggleModeDropdown">
+          <view class="mode-select-value">{{selectedModeLabel}}</view>
+          <view class="mode-select-arrow">{{modePickerOpen ? '▲' : '▼'}}</view>
+        </view>
+        <button class="btn-primary cta-btn" bindtap="onTapStart">
+          <text>+ 开始新设计</text>
+        </button>
+      </view>
+      <view class="mode-select-list" wx:if="{{modePickerOpen}}">
+        <view wx:for="{{modeOptions}}" wx:key="id"
+              class="mode-select-item {{item.id === selectedMode ? 'active' : ''}}"
+              data-id="{{item.id}}"
+              bindtap="onSelectMode">
+          <view class="mode-select-item-label">{{item.label}}</view>
+          <view wx:if="{{item.id === selectedMode}}" class="mode-select-check">✓</view>
+        </view>
+      </view>
     </view>
 
     <!-- 已保存方案列表 -->
@@ -40,7 +55,8 @@
             <view class="plan-meta">
               <text>{{item.wall.w}}cm × {{item.wall.h}}cm</text>
               <text class="dot">·</text>
-              <text>{{item.cornerLabel}}</text>
+              <text wx:if="{{item.mode === 'shoe'}}">鞋柜</text>
+              <text wx:else>{{item.cornerLabel}}</text>
               <text class="dot">·</text>
               <text>{{item.cabinetCount}} 个柜子</text>
             </view>

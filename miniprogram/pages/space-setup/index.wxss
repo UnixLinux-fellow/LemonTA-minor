@@ -25,6 +25,12 @@
   margin-bottom: 16rpx;
 }
 
+/* 鞋柜模式下"是否有转角衣柜"整块置灰: 视觉降透明 + 屏蔽点击 */
+.section-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .photo-zone {
   height: 360rpx;
   background: #f3f4f6;

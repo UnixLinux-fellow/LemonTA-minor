@@ -91,6 +91,15 @@
   color: #4b5563;
 }
 
+/* 鞋柜模式: 加高开关整行置灰, switch disabled 属性已锁住交互 */
+.raise-row-disabled {
+  opacity: 0.4;
+}
+
+.raise-row-disabled .raise-label {
+  color: #9ca3af;
+}
+
 .color-row {
   display: flex;
   gap: 24rpx;

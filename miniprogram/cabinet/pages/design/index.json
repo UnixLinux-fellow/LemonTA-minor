@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "设计衣柜",
+  "navigationBarTitleText": "设计家具",
   "usingComponents": {
     "cabinet-toast": "/components/cabinet-toast/index"
   },

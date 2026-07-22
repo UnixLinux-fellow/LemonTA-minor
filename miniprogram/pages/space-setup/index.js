@@ -10,6 +10,9 @@ Page({
     cornerType: 'WZJ',
     errorMsg: '',
     canSubmit: false,
+    mode: 'wardrobe',
+    wallHint: { w: '44 ~ 1000 cm', h: '232 ~ 1000 cm' },
+    cornerSectionLabel: '是否有转角衣柜',
     cornerOptions: [
       { id: 'WZJ',  name: '无转角' },
       { id: 'ZZJ',  name: '左转角柜' },
@@ -18,21 +21,44 @@ Page({
     ],
   },
 
+  CORNER_OPTIONS_WARDROBE: [
+    { id: 'WZJ',  name: '无转角' },
+    { id: 'ZZJ',  name: '左转角柜' },
+    { id: 'YZJ',  name: '右转角柜' },
+    { id: 'ZYZJ', name: '双侧转角柜' },
+  ],
+  CORNER_OPTIONS_SHOE: [
+    { id: 'BKQ',  name: '不靠墙' },
+    { id: 'ZKQ',  name: '左靠墙' },
+    { id: 'YKQ',  name: '右靠墙' },
+    { id: 'ZYKQ', name: '左右靠墙' },
+  ],
+
   onLoad() {
     // 首次进页触发 UI 文案字典拉取 (fire-and-forget, 命中缓存即零耗时)
     require('../../utils/bootstrap.js').ensureUiDescReady();
 
     const draft = getApp().globalData.draftPlan;
-    if (draft) {
-      this.setData({
-        photoPath: draft.photoPath || '',
-        name: draft.name || '',
-        wallW: draft.wall && draft.wall.w ? String(draft.wall.w) : '',
-        wallH: draft.wall && draft.wall.h ? String(draft.wall.h) : '',
-        cornerType: draft.cornerType || 'WZJ',
-      });
-      this.validate();
-    }
+    const mode = (draft && draft.mode) || 'wardrobe';
+    const isShoe = mode === 'shoe';
+    const wallHint = isShoe
+      ? { w: '80 ~ 300 cm', h: '220 ~ 270 cm' }
+      : { w: '44 ~ 1000 cm', h: '232 ~ 1000 cm' };
+    const cornerOptions = isShoe ? this.CORNER_OPTIONS_SHOE : this.CORNER_OPTIONS_WARDROBE;
+    const cornerSectionLabel = isShoe ? '是否靠墙' : '是否有转角衣柜';
+    const defaultCorner = isShoe ? 'BKQ' : 'WZJ';
+    this.setData({
+      mode,
+      wallHint,
+      cornerOptions,
+      cornerSectionLabel,
+      photoPath: (draft && draft.photoPath) || '',
+      name: (draft && draft.name) || '',
+      wallW: draft && draft.wall && draft.wall.w ? String(draft.wall.w) : '',
+      wallH: draft && draft.wall && draft.wall.h ? String(draft.wall.h) : '',
+      cornerType: (draft && draft.cornerType) || defaultCorner,
+    });
+    if (draft && draft.wall) this.validate();
   },
 
   onChoosePhoto() {
@@ -68,7 +94,7 @@ Page({
   },
 
   validate() {
-    const { name, wallW, wallH, cornerType } = this.data;
+    const { name, wallW, wallH, cornerType, mode } = this.data;
     const w = parseInt(wallW, 10);
     const h = parseInt(wallH, 10);
 
@@ -87,22 +113,21 @@ Page({
       errorMsg = nameCheck.message;
     }
     if (ok && wallW && wallH) {
-      const wallCheck = rules.validateWall(w, h);
+      const wallCheck = rules.validateWall(w, h, mode);
       if (!wallCheck.ok) {
         ok = false;
         errorMsg = wallCheck.message;
       }
     }
-    if (ok && wallW) {
+    // 鞋柜模式跳过转角与标准段校验
+    if (ok && wallW && mode !== 'shoe') {
       const cornerCheck = rules.validateCorner(w, cornerType);
       if (!cornerCheck.ok) {
         ok = false;
         errorMsg = cornerCheck.message;
       }
     }
-    // 加高开关已搬到设计衣柜页，wall.h ≤ 250 时是否可开由那边 onToggleRaise 拦截
-    // 标准段必须 >= 50
-    if (ok && wallW) {
+    if (ok && wallW && mode !== 'shoe') {
       const range = rules.computeStandardRange(w, cornerType);
       if (!range.valid || range.x < 50) {
         ok = false;
@@ -117,7 +142,7 @@ Page({
   },
 
   onConfirm() {
-    const { name, wallW, wallH, cornerType, photoPath } = this.data;
+    const { name, wallW, wallH, cornerType, photoPath, mode } = this.data;
     if (!this.data.canSubmit) return;
     if ((getApp().globalData.designs || []).length >= 30) {
       wx.showToast({ title: '设计库已满30条', icon: 'none' });
@@ -130,8 +155,9 @@ Page({
     const plan = Object.assign({}, draft, {
       id: draft.id || planStore.makeId(),
       name,
-      wall: { w: parseInt(wallW, 10), h: parseInt(wallH, 10), d: 150 },
+      wall: { w: parseInt(wallW, 10), h: parseInt(wallH, 10), d: mode === 'shoe' ? 50 : 150 },
       cornerType,
+      mode,
       photoPath,
       photoName: photoPath ? planStore.photoName(name, now) : '',
       timestamp: planStore.timestamp(now),

@@ -123,7 +123,10 @@ async function _renderOverview(canvas, ctx, plan) {
   const infoX = MARGIN + photoW + 20 * SCALE;
   let infoY = photoY + 10 * SCALE;
   ctx.fillText(`墙体尺寸: 宽度${wall.w || '?'}x高度${wall.h || '?'}cm`, infoX, infoY); infoY += 30 * SCALE;
-  ctx.fillText(`转角类型: ${cornerLabel || '无转角'}`, infoX, infoY); infoY += 30 * SCALE;
+  const isShoePlan = plan.mode === 'shoe';
+  const cornerFieldName = isShoePlan ? '是否靠墙' : '转角类型';
+  const cornerFallback = isShoePlan ? '不靠墙' : '无转角';
+  ctx.fillText(`${cornerFieldName}: ${cornerLabel || cornerFallback}`, infoX, infoY); infoY += 30 * SCALE;
   ctx.fillText(`是否加高: ${plan.hasRaise ? '加高' : '无'}`, infoX, infoY); infoY += 30 * SCALE;
 
   // 板材五金（与上方空间信息文字续列对齐）

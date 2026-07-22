@@ -17,12 +17,12 @@
     </view>
     <view class="form-row">
       <view class="form-label">墙体宽度</view>
-      <input class="form-input" type="number" placeholder="44 ~ 1000 cm" value="{{wallW}}" bindinput="onInputW" />
+      <input class="form-input" type="number" placeholder="{{wallHint.w}}" value="{{wallW}}" bindinput="onInputW" />
       <view class="form-suffix">cm</view>
     </view>
     <view class="form-row">
       <view class="form-label">墙体高度</view>
-      <input class="form-input" type="number" placeholder="232 ~ 1000 cm" value="{{wallH}}" bindinput="onInputH" />
+      <input class="form-input" type="number" placeholder="{{wallHint.h}}" value="{{wallH}}" bindinput="onInputH" />
       <view class="form-suffix">cm</view>
     </view>
 
@@ -30,7 +30,7 @@
   </view>
 
   <view class="section">
-    <view class="label">是否有转角衣柜</view>
+    <view class="label">{{cornerSectionLabel}}</view>
     <option-scroll-card
       options="{{cornerOptions}}"
       selectedId="{{cornerType}}"

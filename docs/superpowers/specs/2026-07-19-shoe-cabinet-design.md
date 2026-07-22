@@ -262,10 +262,10 @@ if (it.kind === 'shoe') {
 
 以柜体左底后为原点:
 - X:0 → totalWidth (向右)
-- Y:0 → totalHeight (向上)
+- Y:0 → totalHeight (向上)就绪
 - Z:0 → -400 (向后)。柜体正面 Z=0,背板 Z=-400 - 18(靠背)
 
-门板 Z 位置:柜体正面外侧,Z 中心 = 门厚/2 = 9(门在柜体正面外)。**GLB 壳的正面本身在哪里由 GLB 决定**,实现阶段可能需要把 shoe-cabinet-parts 的 root 沿 Z 平移对齐。
+门板 Z 位置:柜体正面外侧,Z 中心 = 门厚/2 = 9(门在柜体正面外)。**GLB 壳的正面本身在哪里由 GLB 决定**,实现阶段可能需要把 shoe-cainet-parts 的 root 沿 Z 平移对齐。
 
 **Mesh 位置约定**:shoe-cabinet-parts 生成的所有 Mesh 用 Three.js 默认约定,`mesh.position` 是几何体中心。所以门 mesh.position.x = `xOffsets[i] + doorWidths[i]/2`,mesh.position.y = 门 Y 底 + 门高/2 = `152 + 846/2 = 575`(下门)/`1502 + upperDoorH/2`(上门)。这里的 xOffsets 和 doorWidths 都由 `calcDoorSizeAndX` 输出,单位 mm。
 

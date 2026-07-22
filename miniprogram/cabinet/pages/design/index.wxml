@@ -21,9 +21,9 @@
       <view class="ctrl-btn {{showDoor ? 'on' : ''}}" bindtap="onToggleDoor">{{showDoor ? '隐藏柜门' : '显示柜门'}}</view>
       <view class="ctrl-btn" bindtap="onResetWall">重置墙面</view>
     </view>
-    <view class="raise-row">
+    <view class="raise-row {{mode === 'shoe' ? 'raise-row-disabled' : ''}}">
       <view class="raise-label">需要加高模块</view>
-      <switch checked="{{plan.hasRaise}}" bindchange="onToggleRaise" color="#14532d" />
+      <switch checked="{{plan.hasRaise}}" bindchange="onToggleRaise" color="#14532d" disabled="{{mode === 'shoe'}}" />
     </view>
     <view class="color-row">
       <view class="color-row-label">选择柜体颜色</view>
@@ -75,7 +75,7 @@
   </view>
 
   <view class="action-bar">
-    <view class="action-btn" bindtap="onPrev">上一模块</view>
+    <view class="action-btn" wx:if="{{mode !== 'shoe'}}" bindtap="onPrev">上一模块</view>
     <view class="action-btn primary" bindtap="onNext">{{nextBtnText}}</view>
   </view>
 

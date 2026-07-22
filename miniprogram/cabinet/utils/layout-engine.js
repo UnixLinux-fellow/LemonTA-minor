@@ -92,6 +92,9 @@ function standardRemaining(state) {
 
 // 添加下一个模块
 function addNext(state, { code, size }) {
+  if (state && state.items && state.items[0] && state.items[0].kind === 'shoe') {
+    return { ok: false, message: '鞋柜模式不支持排队式操作' };
+  }
   if (state.meta.isFull) {
     return { ok: false, message: '已布满，请点击确认布局' };
   }
@@ -178,6 +181,9 @@ function placeNonStandardAndClose(state) {
 
 // 删除最后一个模块
 function removeLast(state) {
+  if (state && state.items && state.items[0] && state.items[0].kind === 'shoe') {
+    return { ok: false, message: '鞋柜模式不支持排队式操作' };
+  }
   if (state.meta.isFull) {
     // 撤回非标 + 上一个标准
     // 先去掉收口与转角
@@ -253,6 +259,9 @@ function replaceFirst(state, { code, size }) {
 // 替换最后一个标准模块（含 isFirst 那一格在内）
 // size 变化不可使 standardUsed 超过 standardWidth，否则越界返回失败、不修改 state
 function replaceLast(state, { code, size }) {
+  if (state && state.items && state.items[0] && state.items[0].kind === 'shoe') {
+    return { ok: false, message: '鞋柜模式不支持排队式操作' };
+  }
   for (let i = state.items.length - 1; i >= 0; i--) {
     const it = state.items[i];
     if (it.kind !== 'standard') continue;
@@ -301,6 +310,11 @@ function serialize(state, planMeta) {
     ZZJ: 'ZZJ',
     YZJ: 'YZJ',
     ZYZJ: 'SZJ',
+    // 鞋柜的靠墙 id, serialize 时直接透传
+    BKQ: 'BKQ',
+    ZKQ: 'ZKQ',
+    YKQ: 'YKQ',
+    ZYKQ: 'ZYKQ',
   };
   const titleParts = [
     planMeta.userTag || 'guest',

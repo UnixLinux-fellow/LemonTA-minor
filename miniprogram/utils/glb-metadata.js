@@ -59,33 +59,36 @@ function _computeArea(length, width) {
   return Math.round(areaM2 * 10000) / 10000;
 }
 
-// 文件名 → 子目录归类:'50cm' | '100cm' | '150cm' | 'zj' | null
-// 规则:后缀必须 .glb;名字宽松(数字/字母/汉字/_/-),按下列顺序判断:
-//   含 '150' → 150cm (鞋柜, 优先级最高, 避免 50 子串命中)
-//   含 '100' → 100cm (优先级高于 50, 避免 50 子串命中)
-//   含 '50'  → 50cm
-//   以 Y/Z/YG/ZG 开头 → zj (与旧规则一致, 转角柜命名习惯)
-//   都不含 → null (拒绝上传)
+// 文件名格式校验: 只允许 字母/数字/下划线/连字符, 且后缀 .glb (大小写不敏感)。
+// 不合法字符 (中文/空格/其它符号) 或非 .glb 后缀 → false。
+function isValidFileName(fileName) {
+  return /^[A-Za-z0-9_-]+\.glb$/i.test(String(fileName || ''));
+}
+
+// 文件名 → 子目录归类:'50cm' | '100cm' | '120cm' | '150cm' | 'zj' | 'other' | null
+// 格式非法 → null; 格式合法按以下顺序尝试关键字命中, 都不命中 → 'other'。
+// 顺序: 150 > 120 > 100 > 50 > YZ; 靠前的更具体, 避免子串误判 (如 '150S' 里的 '50')。
+// '120' 与 100/50/150 无子串冲突, 但仍放在 100 之前以保持"数字优先/更具体优先"的直觉。
 function _classifyByName(fileName) {
-  const s = String(fileName || '');
-  if (!/\.glb$/i.test(s)) return null;
-  const base = s.replace(/\.glb$/i, '');
+  if (!isValidFileName(fileName)) return null;
+  const base = String(fileName).replace(/\.glb$/i, '');
   if (base.indexOf('150') >= 0) return '150cm';
+  if (base.indexOf('120') >= 0) return '120cm';
   if (base.indexOf('100') >= 0) return '100cm';
   if (base.indexOf('50') >= 0) return '50cm';
   if (/^(YG|ZG|Y|Z)/i.test(base)) return 'zj';
-  return null;
+  return 'other';
 }
 
 function parseSubdir(fileName) {
   return _classifyByName(fileName);
 }
 
-// 文件名 → 期望宽度(cm),用来反推 unitToCm。不合法返回 null
-const _SUBDIR_TO_WIDTH = { '50cm': 50, '100cm': 100, '150cm': 150, 'zj': 110 };
+// 文件名 → 期望宽度(cm),用来反推 unitToCm。命中已知档位才返回,'other'/非法名 → null。
+const _SUBDIR_TO_WIDTH = { '50cm': 50, '100cm': 100, '120cm': 120, '150cm': 150, 'zj': 110 };
 function expectedWidthCm(fileName) {
   const sub = _classifyByName(fileName);
-  return sub ? _SUBDIR_TO_WIDTH[sub] : null;
+  return sub && _SUBDIR_TO_WIDTH[sub] ? _SUBDIR_TO_WIDTH[sub] : null;
 }
 
 // 读取文件 → ArrayBuffer,依赖注入 fs (支持 wx.getFileSystemManager 与测试 mock)
@@ -228,6 +231,7 @@ module.exports = {
   _classifyMesh,
   _meshDimsFromSize,
   _computeArea,
+  isValidFileName,
   parseSubdir,
   expectedWidthCm,
   parse,

@@ -3,6 +3,7 @@
 
 const { createScopedThreejs } = require('threejs-miniprogram');
 const attachGLTFLoader = require('../vendor/GLTFLoader.js');
+const shoeCabinetParts = require('./shoe-cabinet-parts.js');
 
 const COLOR_HEX = {
   white: 0xf0f0e7,
@@ -17,7 +18,7 @@ const EDGE_HEX = 0x6b7280;
 const EDGE_OPACITY = 0.22;
 const EDGE_ANGLE = 35; // 折角阈值（度）：阈值越大边越少，减少密集线条堆积
 
-const SCENE_DEPTH_CM = 150; // 房间深度 cm
+const SCENE_DEPTH_CM = 150; // 房间深度 cm 默认（衣柜）；鞋柜通过 wall.d 传入 50 覆盖
 const WALL_THICKNESS_CM = 10; // 墙体厚度 cm（左右、顶板、后墙均使用）
 const FLOOR_THICKNESS_CM = 2; // 木地板厚度 cm
 const CABINET_DEPTH_CM = 60;  // 标准衣柜深度 cm
@@ -55,6 +56,8 @@ class ThreeRenderer {
     this.canvas = canvas;
     this.wall = opts.wall;
     this.hasRaise = opts.hasRaise;
+    // 场景深度按 wall.d 走 (鞋柜 50 / 衣柜 150), fallback 到常量, 兼容旧数据无 d 字段.
+    this._sceneDepthCm = (opts.wall && opts.wall.d) || SCENE_DEPTH_CM;
 
     // 设置画布像素缓冲为 CSS 尺寸 × DPR
     const dpr = sizeInfo.dpr || 1;
@@ -120,6 +123,8 @@ class ThreeRenderer {
     this._ensureWoodTexture();
     // 同样提前预加载白色柜面贴图
     this._ensureWhiteTexture();
+    // 鞋柜台面大理石贴图, 无论用户选什么色都会用到
+    this._ensureMarbleTexture();
 
     this.startLoop();
     console.log('[3D] init done, wall', this.wall.w, '×', this.wall.h);
@@ -179,6 +184,8 @@ class ThreeRenderer {
     this._ensureWoodTexture();
     // 预览缩略图同样可能用到白色贴图，提前加载
     this._ensureWhiteTexture();
+    // 鞋柜预览卡也需要大理石台面
+    this._ensureMarbleTexture();
   }
 
   // preview 模式专用：3 盏简化灯，够照出柜体结构即可，不投阴影
@@ -383,7 +390,7 @@ class ThreeRenderer {
     const THREE = this.THREE;
     const W = this.wall.w;
     const H = this.wall.h;
-    const D = SCENE_DEPTH_CM;
+    const D = this._sceneDepthCm;
     const T = WALL_THICKNESS_CM;
     const room = new THREE.Group();
     this.scene.add(room);
@@ -510,7 +517,7 @@ class ThreeRenderer {
     // 45° 斜顶主光：从右上前方进入，开 PCF 软阴影
     const dir = new THREE.DirectionalLight(0xfff4e0, 1.15);
     dir.position.set(W * 0.6, H * 1.4, this._cameraDist * 0.6);
-    dir.target.position.set(0, H * 0.4, -SCENE_DEPTH_CM / 2);
+    dir.target.position.set(0, H * 0.4, -this._sceneDepthCm / 2);
     this.scene.add(dir.target);
     dir.castShadow = true;
     if (dir.shadow) {
@@ -540,8 +547,8 @@ class ThreeRenderer {
     // 替代原本紧贴顶板的点光源——避免在顶面留一个亮斑。
     // 顶板本身的 emissive 负责"微微发光"的质感。
     const topWash = new THREE.DirectionalLight(0xfff2c2, 0.35);
-    topWash.position.set(0, H * 2, -SCENE_DEPTH_CM / 2);
-    topWash.target.position.set(0, 0, -SCENE_DEPTH_CM / 2);
+    topWash.position.set(0, H * 2, -this._sceneDepthCm / 2);
+    topWash.target.position.set(0, 0, -this._sceneDepthCm / 2);
     this.scene.add(topWash.target);
     this.scene.add(topWash);
   }
@@ -754,6 +761,47 @@ class ThreeRenderer {
       this._roomGroup.add(this._dimGroup);
     }
     this._disposeDimGroup();
+    // 鞋柜: 只画整墙宽/整墙高 + 深 (dimensionsInfo.mode==='shoe')
+    if (info.mode === 'shoe') {
+      const zFront = -this._sceneDepthCm + shoeCabinetParts.DEPTH_TOTAL / 10 + 3;
+      // 墙宽 (黑) - 贴柜前突, y=0
+      {
+        const xLeft = -info.wallW / 2;
+        const xRight = info.wallW / 2;
+        const ruler = this._makeRulerLines({
+          from: { x: xLeft, y: 0, z: zFront },
+          to:   { x: xRight, y: 0, z: zFront },
+          capAxis: 'y', capLen: 12, color: DIM_COLOR_BLACK.hex,
+        });
+        if (ruler) this._dimGroup.add(ruler);
+        const label = this._makeLabelSprite(String(Math.round(info.wallW)), {
+          bg: DIM_COLOR_BLACK.css, fg: DIM_FG,
+        });
+        if (label) {
+          label.position.set(0, -10, zFront);
+          this._dimGroup.add(label);
+        }
+      }
+      // 墙高 (黑) - 贴左墙内表面, x=左墙
+      {
+        const zLeft = -this._sceneDepthCm + 30;
+        const xLeft = -info.wallW / 2;
+        const ruler = this._makeRulerLines({
+          from: { x: xLeft, y: 0, z: zLeft },
+          to:   { x: xLeft, y: info.wallH, z: zLeft },
+          capAxis: 'x', capLen: 12, color: DIM_COLOR_BLACK.hex,
+        });
+        if (ruler) this._dimGroup.add(ruler);
+        const label = this._makeLabelSprite(String(Math.round(info.wallH)), {
+          bg: DIM_COLOR_BLACK.css, fg: DIM_FG,
+        });
+        if (label) {
+          label.position.set(xLeft - 10, info.wallH / 2, zLeft);
+          this._dimGroup.add(label);
+        }
+      }
+      return;
+    }
     // 1) 每个柜的宽度标签(黑) —— 遍历 _cabinets 过滤 standard/corner/nonstandard
     for (const c of this._cabinets) {
       const it = c.item;
@@ -783,7 +831,7 @@ class ThreeRenderer {
     }
     // 2) 底行高标签 230(黑) —— 贴左墙内表面,mid-height
     {
-      const zLeft = -150 + 30; // -D_room + 30,与柜前突一致
+      const zLeft = -this._sceneDepthCm + 30; // -D_room + 30,与柜前突一致
       const xLeft = -info.wallW / 2;
       const ruler = this._makeRulerLines({
         from: { x: xLeft, y: 0,   z: zLeft },
@@ -804,7 +852,7 @@ class ThreeRenderer {
     // 3) 加高行高标签(黑) —— hasRaise && wallH > 250 才显示
     if (info.hasRaise && info.wallH > 250) {
       const raiseH = info.wallH - 232;
-      const zLeft = -150 + 30;
+      const zLeft = -this._sceneDepthCm + 30;
       const xLeft = -info.wallW / 2;
       const ruler = this._makeRulerLines({
         from: { x: xLeft, y: 232,        z: zLeft },
@@ -886,7 +934,7 @@ class ThreeRenderer {
         info.cornerType === 'YZJ' || info.cornerType === 'ZYZJ';
       const xWall = info.wallW / 2 - (rightHasCorner ? 110 : 0) - 2;
       if (xWall - xLast > 1) {
-        const zFront = -150 + 60 + 3; // 标准柜前突 + 微突
+        const zFront = -this._sceneDepthCm + 60 + 3; // 标准柜前突 + 微突
         const ruler = this._makeRulerLines({
           from: { x: xLast, y: 115, z: zFront },
           to:   { x: xWall, y: 115, z: zFront },
@@ -907,7 +955,7 @@ class ThreeRenderer {
     }
     // 7) 剩余高标签(蓝) —— !hasRaise && wallH > 230
     if (!info.hasRaise && info.wallH > 230) {
-      const zFront = -150 + 60 + 3;
+      const zFront = -this._sceneDepthCm + 60 + 3;
       const ruler = this._makeRulerLines({
         from: { x: 0, y: 230,        z: zFront },
         to:   { x: 0, y: info.wallH, z: zFront },
@@ -996,8 +1044,8 @@ class ThreeRenderer {
 
   _applyDoorVisibility(group) {
     if (!group) return;
-    // 鞋柜 (w=150) 门与柜体一体, 不参与"显示/隐藏门"切换, 否则整柜会被误隐藏
-    if (group.userData && group.userData._isShoe) return;
+    // 老的 shoe 路径整柜是一块 mesh, 切门会误隐掉整柜, 所以之前 early return.
+    // 现在鞋柜门 (lower_door_N / upper_door_N) 是参数化生成的独立 mesh, 命中下方的 door 正则.
     group.traverse((node) => {
       const raw = node.name || '';
       const lower = raw.toLowerCase();
@@ -1068,6 +1116,48 @@ class ThreeRenderer {
       img.src = '/cabinet/utils/white.png';
     });
     return this._whiteImagePromise;
+  }
+
+  // 懒加载 utils/marble.jpg → THREE.Image。给鞋柜台面用, 与 wood/white 独立：
+  // 台面永远是大理石, 不随用户色板变化, 所以就绪后重刷所有鞋柜(不看当前 _color).
+  _ensureMarbleTexture() {
+    if (this._marbleImage) return Promise.resolve(this._marbleImage);
+    if (this._marbleImagePromise) return this._marbleImagePromise;
+    if (!this.canvas || !this.THREE || !this.canvas.createImage) {
+      return Promise.resolve(null);
+    }
+    this._marbleImagePromise = new Promise((resolve) => {
+      const img = this.canvas.createImage();
+      img.onload = () => {
+        this._marbleImage = img;
+        // 就绪后把已落地的鞋柜 & 预览鞋柜重刷, 让台面盖上大理石.
+        if (this._cabinets && this._cabinets.length) {
+          this._cabinets.forEach((c) => {
+            if (c.mesh && c.mesh.userData && c.mesh.userData._isShoe) {
+              this._applyMaterial(c.mesh, this._color, c.item);
+            }
+          });
+        }
+        if (this._previewGroup) {
+          this._previewGroup.children.forEach((g) => {
+            if (g.userData && g.userData._isShoe) {
+              this._applyMaterial(g, this._color, g.userData && g.userData._item);
+            }
+          });
+          if (this._isPreview && this.renderer && this.scene && this.camera) {
+            try { this.renderer.render(this.scene, this.camera); } catch (e) { /* ignore */ }
+          }
+        }
+        resolve(img);
+      };
+      img.onerror = (e) => {
+        console.warn('[3D] marble texture load failed', e && (e.errMsg || e.message));
+        this._marbleImagePromise = null;
+        resolve(null);
+      };
+      img.src = '/cabinet/utils/marble.jpg';
+    });
+    return this._marbleImagePromise;
   }
 
   // 懒加载 utils/wood.jpg → THREE.Image。每个 renderer 各持一份（Texture 与 WebGL
@@ -1277,6 +1367,39 @@ class ThreeRenderer {
       // 跳过保留固有色的部件：背板（突出纵深）、挂衣杆（金属）
       const nm = (node.name || '').toLowerCase();
       if (nm === 'back' || nm === 'rod') return;
+
+      // 鞋柜台面: 强制大理石纹理, 不受 colorId (wood/white/等) 影响.
+      // marble 未就绪时静默跳过 (占位白色保留), 加载完 _ensureMarbleTexture 会重刷.
+      if (nm === 'countertop' && this._marbleImage) {
+        const marbleTex = new THREE.Texture(this._marbleImage);
+        if (THREE.sRGBEncoding) marbleTex.encoding = THREE.sRGBEncoding;
+        if (THREE.RepeatWrapping) {
+          marbleTex.wrapS = THREE.RepeatWrapping;
+          marbleTex.wrapT = THREE.RepeatWrapping;
+        }
+        // 大理石按 "1 张 = 200cm × 100cm" 大板计. 台面 = w cm × (DEPTH_TOTAL/10)cm.
+        const depthCm = shoeCabinetParts.DEPTH_TOTAL / 10;
+        marbleTex.repeat.set(w / 200, depthCm / 100);
+        if (maxAniso) marbleTex.anisotropy = Math.min(8, maxAniso);
+        marbleTex.needsUpdate = true;
+        const mats = Array.isArray(node.material) ? node.material : [node.material];
+        mats.forEach((m) => {
+          if (!m) return;
+          if ('map' in m) m.map = marbleTex;
+          if ('normalMap' in m) m.normalMap = null;
+          if ('bumpMap' in m) m.bumpMap = null;
+          if ('bumpScale' in m) m.bumpScale = 0;
+          if (m.color) m.color.setHex(0xffffff);
+          if (m.emissive && m.emissive.setHex) m.emissive.setHex(0x000000);
+          if ('emissiveIntensity' in m) m.emissiveIntensity = 0;
+          // 抛光大理石: roughness 0.4 保留轻微高光, 与全哑光板材形成对比
+          if ('roughness' in m) m.roughness = 0.4;
+          if ('metalness' in m) m.metalness = 0;
+          m.needsUpdate = true;
+        });
+        return;
+      }
+
       const mats = Array.isArray(node.material) ? node.material : [node.material];
       mats.forEach((m) => {
         if (!m) return;
@@ -1351,33 +1474,83 @@ class ThreeRenderer {
         // 鞋柜 (w=150) 按宽度反推等比缩放; 保持 GLB 原始三维比例, 不像标准柜按三轴独立拉伸。
         // 目的: 让 GLB 里若 1 单位=1mm 时也能被拉到 cm 场景, 且高度 240、深度 42 由 GLB 比例自动带出。
         // fallback 立方体已是 cm 单位, 不参与鞋柜缩放路径
-        const isShoe = (it.kind === 'standard' || it.kind === 'nonstandard')
-                       && it.w >= 125
-                       && !(mesh.userData && mesh.userData.isFallback);
+        const isShoe = (
+          it.kind === 'shoe' ||
+          ((it.kind === 'standard' || it.kind === 'nonstandard') && it.w >= 125)
+        ) && !(mesh.userData && mesh.userData.isFallback);
         // 转角柜物理 depth = 宽 = 110cm; 其它衣柜 CABINET_DEPTH_CM(60)
         const isCornerLike =
           it.kind === 'corner' ||
           (it.kind === 'raise' && (it.code === 'yg' || it.code === 'zg'));
         let sx, sy, sz, targetDepth;
+        let _dynShoe = null;
         if (isShoe) {
-          // 按宽度反推等比缩放: k = 目标宽 (cm) / GLB x 轴尺寸
-          // 例: GLB 是 mm 建 → size.x=1500 → k=0.1; GLB 是 cm 建 → size.x=150 → k=1
-          const k = size.x > 0.001 ? it.w / size.x : 1;
-          sx = sy = sz = k;
-          targetDepth = size.z * k;
+          // [DIAG] 入 shoe 分支时的 item 信息
+          console.log('[shoe-diag] item:', { kind: it.kind, code: it.code, w: it.w, h: it.h });
+          // 鞋柜: 加载 150S GLB 壳, 剔除动态部件, 追加参数化门/隔/层
+          const sampleGeometries = this._prepareShoeShellAndSamples(mesh);
+          const targetWmm = it.w * 10;
+          const targetHmm = it.h * 10;
+          // 剔除动态部件后重算 bbox 以拿准确壳尺寸
+          const bbox3 = new THREE.Box3().setFromObject(mesh);
+          const size3 = new THREE.Vector3();
+          bbox3.getSize(size3);
+          console.log('[shoe-diag] bbox after strip, size:', size3.x.toFixed(3), size3.y.toFixed(3), size3.z.toFixed(3));
+          // GLB 原始单位反推: 假设 150S.glb 原始 x 宽对应 1500mm
+          const kToMm = size3.x > 0.001 ? 1500 / size3.x : 1;
+          const glbWmm = size3.x * kToMm;
+          const glbHmm = size3.y * kToMm;
+          const glbDmm = size3.z * kToMm;
+          // 场景 cm 空间中的缩放因子
+          const kSceneToCm = 0.1;
+          sx = (targetWmm / glbWmm) * kToMm * kSceneToCm;
+          sy = (targetHmm / glbHmm) * kToMm * kSceneToCm;
+          sz = (shoeCabinetParts.DEPTH_TOTAL / glbDmm) * kToMm * kSceneToCm;
+          targetDepth = shoeCabinetParts.DEPTH_TOTAL / 10; // mm→cm
+          mesh.scale.set(sx, sy, sz);
+          // 侧板不缩 X: 反向抵消
+          const kWidthRatio = targetWmm / 1500;
+          mesh.traverse((n) => {
+            if (!n.isMesh) return;
+            const nn = (n.name || '').toLowerCase();
+            if (nn.indexOf('side_left_panel') >= 0 || nn.indexOf('side_right_panel') >= 0) {
+              n.scale.x = 1 / kWidthRatio;
+            }
+          });
+          // 生成参数化部件 (mm 单位); 挂载延迟到 mesh 位置归零之后, 避免 mesh 三轴独立缩放的二次拉伸
+          console.log('[shoe-diag] scale:', 'sx=' + sx.toFixed(3), 'sy=' + sy.toFixed(3), 'sz=' + sz.toFixed(3), 'kWidthRatio=' + kWidthRatio.toFixed(3));
+          _dynShoe = shoeCabinetParts.generateCabinetDynamicParts(THREE, targetWmm, targetHmm, sampleGeometries);
         } else {
           sx = size.x > 0.001 ? it.w / size.x : 1;
           sy = size.y > 0.001 ? it.h / size.y : 1;
           targetDepth = isCornerLike ? 110 : CABINET_DEPTH_CM;
+          // SK 不能超出房间深度 (鞋柜场景 sceneDepth=50 时把 60cm SK 压到 50cm, 避免穿前墙)
+          if (it.kind === 'sk' && targetDepth > this._sceneDepthCm) {
+            targetDepth = this._sceneDepthCm;
+          }
           sz = size.z > 0.001 ? targetDepth / size.z : 1;
+          mesh.scale.set(sx, sy, sz);
         }
-        mesh.scale.set(sx, sy, sz);
         const bbox2 = new THREE.Box3().setFromObject(mesh);
         mesh.position.y -= bbox2.min.y;
         mesh.position.x -= (bbox2.min.x + bbox2.max.x) / 2;
         mesh.position.z -= (bbox2.min.z + bbox2.max.z) / 2;
+        if (isShoe && _dynShoe) {
+          // dyn.root 在 mm 空间, 挂到外层 group (与 mesh 平级), 避免 mesh 三轴独立缩放的二次拉伸
+          // 只需 mm→cm 换算 (scale=0.1), 三轴一致
+          _dynShoe.root.scale.set(0.1, 0.1, 0.1);
+          // spec 约定 (2026-07-19-shoe-cabinet-design.md 261-268): 柜体正面 Z=0, 向后 -400.
+          // 因此 mm z=0 必须对齐到 shell 的正面 (bbox.max.z), 不是背面 (min.z), 否则
+          // 门跑到背墙里, 内部隔板/层板穿墙而出.
+          const shellBbox = new THREE.Box3().setFromObject(mesh);
+          console.log('[shoe-diag] shellBbox min:', shellBbox.min.x.toFixed(2), shellBbox.min.y.toFixed(2), shellBbox.min.z.toFixed(2),
+                      'max:', shellBbox.max.x.toFixed(2), shellBbox.max.y.toFixed(2), shellBbox.max.z.toFixed(2));
+          _dynShoe.root.position.set(shellBbox.min.x, shellBbox.min.y, shellBbox.max.z);
+          console.log('[shoe-diag] dynShoe.root.position:', _dynShoe.root.position.x.toFixed(2), _dynShoe.root.position.y.toFixed(2), _dynShoe.root.position.z.toFixed(2));
+          group.add(_dynShoe.root);
+        }
         // 衣柜后表面贴后墙：转角柜中心 z = -D + 110/2 = -95，其它柜体 z = -D + 30
-        const cabZ = -SCENE_DEPTH_CM + targetDepth / 2;
+        const cabZ = -this._sceneDepthCm + targetDepth / 2;
         group.position.set(cursor, yBase, cabZ);
         // 柜体板件互投阴影 + 接收阴影；点光源不投影以保性能
         group.traverse((n) => {
@@ -1401,9 +1574,94 @@ class ThreeRenderer {
     }
   }
 
+  // 从加载好的 150S GLB root 中剔除动态部件、sample 节点、以及两块悬空区水平固定板:
+  //   剔除:
+  //     - door_sample / shelf_sample / mid_panel_sample 三个 sample;
+  //     - lower_door_N / upper_door_N / mid_divider_N (分列门/中隔板);
+  //     - shelf_upper_[LR]N / shelf_fixed_[LR]N (上下柜内活动层板);
+  //     - shelf_fixed_up / shelf_fixed_down (底柜顶板 / 上柜底板). shell 沿 Y 被
+  //       sy=wall.h/240 拉伸时这两块会随之整体位移, 和参数化门用绝对 FIXED_H 定位
+  //       对不上, 表现就是"底柜顶板/上柜底板不见了"; 一起由 shoe-cabinet-parts
+  //       在绝对 mm 位置重建, 保证和门/隔板/层板同一套坐标.
+  //     - countertop (台面). 同样的 sy 拉伸问题, 由 createCounterGroup 重建.
+  //     - back_panel_upper (上柜后背板). 同上, 由 createUpperBackPanelGroup 重建.
+  //     - back_panel_lower / back_panel_middle (下柜 / 中间镂空背板). 同上,
+  //       由 createFixedBackPanelGroup 重建.
+  //   保留: 侧板 / 顶板 / 底板 / 踢脚.
+  //
+  // sampleGeometries 一律返回 BoxGeometry:
+  //   从 GLB 抽 n.geometry.clone() 只拷贝了原始顶点 (SketchUp 英寸 Z-up), 丢了
+  //   容器节点的 0.0254 m/inch 缩放 + 根节点 Z-up→Y-up 旋转矩阵. 参数化模块假设
+  //   mm / Y-up / 原点居中, 结果部件缩小 25 倍 + 姿态歪掉 + 原点错位, 表现就是
+  //   "鞋柜穿插进 3D 空间". BoxGeometry 版本天然满足这三条契约.
+  _prepareShoeShellAndSamples(root) {
+    const THREE = this.THREE;
+    const toRemove = [];
+    // [DIAG] 剔除前打印所有 mesh 名字
+    const allMeshNames = [];
+    root.traverse((n) => {
+      if (n.isMesh) allMeshNames.push(n.name || '(no-name)');
+    });
+    console.log('[shoe-diag] before strip, mesh names:', allMeshNames);
+    root.traverse((n) => {
+      if (!n.isMesh) return;
+      const name = (n.name || '').toLowerCase();
+      if (
+        name.indexOf('door_sample') >= 0 ||
+        name.indexOf('mid_panel_sample') >= 0 ||
+        name.indexOf('shelf_sample') >= 0 ||
+        name.indexOf('lower_door') >= 0 ||
+        name.indexOf('upper_door') >= 0 ||
+        name.indexOf('mid_divider') >= 0 ||
+        name.indexOf('shelf_fixed_up') >= 0 ||
+        name.indexOf('shelf_fixed_down') >= 0 ||
+        // countertop 原本随 shell 被 sy 拉伸, 墙高≠240cm 时会与固定 Y 的
+        // shelf_fixed_down 之间出现空隙 (2600mm 时空隙 83mm). 剔除后由
+        // shoe-cabinet-parts.createCounterGroup 在绝对 Y=1000~1050mm 重建.
+        name.indexOf('countertop') >= 0 ||
+        // back_panel_upper 同样被 sy 拉伸, 底面从 Y=1518 漂到 1644 (墙 260cm),
+        // 与固定 Y 的 shelf_fixed_up 顶面 (=1518) 之间出现缝. 剔除后由
+        // createUpperBackPanelGroup 按 [1518, totalH-18] 重建.
+        name.indexOf('back_panel_upper') >= 0 ||
+        // back_panel_lower / back_panel_middle 同上, 与 shelf_fixed_down/up
+        // 交界处出现缝 (墙<240cm) 或穿插 (墙>240cm). 剔除后由
+        // createFixedBackPanelGroup 按 [168,982] / [1000,1500] 重建.
+        name.indexOf('back_panel_lower') >= 0 ||
+        name.indexOf('back_panel_middle') >= 0 ||
+        /shelf_upper_[lr]\d/.test(name) ||
+        /shelf_fixed_[lr]\d/.test(name)
+      ) {
+        toRemove.push(n);
+      }
+    });
+    // [DIAG] 剔除的清单
+    console.log('[shoe-diag] strip removes:', toRemove.map((n) => n.name || '(no-name)'));
+    toRemove.forEach((n) => {
+      if (n.parent) n.parent.remove(n);
+    });
+    // [DIAG] 剔除后残留的 mesh
+    const remainNames = [];
+    root.traverse((n) => {
+      if (n.isMesh) remainNames.push(n.name || '(no-name)');
+    });
+    console.log('[shoe-diag] after strip, remain:', remainNames);
+    return {
+      doorGeometry: new THREE.BoxGeometry(450, 846, 18),
+      shelfGeometry: new THREE.BoxGeometry(1, 1, 1),
+      dividerGeometry: new THREE.BoxGeometry(1, 1, 1),
+    };
+  }
+
   // 把 it 归一化到 { subdir, name } —— hot-replace 订阅与 getLocalPath 都用它
   _resolveTarget(it) {
     const code = (it.code || '').toLowerCase();
+    if (it.kind === 'shoe') {
+      // 按 code 拼名 (与衣柜标准柜对称): 150A.glb / 150B.glb / ...
+      // 老 plan 里可能存 code='s' (硬编码遗留), 兜底成 'a'
+      let letter = (it.code || 'a').charAt(0).toLowerCase();
+      if (letter === 's') letter = 'a';
+      return { subdir: '150cm', name: `150${letter.toUpperCase()}.glb` };
+    }
     if (it.kind === 'standard' || it.kind === 'nonstandard') {
       // w 归一到 50/100/150 三档: <75 → 50, 75~124 → 100, ≥125 → 150 (鞋柜)
       let w;
