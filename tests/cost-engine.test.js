@@ -94,6 +94,8 @@ const PRICES = [
   { code: 'led_light_power_import', name: '进口电源', price: 200, category: 'hardware', unit: '个', brand_type: 'import' },
   { code: 'led_light_switch_import', name: '进口开关', price: 49.39, category: 'hardware', unit: '个', brand_type: 'import' },
   { code: 'hinge_import', name: '百隆铰链', price: 27, category: 'hardware', unit: '个', brand_type: 'import' },
+  { code: 'glass_door_hinge_domestic', name: '玻璃门铰链国产', price: 15, category: 'hardware', unit: '个', brand_type: 'domestic' },
+  { code: 'glass_door_hinge_import', name: '玻璃门铰链进口', price: 45, category: 'hardware', unit: '个', brand_type: 'import' },
 ];
 
 const PANELS = [
@@ -568,5 +570,268 @@ test('case 10: 转角柜 code=y → glb=Y-110-230.glb; 加高转角 yg → YG-11
     assert.equal(cost.modules.length, 2);
     assert.equal(cost.modules[0].glbFile, 'Y-110-230.glb');
     assert.equal(cost.modules[1].glbFile, 'YG-110-230G1.glb');
+  } finally { delete global.wx; }
+});
+
+test('resolveGlbFile: shoe/bookshelf 分派', () => {
+  const { costEngine } = loadFresh();
+  assert.equal(costEngine.resolveGlbFile({ kind: 'shoe', code: 'a' }), '150A.glb');
+  assert.equal(costEngine.resolveGlbFile({ kind: 'shoe', code: 'B' }), '150B.glb');
+  assert.equal(costEngine.resolveGlbFile({ kind: 'shoe', code: 'd' }), '150D.glb');
+  assert.equal(costEngine.resolveGlbFile({ kind: 'bookshelf', code: 'a' }), '120A.glb');
+  assert.equal(costEngine.resolveGlbFile({ kind: 'bookshelf', code: 'B' }), '120B.glb');
+  // code 缺失兜底 'A'
+  assert.equal(costEngine.resolveGlbFile({ kind: 'shoe' }), '150A.glb');
+  assert.equal(costEngine.resolveGlbFile({ kind: 'bookshelf' }), '120A.glb');
+});
+
+test('mergeDynamicIntoMeta: 覆盖同名静态板件, 保留其他', async () => {
+  const { costEngine } = await primeDicts({
+    price: PRICES, panel_name_dict: PANELS,
+    model_panel_hardware: [META_50A],
+  });
+  try {
+    const staticMeta = {
+      board_list: [
+        { node_name: 'side_left_panel_18', length: 224, width: 58, thickness: 1.8, area: 1.2992 },
+        { node_name: 'shelf_lower_1', length: 100, width: 30, thickness: 1.8, area: 0.3 },
+      ],
+      door_list: [],
+      hardware_list: { hinge: 4 },
+    };
+    const cabinet = {
+      kind: 'shoe', code: 'a', w: 150, h: 240,
+      dynamicBoardList: [
+        // 覆盖同名的 shelf_lower_1 (运行时尺寸更准)
+        { node_name: 'shelf_lower_1', length: 116.4, width: 38.2, thickness: 1.8, area: 0.4446 },
+      ],
+      dynamicDoorList: [
+        { node_name: 'door_lower_1', length: 62.8, width: 48.5, thickness: 2, area: 0.3046 },
+      ],
+    };
+    const merged = costEngine.mergeDynamicIntoMeta(staticMeta, cabinet);
+    // side_left_panel_18 保留 (未被 dyn 覆盖)
+    assert.ok(merged.board_list.some((b) => b.node_name === 'side_left_panel_18'));
+    // shelf_lower_1 使用 dyn 版本 (新 area)
+    const shelf = merged.board_list.find((b) => b.node_name === 'shelf_lower_1');
+    assert.equal(shelf.area, 0.4446);
+    // door_list 有 dyn 门
+    assert.equal(merged.door_list.length, 1);
+    assert.equal(merged.door_list[0].node_name, 'door_lower_1');
+    // hardware_list 保留
+    assert.deepEqual(merged.hardware_list, { hinge: 4 });
+    // total_*_area 重新汇总
+    assert.ok(Math.abs(merged.total_body_area - (1.2992 + 0.4446)) < 0.001);
+    assert.ok(Math.abs(merged.total_door_area - 0.3046) < 0.001);
+  } finally { delete global.wx; }
+});
+
+test('calcModule shoe: 无 GLB 元数据但有 dynamic → 正常计算成本', async () => {
+  const { costEngine } = await primeDicts({
+    price: PRICES, panel_name_dict: PANELS,
+    model_panel_hardware: [META_50A], // 不含 150*.glb
+  });
+  try {
+    const cabinet = {
+      kind: 'shoe', code: 'a', w: 150, h: 240,
+      dynamicBoardList: [
+        { node_name: 'shelf_lower_1', length: 116.4, width: 38.2, thickness: 1.8, area: 0.4446 },
+        { node_name: 'shelf_lower_2', length: 116.4, width: 38.2, thickness: 1.8, area: 0.4446 },
+      ],
+      dynamicDoorList: [
+        { node_name: 'door_lower_1', length: 62.8, width: 48.5, thickness: 2, area: 0.3046 },
+        { node_name: 'door_lower_2', length: 62.8, width: 48.5, thickness: 2, area: 0.3046 },
+      ],
+    };
+    const m = costEngine.calcModule(cabinet, {
+      panel: 'panel_egger', doorPanel: 'door_material_same_as_cabinet',
+      doorCraft: 'door_craft_none', hardware: 'domestic', lighting: 'none',
+    });
+    assert.ok(!m.missing, 'shoe 有 dynamic 时不应报 missing');
+    // 板身 (2 层板) 0.8892 × 195 + 门 (2 门) 0.6092 × 195 = 板材成本
+    const expected = _round2((0.4446 + 0.4446) * 195 + (0.3046 + 0.3046) * 195);
+    assert.equal(m.panelCost, expected);
+    assert.equal(m.glbFile, '150A.glb');
+    assert.equal(m.totalBodyArea, 0.8892);
+    assert.equal(m.totalDoorArea, 0.6092);
+  } finally { delete global.wx; }
+});
+
+test('calcModule bookshelf: 无 GLB 元数据 + dynamic 也能计算', async () => {
+  const { costEngine } = await primeDicts({
+    price: PRICES, panel_name_dict: PANELS,
+    model_panel_hardware: [META_50A],
+  });
+  try {
+    const cabinet = {
+      kind: 'bookshelf', code: 'a', w: 120, h: 240,
+      dynamicBoardList: [
+        { node_name: 'shelf_lower_1', length: 116.4, width: 38.2, thickness: 1.8, area: 0.4446 },
+      ],
+      dynamicDoorList: [
+        { node_name: 'door_middle_1', length: 117.8, width: 38.6, thickness: 2, area: 0.4547 },
+      ],
+    };
+    const m = costEngine.calcModule(cabinet, {
+      panel: 'panel_e2_domestic', doorPanel: 'door_material_same_as_cabinet',
+      doorCraft: 'door_craft_none', hardware: 'domestic', lighting: 'none',
+    });
+    assert.ok(!m.missing);
+    assert.equal(m.glbFile, '120A.glb');
+    assert.equal(m.totalBodyArea, 0.4446);
+    assert.equal(m.totalDoorArea, 0.4547);
+    // 无 hardware_list → hardwareCost = 0
+    assert.equal(m.hardwareCost, 0);
+  } finally { delete global.wx; }
+});
+
+test('calcModule shoe: 无 GLB 且无 dynamic → missing meta', async () => {
+  const { costEngine } = await primeDicts({
+    price: PRICES, panel_name_dict: PANELS,
+    model_panel_hardware: [META_50A],
+  });
+  try {
+    const m = costEngine.calcModule(
+      { kind: 'shoe', code: 'a', w: 150, h: 240 },
+      { panel: 'panel_egger', doorPanel: 'door_material_same_as_cabinet',
+        doorCraft: 'door_craft_none', hardware: 'domestic', lighting: 'none' },
+    );
+    assert.equal(m.missing, 'meta');
+  } finally { delete global.wx; }
+});
+
+test('mergeDynamicIntoMeta: 五金累加 (静态 shell 五金 + 动态门铰/滑轨)', async () => {
+  const { costEngine } = await primeDicts({
+    price: PRICES, panel_name_dict: PANELS,
+    model_panel_hardware: [META_50A],
+  });
+  try {
+    const staticMeta = {
+      board_list: [], door_list: [],
+      hardware_list: { plinth: 4, minifix: 8 }, // shell 五金
+    };
+    const cabinet = {
+      kind: 'shoe', code: 'a', w: 150, h: 240,
+      dynamicBoardList: [], dynamicDoorList: [],
+      dynamicHardware: { hinge: 12, slide: 2 },
+    };
+    const merged = costEngine.mergeDynamicIntoMeta(staticMeta, cabinet);
+    // 静态五金保留 + 新增 hinge/slide
+    assert.equal(merged.hardware_list.plinth, 4);
+    assert.equal(merged.hardware_list.minifix, 8);
+    assert.equal(merged.hardware_list.hinge, 12);
+    assert.equal(merged.hardware_list.slide, 2);
+  } finally { delete global.wx; }
+});
+
+test('mergeDynamicIntoMeta: 五金累加 (静态与动态同 key 时相加)', async () => {
+  const { costEngine } = await primeDicts({
+    price: PRICES, panel_name_dict: PANELS,
+    model_panel_hardware: [META_50A],
+  });
+  try {
+    const staticMeta = {
+      board_list: [], door_list: [],
+      hardware_list: { hinge: 4 }, // shell 已有 4 铰 (假设边缘场景)
+    };
+    const cabinet = {
+      kind: 'shoe', code: 'a', w: 150, h: 240,
+      dynamicHardware: { hinge: 8 },
+    };
+    const merged = costEngine.mergeDynamicIntoMeta(staticMeta, cabinet);
+    assert.equal(merged.hardware_list.hinge, 12); // 4 + 8
+  } finally { delete global.wx; }
+});
+
+test('calcModule shoe: dynamicHardware 计入 hardwareCost (hinge=6, slide=2)', async () => {
+  const { costEngine } = await primeDicts({
+    price: PRICES, panel_name_dict: PANELS,
+    model_panel_hardware: [META_50A],
+  });
+  try {
+    const cabinet = {
+      kind: 'shoe', code: 'd', w: 150, h: 240,
+      dynamicBoardList: [
+        { node_name: 'shelf_lower_1', length: 116.4, width: 38.2, thickness: 1.8, area: 0.4446 },
+      ],
+      dynamicDoorList: [
+        { node_name: 'lower_door_1', length: 62.8, width: 48.5, thickness: 2, area: 0.3046 },
+      ],
+      dynamicHardware: { hinge: 6, slide: 2 },
+    };
+    const m = costEngine.calcModule(cabinet, {
+      panel: 'panel_egger', doorPanel: 'door_material_same_as_cabinet',
+      doorCraft: 'door_craft_none', hardware: 'domestic', lighting: 'none',
+    });
+    // PRICES: hinge_domestic 6.2, slide_domestic 60
+    // hardwareCost = 6*6.2 + 2*60 = 37.2 + 120 = 157.2
+    assert.equal(m.hardwareCost, _round2(6 * 6.2 + 2 * 60));
+    // hardware 明细中应有 hinge_domestic 与 slide_domestic 两行
+    const hwCodes = m.detail.hardware.map((h) => h.code).sort();
+    assert.deepEqual(hwCodes, ['hinge_domestic', 'slide_domestic']);
+    const hinge = m.detail.hardware.find((h) => h.code === 'hinge_domestic');
+    assert.equal(hinge.qty, 6);
+    const slide = m.detail.hardware.find((h) => h.code === 'slide_domestic');
+    assert.equal(slide.qty, 2);
+  } finally { delete global.wx; }
+});
+
+test('calcModule bookshelf: 9 门 h_lower=736/middle=1178/upper=378 → dyn hardware (拆 hinge / glass_door_hinge)', async () => {
+  const { costEngine } = await primeDicts({
+    price: PRICES, panel_name_dict: PANELS,
+    model_panel_hardware: [META_50A],
+  });
+  try {
+    // 下 h=736 (普通门 <800 → 2) * 3 + 上 h=378 (普通门 <800 → 2) * 3 = 12 普通铰
+    // 中 h=1178 (玻璃门 ≤1800 → 3) * 3 = 9 玻璃门铰
+    const cabinet = {
+      kind: 'bookshelf', code: 'a', w: 120, h: 240,
+      dynamicHardware: { hinge: 12, glass_door_hinge: 9 },
+    };
+    const m = costEngine.calcModule(cabinet, {
+      panel: 'panel_egger', doorPanel: 'door_material_same_as_cabinet',
+      doorCraft: 'door_craft_none', hardware: 'domestic', lighting: 'none',
+    });
+    assert.equal(m.hardwareCost, _round2(12 * 6.2 + 9 * 15));
+    const hinge = m.detail.hardware.find((h) => h.code === 'hinge_domestic');
+    assert.equal(hinge.qty, 12);
+    assert.equal(hinge.total, _round2(12 * 6.2));
+    const glassHinge = m.detail.hardware.find((h) => h.code === 'glass_door_hinge_domestic');
+    assert.equal(glassHinge.qty, 9);
+    assert.equal(glassHinge.total, _round2(9 * 15));
+  } finally { delete global.wx; }
+});
+
+// —— 云端 model_panel_hardware.hardware_list 若含 glass_door_hinge, cost-engine
+// 应透明识别, 不需针对该 key 特判. 覆盖场景: shell 元数据直接带玻璃门铰 (未来
+// 若有含玻璃门的衣柜/带玻璃门的组合柜进入 GLB 元数据表). —— //
+test('calcModule: shell hardware_list 含 glass_door_hinge → 生成 glass_door_hinge_{brand} 明细', async () => {
+  const metaWithGlassHinge = Object.assign({}, META_50A, {
+    hardware_list: Object.assign({}, META_50A.hardware_list, { glass_door_hinge: 5 }),
+  });
+  const { costEngine } = await primeDicts({
+    price: PRICES, panel_name_dict: PANELS,
+    model_panel_hardware: [metaWithGlassHinge, META_100A, META_100G1],
+  });
+  try {
+    const m = costEngine.calcModule(
+      { kind: 'standard', code: 'a', w: 50, h: 230, label: '50A' },
+      { panel: 'panel_egger', doorPanel: 'door_material_same_as_cabinet',
+        doorCraft: 'door_craft_none', hardware: 'domestic', lighting: 'none' }
+    );
+    const glassHinge = m.detail.hardware.find((h) => h.code === 'glass_door_hinge_domestic');
+    assert.ok(glassHinge, 'glass_door_hinge_domestic 明细行存在');
+    assert.equal(glassHinge.qty, 5);
+    assert.equal(glassHinge.total, _round2(5 * 15));
+    // hardware 品牌切 import 应改走 glass_door_hinge_import (单价 45)
+    const mImp = costEngine.calcModule(
+      { kind: 'standard', code: 'a', w: 50, h: 230, label: '50A' },
+      { panel: 'panel_egger', doorPanel: 'door_material_same_as_cabinet',
+        doorCraft: 'door_craft_none', hardware: 'import', lighting: 'none' }
+    );
+    const glassHingeImp = mImp.detail.hardware.find((h) => h.code === 'glass_door_hinge_import');
+    assert.ok(glassHingeImp, 'glass_door_hinge_import 明细行存在');
+    assert.equal(glassHingeImp.qty, 5);
+    assert.equal(glassHingeImp.total, _round2(5 * 45));
   } finally { delete global.wx; }
 });

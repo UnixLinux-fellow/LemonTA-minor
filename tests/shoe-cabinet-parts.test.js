@@ -31,9 +31,9 @@ test('常量导出', () => {
   assert.equal(parts.VOID_H, 450);
   assert.equal(parts.FIXED_H, 1500);
   assert.equal(parts.DEPTH_TOTAL, 420);
-  assert.equal(parts.DEPTH_INNER, 384);
-  // DEPTH_INNER = DEPTH_TOTAL - 前预留 18 - 背板 18
-  assert.equal(parts.DEPTH_INNER, parts.DEPTH_TOTAL - 36);
+  assert.equal(parts.DEPTH_INNER, 382);
+  // DEPTH_INNER = DEPTH_TOTAL - 门板外挂 20 - 背板 18
+  assert.equal(parts.DEPTH_INNER, parts.DEPTH_TOTAL - 38);
 });
 
 test('calcDoorSizeAndX (1500, 3): 内宽=1464,均分 485,余 1 补最后', () => {

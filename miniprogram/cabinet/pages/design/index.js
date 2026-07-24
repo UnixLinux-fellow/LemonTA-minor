@@ -59,6 +59,7 @@ Page({
     nextBtnText: '下一模块',
     show50: true,
     show100: true,
+    show120: false,
     show150: false,
     remainingStd: 0,
     rotation: { x: 0, y: 0 },
@@ -93,26 +94,25 @@ Page({
 
       let state;
       const mode = plan.mode || 'wardrobe';
-      if (mode === 'shoe') {
+      if (mode === 'shoe' || mode === 'bookshelf') {
+        // 鞋柜/书柜: 单件式 (1 面墙 = 1 柜), 与 layout-engine 无关.
+        // sk 兜底、items 结构、meta 完全对称, 只是 kind/code/兜底型号目录不同.
         const cornerType = plan.cornerType || 'BKQ';
         const hasLeftSk = cornerType === 'ZKQ' || cornerType === 'ZYKQ';
         const hasRightSk = cornerType === 'YKQ' || cornerType === 'ZYKQ';
         const skW = 2;
-        const shoeW = plan.wall.w - (hasLeftSk ? skW : 0) - (hasRightSk ? skW : 0);
+        const bodyW = plan.wall.w - (hasLeftSk ? skW : 0) - (hasRightSk ? skW : 0);
         const items = [];
         if (hasLeftSk) {
           items.push({ kind: 'sk', code: 'SK', w: skW, h: plan.wall.h, side: 'left' });
         }
-        // 默认取云端可用的第一种鞋柜型号 (grouped.shoe 由 cabinet-model 按 150cm 目录归类);
-        // 云端未上线任何鞋柜 GLB 时兜底 'a', 保证 _resolveTarget 能拼出 150A.glb
-        const defaultShoeCode = (grouped.shoe && grouped.shoe[0] && grouped.shoe[0].code) || 'a';
-        items.push({
-          id: 'shoe-0',
-          kind: 'shoe',
-          code: defaultShoeCode,
-          w: shoeW,
-          h: plan.wall.h,
-        });
+        if (mode === 'shoe') {
+          const defaultShoeCode = (grouped.shoe && grouped.shoe[0] && grouped.shoe[0].code) || 'a';
+          items.push({ id: 'shoe-0', kind: 'shoe', code: defaultShoeCode, w: bodyW, h: plan.wall.h });
+        } else {
+          const defaultBookshelfCode = (grouped.bookshelf && grouped.bookshelf[0] && grouped.bookshelf[0].code) || 'a';
+          items.push({ id: 'bookshelf-0', kind: 'bookshelf', code: defaultBookshelfCode, w: bodyW, h: plan.wall.h });
+        }
         if (hasRightSk) {
           items.push({ kind: 'sk', code: 'SK', w: skW, h: plan.wall.h, side: 'right' });
         }
@@ -140,29 +140,41 @@ Page({
       this._state = state;
 
       await new Promise((resolve) => {
-        // 鞋柜 modelList 来自云端 150cm 目录的所有 GLB (grouped.shoe);
-        // 云端为空时兜底一张 150A.glb, 保证 picker 仍能显示一个可选项
+        // 鞋柜/书柜 modelList 来自云端 150cm/120cm 目录; 云端为空时各自兜底一张
         const shoeListFromCloud = enrichWithDesc(grouped.shoe || []);
-        const initialModelList = mode === 'shoe'
-          ? (shoeListFromCloud.length > 0
-              ? shoeListFromCloud
-              : [{ subdir: '150cm', name: '150A.glb', w: 150, h: 240, code: 'a', kind: 'shoe', descText: '鞋柜' }])
-          : enrichWithDesc(grouped.s100);
+        const bookshelfListFromCloud = enrichWithDesc(grouped.bookshelf || []);
+        let initialModelList;
+        if (mode === 'shoe') {
+          initialModelList = shoeListFromCloud.length > 0
+            ? shoeListFromCloud
+            : [{ subdir: '150cm', name: '150A.glb', w: 150, h: 240, code: 'a', kind: 'shoe', descText: '鞋柜' }];
+        } else if (mode === 'bookshelf') {
+          initialModelList = bookshelfListFromCloud.length > 0
+            ? bookshelfListFromCloud
+            : [{ subdir: '120cm', name: '120A.glb', w: 120, h: 240, code: 'a', kind: 'bookshelf', descText: '书柜' }];
+        } else {
+          initialModelList = enrichWithDesc(grouped.s100);
+        }
+        const cornerLabel = mode === 'shoe' ? '鞋柜'
+                          : mode === 'bookshelf' ? '书柜'
+                          : (CORNER_LABEL[plan.cornerType] || '');
+        const isCompact = (mode === 'shoe' || mode === 'bookshelf');
         this.setData({
           plan,
           mode,
-          cornerLabel: mode === 'shoe' ? '鞋柜' : (CORNER_LABEL[plan.cornerType] || ''),
+          cornerLabel,
           modelList: initialModelList,
           items: state.items,
           meta: state.meta,
           standardWidth: state.meta.standardWidth,
           standardUsed: state.meta.standardUsed,
           nonStandardWidth: state.meta.nonStandardWidth,
-          sizeTab: mode === 'shoe' ? 150 : this.data.sizeTab,
-          show50: mode === 'shoe' ? false : true,
-          show100: mode === 'shoe' ? false : true,
+          sizeTab: mode === 'shoe' ? 150 : mode === 'bookshelf' ? 120 : this.data.sizeTab,
+          show50: isCompact ? false : true,
+          show100: isCompact ? false : true,
+          show120: mode === 'bookshelf',
           show150: mode === 'shoe',
-          nextBtnText: mode === 'shoe' ? '确认布局' : '下一模块',
+          nextBtnText: isCompact ? '确认布局' : '下一模块',
         }, () => {
           this._updateScrollIndicator();
           resolve();
@@ -348,9 +360,7 @@ Page({
     const ThreeRendererCls = this._ThreeRendererCls;
     const sysInfo = wx.getSystemInfoSync();
     const dpr = sysInfo.pixelRatio || 1;
-    const modelList = (this.data.modelList || []).map((m) =>
-      Object.assign({}, m, { kind: 'standard' })
-    );
+    const modelList = (this.data.modelList || []).slice();
     const colorId = this._state ? this._state.meta.color : this.data.color;
 
     modelList.forEach((item, idx) => {
@@ -385,8 +395,7 @@ Page({
     this.data.modelList.forEach((m, idx) => {
       const r = this._thumbRenderers[idx];
       if (!r) return;
-      const item = Object.assign({}, m, { kind: 'standard' });
-      try { r.renderSingle(item, colorId); } catch (e) { /* ignore */ }
+      try { r.renderSingle(m, colorId); } catch (e) { /* ignore */ }
     });
   },
 
@@ -399,7 +408,7 @@ Page({
   },
 
   recompute() {
-    if (this.data.mode === 'shoe') {
+    if (this.data.mode === 'shoe' || this.data.mode === 'bookshelf') {
       if (this._renderer) {
         if (this._renderer.setColor) this._renderer.setColor(this._state.meta.color);
         if (this._renderer.setShowDoor) this._renderer.setShowDoor(this._state.meta.showDoor);
@@ -509,7 +518,8 @@ Page({
   },
 
   onSwitchSize(e) {
-    if (this.data.mode === 'shoe') return;
+    // 鞋柜/书柜: 单柜模式无宽度切换意义
+    if (this.data.mode === 'shoe' || this.data.mode === 'bookshelf') return;
     const v = parseInt(e.currentTarget.dataset.v, 10);
     this.setData({ sizeTab: v }, () => {
       this.recompute();
@@ -520,10 +530,11 @@ Page({
     const idx = e.currentTarget.dataset.idx;
     const m = this.data.modelList[idx];
     if (!m) return;
-    // 鞋柜: 切换型号 = 改 shoeItem.code, 触发 renderer 重新加载对应 150X.glb
-    if (this.data.mode === 'shoe') {
-      const shoeItem = this._state.items.find((it) => it.kind === 'shoe');
-      if (shoeItem) shoeItem.code = (m.code || 'a').charAt(0).toLowerCase();
+    // 鞋柜/书柜: 切换型号 = 改对应 item.code, 触发 renderer 重新加载对应 GLB
+    if (this.data.mode === 'shoe' || this.data.mode === 'bookshelf') {
+      const targetKind = this.data.mode; // 'shoe' | 'bookshelf'
+      const target = this._state.items.find((it) => it.kind === targetKind);
+      if (target) target.code = (m.code || 'a').charAt(0).toLowerCase();
       this.setData({ selectedModelIdx: idx });
       if (this._renderer) {
         this._renderer.setItems(layoutEngine.renderRows(this._state));
@@ -581,7 +592,7 @@ Page({
   },
 
   onPrev() {
-    if (this.data.mode === 'shoe') return;
+    if (this.data.mode === 'shoe' || this.data.mode === 'bookshelf') return;
     const state = this._state;
     // 第一格判断只看 standard：左转角下首位由 corner 占据，corner 不可删；
     // 唯一的 standard 是用户主动添加的，可以删
@@ -598,7 +609,7 @@ Page({
   },
 
   onNext() {
-    if (this.data.mode === 'shoe') { this.onConfirmLayout(); return; }
+    if (this.data.mode === 'shoe' || this.data.mode === 'bookshelf') { this.onConfirmLayout(); return; }
     const state = this._state;
     if (state.meta.isFull) {
       this.onConfirmLayout();
@@ -652,13 +663,25 @@ Page({
     };
     const layoutSerialized = layoutEngine.serialize(state, meta);
     const cabinets = layoutEngine.flattenCabinets(state);
+    // 鞋柜/书柜: 从 renderer 提取 dyn 板件 → 挂到对应 cabinet, 供 cost-engine 计费.
+    // standard/corner/nonstandard/raise 走 glb 元数据, 不需要 dyn.
+    if (this._renderer && this._renderer.extractDynBoardLists) {
+      const dynMap = this._renderer.extractDynBoardLists();
+      cabinets.forEach((c) => {
+        const d = c.id && dynMap[c.id];
+        if (!d) return;
+        c.dynamicBoardList = d.board_list || [];
+        c.dynamicDoorList = d.door_list || [];
+        c.dynamicHardware = d.hardware_list || {};
+      });
+    }
     // 方案完整命名（用户名-时间-名称-转角-H-h-W-w）
     // 衣柜用 WZJ/ZZJ/YZJ/SZJ, 鞋柜用 BKQ/ZKQ/YKQ/ZYKQ
     const cornerCodeMap = {
       WZJ: 'WZJ', ZZJ: 'ZZJ', YZJ: 'YZJ', ZYZJ: 'SZJ',
       BKQ: 'BKQ', ZKQ: 'ZKQ', YKQ: 'YKQ', ZYKQ: 'ZYKQ',
     };
-    const cornerCodeFallback = plan.mode === 'shoe' ? 'BKQ' : 'WZJ';
+    const cornerCodeFallback = (plan.mode === 'shoe' || plan.mode === 'bookshelf') ? 'BKQ' : 'WZJ';
     const planFullName = [
       'guest',
       plan.timestamp,
@@ -713,7 +736,7 @@ Page({
       layoutSerialized,
       planFullName,
       cabinetCount,
-      cornerLabel: cornerLabelMap[plan.cornerType] || (plan.mode === 'shoe' ? '不靠墙' : '无转角'),
+      cornerLabel: cornerLabelMap[plan.cornerType] || ((plan.mode === 'shoe' || plan.mode === 'bookshelf') ? '不靠墙' : '无转角'),
       color: state.meta.color,
       showDoor: state.meta.showDoor,
       previewImage,

@@ -21,6 +21,20 @@ const { PANEL_FORMULAS } = require('./panel-formulas.js');
 
 const LED_KEYS = ['led_light_strip', 'led_light_power', 'led_light_switch'];
 
+// 台面 code 前缀 (150A/D 的 countertop, 150B/C 的 countertop_L). 走独立计价路径:
+// entry.length (cm) → 米 × countertop_marble_50mm 单价 (元/米), 不进 body/door_area.
+const COUNTERTOP_PRICE_CODE = 'countertop_marble_50';
+function _isCountertop(code) {
+  return typeof code === 'string' && code.indexOf('countertop') === 0;
+}
+
+// 书柜中段玻璃门: entry.material === 'glass'. 走 glass_door 单价 (元/㎡),
+// 不叠加 panel/doorMat/doorCraft; 从 door_area 里扣除避免重复计费.
+const GLASS_DOOR_PRICE_CODE = 'glass_door';
+function _isGlassDoor(entry) {
+  return !!(entry && entry.material === 'glass');
+}
+
 // —— 单柜 → glb_file_name 分派 —— //
 function resolveGlbFile(cabinet) {
   if (!cabinet) return null;
@@ -35,11 +49,63 @@ function resolveGlbFile(cabinet) {
       if (cabinet.code === 'yg') return 'YG-110-230G1.glb';
       if (cabinet.code === 'zg') return 'ZG-110-230G1.glb';
       return '100G1.glb';
+    case 'shoe':
+      return `150${(cabinet.code || 'A').toUpperCase()}.glb`;
+    case 'bookshelf':
+      return `120${(cabinet.code || 'A').toUpperCase()}.glb`;
     case 'sk':
     case 'spacer':
     default:
       return null;
   }
+}
+
+// 合并运行时提取的动态板件与五金到 meta:
+//   静态 (meta.board_list / door_list / hardware_list): shell 板件 + shell 五金
+//   动态 (cabinet.dynamicBoardList / dynamicDoorList / dynamicHardware): 门/层/隔/抽 + 铰链/托底轨
+// 合并策略:
+//   板件/门板: 同 node_name 时优先动态 (真实运行时尺寸)
+//   五金: 累加 (静态 shell 五金 + 动态门铰 / 抽屉滑轨)
+function mergeDynamicIntoMeta(meta, cabinet) {
+  const dynBoards = cabinet.dynamicBoardList || [];
+  const dynDoors = cabinet.dynamicDoorList || [];
+  const dynHardware = cabinet.dynamicHardware || {};
+  const hasDyn = dynBoards.length || dynDoors.length || Object.keys(dynHardware).length;
+  if (!hasDyn) return meta;
+
+  const staticBoards = (meta && meta.board_list) || [];
+  const staticDoors = (meta && meta.door_list) || [];
+  const dynBoardCodes = new Set(dynBoards.map((b) => b.node_name));
+  const dynDoorCodes = new Set(dynDoors.map((b) => b.node_name));
+  const filteredStaticBoards = staticBoards.filter((b) => !dynBoardCodes.has(b.node_name));
+  const filteredStaticDoors = staticDoors.filter((b) => !dynDoorCodes.has(b.node_name));
+  const mergedBoards = filteredStaticBoards.concat(dynBoards);
+  const mergedDoors = filteredStaticDoors.concat(dynDoors);
+
+  // 五金: 累加 (dyn 覆盖不合适, 因为静态 shell 五金 与 dyn 门铰/滑轨 属于不同物理位置)
+  const mergedHardware = { ...((meta && meta.hardware_list) || {}) };
+  Object.entries(dynHardware).forEach(([k, v]) => {
+    if (typeof v !== 'number' || !v) return;
+    mergedHardware[k] = (mergedHardware[k] || 0) + v;
+  });
+
+  const bodyArea = round4(mergedBoards.reduce((s, b) => s + (b.area || 0), 0));
+  const doorArea = round4(mergedDoors.reduce((s, b) => s + (b.area || 0), 0));
+
+  return {
+    ...(meta || {}),
+    board_list: mergedBoards,
+    door_list: mergedDoors,
+    hardware_list: mergedHardware,
+    total_body_area: bodyArea,
+    total_door_area: doorArea,
+    total_raw_board_area: round4(bodyArea + doorArea),
+    overall_size: (meta && meta.overall_size) || {
+      total_width: cabinet.w,
+      total_height: cabinet.h,
+      total_depth: 42,
+    },
+  };
 }
 
 // —— 非标/加高: 按公式重算 board_list & door_list 尺寸, 五金 hardware_list 保留 —— //
@@ -91,14 +157,14 @@ function rescaleMetadata(baseMeta, W, H) {
   };
 }
 
-// —— 板材明细: 每块板一条 (只取柜身板, 门板由 buildDoorDetail 负责) —— //
+// —— 板材明细: 每块板一条 (只取柜身板, 门板由 buildDoorDetail 负责, 台面由 buildCounterDetail 负责) —— //
 function buildPanelDetail(boardList, panelUnit) {
   const out = [];
   (boardList || []).forEach((b) => {
+    if (_isCountertop(b.node_name)) return;
     const dictEntry = panelDict.get(b.node_name);
     const cat = dictEntry ? dictEntry.category : 'cabinet_frame';
     if (cat === 'hanging_component') return;
-    // 迁移期兼容: 旧数据 board_list 里可能混入门板, 由 buildDoorDetail 单独出行, 这里跳过。
     if (cat === 'door_panel') return;
     const name = dictEntry ? dictEntry.display_name : b.node_name;
     out.push({
@@ -114,11 +180,34 @@ function buildPanelDetail(boardList, panelUnit) {
   return out;
 }
 
-// —— 门板明细: 每块门板一条, 单价 = 基材 + 门材 + 门艺 —— //
+// —— 台面明细: 每块台面一条, 单价按 countertop_marble_50mm (元/米), 长度取长边 —— //
+function buildCounterDetail(boardList, counterUnit) {
+  const out = [];
+  (boardList || []).forEach((b) => {
+    if (!_isCountertop(b.node_name)) return;
+    const dictEntry = panelDict.get(b.node_name);
+    const name = dictEntry ? dictEntry.display_name : b.node_name;
+    const lengthCm = Math.max(b.length || 0, b.width || 0);
+    const lengthM = lengthCm / 100;
+    out.push({
+      name,
+      code: b.node_name,
+      size: `${b.length}×${b.width}×${b.thickness}`,
+      qty: 1,
+      length: round4(lengthM),
+      unit: counterUnit,
+      total: round2(lengthM * counterUnit),
+    });
+  });
+  return out;
+}
+
+// —— 门板明细: 每块门板一条, 单价 = 基材 + 门材 + 门艺; 玻璃门单独出行走 glass_door —— //
 function buildDoorDetail(doorList, panelUnit, doorMatUnit, doorCraftUnit) {
   const doorUnit = panelUnit + doorMatUnit + doorCraftUnit;
   const out = [];
   (doorList || []).forEach((d) => {
+    if (_isGlassDoor(d)) return;
     const dictEntry = panelDict.get(d.node_name);
     const name = dictEntry ? dictEntry.display_name : d.node_name;
     out.push({
@@ -134,13 +223,39 @@ function buildDoorDetail(doorList, panelUnit, doorMatUnit, doorCraftUnit) {
   return out;
 }
 
+// —— 玻璃门明细: 单价 = glass_door 一项, 不叠加 panel/doorMat/doorCraft —— //
+function buildGlassDoorDetail(doorList, glassUnit) {
+  const out = [];
+  (doorList || []).forEach((d) => {
+    if (!_isGlassDoor(d)) return;
+    const dictEntry = panelDict.get(d.node_name);
+    const name = dictEntry ? dictEntry.display_name : d.node_name;
+    out.push({
+      name,
+      code: d.node_name,
+      size: `${d.length}×${d.width}×${d.thickness}`,
+      qty: 1,
+      area: round4(d.area),
+      unit: glassUnit,
+      total: round2(d.area * glassUnit),
+    });
+  });
+  return out;
+}
+
 // —— 单柜成本 —— //
 function calcModule(cabinet, cfg) {
   const glbFile = resolveGlbFile(cabinet);
   if (!glbFile) return null;
 
   const baseMeta = modelMeta.peekMeta(glbFile);
-  if (!baseMeta) {
+  const hasDynamic = !!(
+    (cabinet.dynamicBoardList && cabinet.dynamicBoardList.length) ||
+    (cabinet.dynamicDoorList && cabinet.dynamicDoorList.length) ||
+    (cabinet.dynamicHardware && Object.keys(cabinet.dynamicHardware).length)
+  );
+  // 无 baseMeta 且无 dynamic → missing meta; 有 dynamic 时即使 meta 缺失也能算成本 (shoe/bookshelf 常态)
+  if (!baseMeta && !hasDynamic) {
     return {
       missing: 'meta',
       label: cabinet.label || '',
@@ -153,20 +268,42 @@ function calcModule(cabinet, cfg) {
   }
 
   const isFormulaPath = cabinet.kind === 'nonstandard' || cabinet.kind === 'raise';
-  const meta = isFormulaPath ? rescaleMetadata(baseMeta, cabinet.w, cabinet.h) : baseMeta;
+  let meta = baseMeta ? (isFormulaPath ? rescaleMetadata(baseMeta, cabinet.w, cabinet.h) : baseMeta) : null;
+  // 合并运行时动态板件 (shoe/bookshelf 主要靠这条路径)
+  if (hasDynamic) meta = mergeDynamicIntoMeta(meta, cabinet);
 
   const panelPriceEntry = priceDict.get(cfg.panel);
   const doorMatEntry = priceDict.get(cfg.doorPanel);
   const doorCraftEntry = priceDict.get(cfg.doorCraft);
+  const counterEntry = priceDict.get(COUNTERTOP_PRICE_CODE);
+  const glassDoorEntry = priceDict.get(GLASS_DOOR_PRICE_CODE);
   const panelUnit = panelPriceEntry ? panelPriceEntry.price : 0;
   const doorMatUnit = doorMatEntry ? doorMatEntry.price : 0;
   const doorCraftUnit = doorCraftEntry ? doorCraftEntry.price : 0;
+  const counterUnit = counterEntry ? counterEntry.price : 0;
+  const glassDoorUnit = glassDoorEntry ? glassDoorEntry.price : 0;
   if (!panelPriceEntry) console.warn('[cost-engine] price miss', cfg.panel);
   if (!doorMatEntry) console.warn('[cost-engine] price miss', cfg.doorPanel);
   if (!doorCraftEntry) console.warn('[cost-engine] price miss', cfg.doorCraft);
 
-  const bodyCost = meta.total_body_area * panelUnit;
-  const doorCost = meta.total_door_area * (panelUnit + doorMatUnit + doorCraftUnit);
+  // 台面从 body 面积里拆出去 (不能既按 m² 又按米算): body 面积用不含台面的板件面积重算
+  const boardListNoCounter = (meta.board_list || []).filter((b) => !_isCountertop(b.node_name));
+  const bodyAreaNoCounter = boardListNoCounter.reduce((s, b) => s + (b.area || 0), 0);
+  const bodyCost = bodyAreaNoCounter * panelUnit;
+
+  // 玻璃门从 door 面积里拆出去: 常规门按 panel+doorMat+doorCraft, 玻璃门按 glass_door
+  const glassDoorArea = (meta.door_list || [])
+    .filter(_isGlassDoor)
+    .reduce((s, d) => s + (d.area || 0), 0);
+  const normalDoorArea = meta.total_door_area - glassDoorArea;
+  const doorCost = normalDoorArea * (panelUnit + doorMatUnit + doorCraftUnit);
+  const glassDoorCost = glassDoorArea * glassDoorUnit;
+  if (glassDoorArea > 0 && !glassDoorEntry) console.warn('[cost-engine] price miss', GLASS_DOOR_PRICE_CODE);
+
+  // 台面成本: Σ length(米) × counterUnit
+  const counterDetail = buildCounterDetail(meta.board_list, counterUnit);
+  const counterCost = counterDetail.reduce((s, r) => s + (r.total || 0), 0);
+  if (counterDetail.length && !counterEntry) console.warn('[cost-engine] price miss', COUNTERTOP_PRICE_CODE);
 
   const brand = cfg.hardware;
   const lighting = cfg.lighting;
@@ -205,18 +342,21 @@ function calcModule(cabinet, cfg) {
   return {
     label: cabinet.label || '',
     code: cabinet.code, w: cabinet.w, h: cabinet.h, glbFile,
-    totalBodyArea: round4(meta.total_body_area),
-    totalDoorArea: round4(meta.total_door_area),
+    // totalBodyArea 不含台面 (台面按米计价, 不能进按 m² 算的 panel 类目)
+    totalBodyArea: round4(bodyAreaNoCounter),
+    // totalDoorArea 不含玻璃门 (玻璃门走 glass_door 独立单价, 不参与 panel/doorMat/doorCraft 类目)
+    totalDoorArea: round4(normalDoorArea),
     totalRawBoardArea: round4(meta.total_raw_board_area),
-    // 命名兼容旧 UI: '板材合计' 含门板成本
-    panelCost: round2(bodyCost + doorCost),
+    // 命名兼容旧 UI: '板材合计' 含门板 + 玻璃门 + 台面 (三者各出独立明细行但汇总进 panelCost)
+    panelCost: round2(bodyCost + doorCost + glassDoorCost + counterCost),
+    counterCost: round2(counterCost),
+    glassDoorCost: round2(glassDoorCost),
     hardwareCost: round2(hardwareCost),
     detail: {
-      // 板材表: 柜身板 (board_list) + 门板 (door_list), 每块单独一条。
-      // 数量始终由 door_list 决定, 板材合计里的门板费用取 total_door_area × doorUnit (在上面 doorCost 里),
-      // 与逐块 area × doorUnit 之和可能存在小的四舍五入差异 (设计如此)。
       panels: buildPanelDetail(meta.board_list, panelUnit)
-        .concat(buildDoorDetail(meta.door_list, panelUnit, doorMatUnit, doorCraftUnit)),
+        .concat(buildDoorDetail(meta.door_list, panelUnit, doorMatUnit, doorCraftUnit))
+        .concat(buildGlassDoorDetail(meta.door_list, glassDoorUnit))
+        .concat(counterDetail),
       hardware: hardwareDetail,
     },
   };
@@ -315,4 +455,4 @@ function calc({ cabinets, materials, wall }) {
 function round2(v) { return Math.round(v * 100) / 100; }
 function round4(v) { return Math.round(v * 10000) / 10000; }
 
-module.exports = { calc, calcModule, resolveGlbFile, rescaleMetadata };
+module.exports = { calc, calcModule, resolveGlbFile, rescaleMetadata, mergeDynamicIntoMeta };

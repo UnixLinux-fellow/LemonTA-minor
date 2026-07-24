@@ -40,6 +40,7 @@ Page({
     modeOptions: [
       { id: 'wardrobe', label: '衣柜' },
       { id: 'shoe', label: '鞋柜' },
+      { id: 'bookshelf', label: '书柜' },
     ],
   },
 

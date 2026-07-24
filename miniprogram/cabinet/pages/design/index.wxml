@@ -42,6 +42,7 @@
     <view class="picker-tabs">
       <view wx:if="{{show50}}" class="tab {{sizeTab === 50 ? 'active' : ''}}" data-v="50" bindtap="onSwitchSize">50 cm</view>
       <view wx:if="{{show100}}" class="tab {{sizeTab === 100 ? 'active' : ''}}" data-v="100" bindtap="onSwitchSize">100 cm</view>
+      <view wx:if="{{show120}}" class="tab {{sizeTab === 120 ? 'active' : ''}}" data-v="120" bindtap="onSwitchSize">120 cm</view>
       <view wx:if="{{show150}}" class="tab {{sizeTab === 150 ? 'active' : ''}}" data-v="150" bindtap="onSwitchSize">150 cm</view>
       <view class="picker-hint">
         <text wx:if="{{meta.isFull}}" style="color:#16a34a;">已布满，请点击确认布局</text>

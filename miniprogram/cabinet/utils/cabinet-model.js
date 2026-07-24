@@ -70,9 +70,10 @@ function localModels() {
   return modelSync.listModels();
 }
 
-// 按 subdir 归类：50cm → s50，100cm → s100，150cm → shoe，zj → corner；code 以 g 开头的走 raise。
+// 按 subdir 归类：50cm → s50，100cm → s100，120cm → bookshelf，
+// 150cm → shoe，zj → corner；code 以 g 开头的走 raise。
 function categorize(models) {
-  const out = { s50: [], s100: [], shoe: [], raise: [], corner: [], sk: [], other: [] };
+  const out = { s50: [], s100: [], shoe: [], bookshelf: [], raise: [], corner: [], sk: [], other: [] };
   models.forEach((m) => {
     if (m.subdir === 'zj') {
       out.corner.push(m);
@@ -82,6 +83,8 @@ function categorize(models) {
     } else if (m.subdir === '100cm') {
       if (/^g/.test(m.code || '')) out.raise.push(m);
       else out.s100.push(m);
+    } else if (m.subdir === '120cm') {
+      out.bookshelf.push(m);
     } else if (m.subdir === '150cm') {
       out.shoe.push(m);
     } else if (m.code === 'SK' || m.code === 'sk') {

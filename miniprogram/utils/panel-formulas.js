@@ -33,6 +33,17 @@ const PANEL_FORMULAS = {
   w1_door_single_18: (W, H) => ({ length: round(H - 6.44), width: round(W - 0.6), thickness: 1.8 }),
   door_left_18:   (W, H) => ({ length: round(H - 6.44), width: round((W - 0.6) / 2), thickness: 1.8 }),
   door_right_18:  (W, H) => ({ length: round(H - 6.44), width: round((W - 0.6) / 2), thickness: 1.8 }),
+  // 书柜中段玻璃门 (公式同 door_single_18)
+  door_middle_18:  (W, H) => ({ length: round(H - 6.44), width: round(W - 0.6), thickness: 1.8 }),
+  // 书柜三段布局的两块固定水平板 (公式同 top_panel_18)
+  fixed_divider_up_18:   (W, H) => ({ length: 58, width: round(W - 3.6), thickness: 1.8 }),
+  fixed_divider_down_18: (W, H) => ({ length: 58, width: round(W - 3.6), thickness: 1.8 }),
+  // 书柜中段中侧板 (公式同 w1_side_left_panel_18)
+  mid_divider_middle_18: (W, H) => ({ length: round(H - 6), width: 58, thickness: 1.8 }),
+  // 150B/C 主分割板 (贯穿全高, 公式同侧板)
+  main_divider_LR_18: (W, H) => ({ length: round(H - 6), width: 58, thickness: 1.8 }),
+  // 150C 左下柜抽面 (公式同 drawer_box_front_01_18)
+  drawer_front_L_01_18: _drawerFront,
 };
 
 for (let i = 1; i <= 10; i++) {

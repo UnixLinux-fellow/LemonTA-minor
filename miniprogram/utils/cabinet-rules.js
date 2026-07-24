@@ -9,7 +9,8 @@ const CORNER = {
 
 const WALL_LIMIT = { wMin: 44, wMax: 1000, hMin: 232, hMax: 1000 };
 const WALL_LIMIT_SHOE = { wMin: 80, wMax: 300, hMin: 220, hMax: 270 };
-const MODE = { WARDROBE: 'wardrobe', SHOE: 'shoe' };
+const WALL_LIMIT_BOOKSHELF = { wMin: 80, wMax: 300, hMin: 220, hMax: 270 };
+const MODE = { WARDROBE: 'wardrobe', SHOE: 'shoe', BOOKSHELF: 'bookshelf' };
 
 function isPositiveInt(v) {
   return typeof v === 'number' && Number.isInteger(v) && v > 0;
@@ -25,7 +26,9 @@ function validateName(name, existingNames) {
 }
 
 function validateWall(width, height, mode) {
-  const limit = mode === MODE.SHOE ? WALL_LIMIT_SHOE : WALL_LIMIT;
+  const limit = mode === MODE.SHOE ? WALL_LIMIT_SHOE
+              : mode === MODE.BOOKSHELF ? WALL_LIMIT_BOOKSHELF
+              : WALL_LIMIT;
   if (!isPositiveInt(width) || !isPositiveInt(height)) {
     return { ok: false, message: '墙体尺寸需为正整数' };
   }
@@ -106,6 +109,7 @@ module.exports = {
   CORNER,
   WALL_LIMIT,
   WALL_LIMIT_SHOE,
+  WALL_LIMIT_BOOKSHELF,
   MODE,
   validateName,
   validateWall,

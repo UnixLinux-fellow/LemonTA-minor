@@ -4,6 +4,7 @@
 const { createScopedThreejs } = require('threejs-miniprogram');
 const attachGLTFLoader = require('../vendor/GLTFLoader.js');
 const shoeCabinetParts = require('./shoe-cabinet-parts.js');
+const bookshelfParts = require('./bookshelf-parts.js');
 
 const COLOR_HEX = {
   white: 0xf0f0e7,
@@ -245,31 +246,91 @@ class ThreeRenderer {
 
     // 沿用 room 模式的等比缩放/居中逻辑
     const CABINET_DEPTH_CM = 60;
-    const bbox = new THREE.Box3().setFromObject(mesh);
-    const size = new THREE.Vector3();
-    bbox.getSize(size);
-    const sx = size.x > 0.001 ? item.w / size.x : 1;
-    const sy = size.y > 0.001 ? item.h / size.y : 1;
-    const sz = size.z > 0.001 ? CABINET_DEPTH_CM / size.z : 1;
-    mesh.scale.set(sx, sy, sz);
+    const isShoe = item.kind === 'shoe' && !(mesh.userData && mesh.userData.isFallback);
+    const isBookshelf = item.kind === 'bookshelf' && !(mesh.userData && mesh.userData.isFallback);
+    if (isShoe || isBookshelf) {
+      // 缩略图: 用 GLB 原始几何, 只做「剥离内部装饰 + 整体等比缩放到目标宽 + 居中」.
+      // 注意: 必须 remove 而非 visible=false, 否则 Box3.setFromObject 仍把 sample 算入 bbox,
+      // 导致 size.x 偏大 → k 太小 → 柜体缩得极小.
+      // 书柜/鞋柜: 只剥 sample; 书柜额外剥 led_strip_ (自发光蓝色灯带).
+      // 门/层板/隔板等内部结构保留, 让缩略图能看到分层.
+      // mesh.name 常常是 "Geom3D", 语义放在祖先节点名字里 (e.g. 父节点叫 led_strip_L2),
+      // 所以判断走"自身或最近有名祖先"两选一, 不能只匹配 n.name.
+      const ancestorSemanticName = (n) => {
+        let cur = n && n.parent;
+        while (cur) {
+          if (cur.name && cur.name.toLowerCase() !== 'geom3d') return cur.name.toLowerCase();
+          cur = cur.parent;
+        }
+        return '';
+      };
+      const toRemove = [];
+      mesh.traverse((n) => {
+        if (!n.isMesh) return;
+        const self = (n.name || '').toLowerCase();
+        const sem = self && self !== 'geom3d' ? self : ancestorSemanticName(n);
+        if (sem.indexOf('_sample') >= 0) toRemove.push(n);
+        else if (isBookshelf && sem.indexOf('led_strip_') >= 0) toRemove.push(n);
+      });
+      toRemove.forEach((n) => { if (n.parent) n.parent.remove(n); });
+
+      if (isBookshelf) {
+        // 120x.glb 外壳材质是 KHR_pbrSpecularGlossiness, GLTFLoader 生成的自定义
+        // ShaderMaterial 在 preview 简化光照下呈近黑/发蓝. 兜底替换成 MeshStandardMaterial,
+        // 让书柜缩略图跟鞋柜一样是本白外观. 与主场景 _prepareBookshelfShellAndSamples 一致.
+        mesh.traverse((n) => {
+          if (!n.isMesh || !n.material) return;
+          const mats = Array.isArray(n.material) ? n.material : [n.material];
+          const replaced = mats.map((m) => {
+            if (m && m.isGLTFSpecularGlossinessMaterial) {
+              const std = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 });
+              if (m.dispose) { try { m.dispose(); } catch (e) {} }
+              return std;
+            }
+            return m;
+          });
+          n.material = Array.isArray(n.material) ? replaced : replaced[0];
+        });
+      }
+      const bbox = new THREE.Box3().setFromObject(mesh);
+      const size = new THREE.Vector3();
+      bbox.getSize(size);
+      const k = size.x > 0.001 ? item.w / size.x : 1;
+      mesh.scale.setScalar(k);
+    } else {
+      const bbox = new THREE.Box3().setFromObject(mesh);
+      const size = new THREE.Vector3();
+      bbox.getSize(size);
+      const sx = size.x > 0.001 ? item.w / size.x : 1;
+      const sy = size.y > 0.001 ? item.h / size.y : 1;
+      const sz = size.z > 0.001 ? CABINET_DEPTH_CM / size.z : 1;
+      mesh.scale.set(sx, sy, sz);
+    }
     const bbox2 = new THREE.Box3().setFromObject(mesh);
     mesh.position.y -= bbox2.min.y;
     mesh.position.x -= (bbox2.min.x + bbox2.max.x) / 2;
     mesh.position.z -= (bbox2.min.z + bbox2.max.z) / 2;
 
-    this._stripNonGeometryNodes(group);
-    this._normalizeMaterials(group);
-    this._applyMaterial(group, colorId, item);
-    // 原木色但贴图还没就绪：触发加载；就绪后 _ensureWoodTexture 会重刷预览
-    if (colorId === 'wood' && !this._woodImage) {
-      this._ensureWoodTexture();
+    // 鞋柜/书柜缩略图: 使用 GLB 原始几何 + 原始材质, 跳过参数化重建/边线勾勒/纹理重建.
+    // 这几步 (EdgesGeometry 遍历、每 mesh 纹理 Texture 重建) 是 CPU 大头, 4 个缩略图并行时
+    // 会把 CPU 打到 80%. 主 3D 场景 (_placeRow) 仍走参数化重建, 只缩略图省这层.
+    if (isShoe || isBookshelf) {
+      this._applyDoorVisibility(group);
+    } else {
+      this._stripNonGeometryNodes(group);
+      this._normalizeMaterials(group);
+      this._applyMaterial(group, colorId, item);
+      // 原木色但贴图还没就绪：触发加载；就绪后 _ensureWoodTexture 会重刷预览
+      if (colorId === 'wood' && !this._woodImage) {
+        this._ensureWoodTexture();
+      }
+      // 白色但贴图还没就绪：触发加载；就绪后 _ensureWhiteTexture 会重刷预览
+      if (colorId === 'white' && !this._whiteImage) {
+        this._ensureWhiteTexture();
+      }
+      this._applyEdges(group);
+      this._applyDoorVisibility(group);
     }
-    // 白色但贴图还没就绪：触发加载；就绪后 _ensureWhiteTexture 会重刷预览
-    if (colorId === 'white' && !this._whiteImage) {
-      this._ensureWhiteTexture();
-    }
-    this._applyEdges(group);
-    this._applyDoorVisibility(group);
 
     // 水平视角、向左偏转 ~21°：相机正对柜体中部高度，柜体本身绕 Y 转出 3D 感
     group.position.set(0, 0, 0);
@@ -603,19 +664,36 @@ class ThreeRenderer {
     });
   }
 
+  // 请求下一帧渲染. 交互 (旋转/缩放) 时每帧调用一次即可;
+  // 数据变更 (setItems/setColor/setShowDoor 等) 内部会自动调用.
+  requestRender() {
+    this._needsRender = true;
+  }
+
   startLoop() {
+    // 按需渲染: loop 常驻但仅在 _needsRender=true 时真正 render.
+    // 之前 60fps 常驻 render 一场 50 mesh + shadowMap 稳态占 CPU 20%+, 现在静止时接近 0.
+    this._needsRender = true;
+    this._lastRotX = null;
+    this._lastRotY = null;
+    this._lastZoom = null;
     const tick = () => {
       this._raf = this.canvas.requestAnimationFrame(tick);
+      // 旋转/缩放变了 → 需要重渲
+      if (this._rotX !== this._lastRotX || this._rotY !== this._lastRotY || this._zoom !== this._lastZoom) {
+        this._needsRender = true;
+      }
+      if (!this._needsRender) return;
+      this._needsRender = false;
+      this._lastRotX = this._rotX;
+      this._lastRotY = this._rotY;
+      this._lastZoom = this._zoom;
       if (this._roomGroup) {
         this._roomGroup.rotation.x = this._rotX;
         this._roomGroup.rotation.y = this._rotY;
       }
-      // 缩放走 fov 而不是相机 z：真正的等比缩放，画面里宽高同倍放大/缩小。
-      // 之前用 camera.z / zoom 是透视放大，垂直半 fov(22.5°) 比水平半 fov 小（横屏画布下），
-      // 高墙的顶底会先于左右被裁掉——用户看到"顶部和底部看不到"就是这个成因。
       this.camera.position.z = this._cameraDist;
       const base = this._baseFov || 45;
-      // fov 缩放公式：tan(newHalfFov) = tan(baseHalfFov) / zoom
       const newFov = 2 * Math.atan(Math.tan(base * Math.PI / 360) / this._zoom) * 180 / Math.PI;
       if (this.camera.fov !== newFov) {
         this.camera.fov = newFov;
@@ -748,6 +826,7 @@ class ThreeRenderer {
   setDimensionsInfo(info) {
     this._dimInfo = info;
     this._rebuildDimensions();
+    this.requestRender && this.requestRender();
   }
 
   // 用 this._dimInfo + 当前 _cabinets 位置重建全部标注。setItems 结束时也调,以确保
@@ -761,8 +840,9 @@ class ThreeRenderer {
       this._roomGroup.add(this._dimGroup);
     }
     this._disposeDimGroup();
-    // 鞋柜: 只画整墙宽/整墙高 + 深 (dimensionsInfo.mode==='shoe')
-    if (info.mode === 'shoe') {
+    // 鞋柜 / 书柜: 只画整墙宽/整墙高 + 深 (dimensionsInfo.mode∈{shoe, bookshelf})
+    // 两者 DEPTH_TOTAL 完全一致 (420mm), 尺寸标注可复用同一条分支.
+    if (info.mode === 'shoe' || info.mode === 'bookshelf') {
       const zFront = -this._sceneDepthCm + shoeCabinetParts.DEPTH_TOTAL / 10 + 3;
       // 墙宽 (黑) - 贴柜前突, y=0
       {
@@ -988,6 +1068,7 @@ class ThreeRenderer {
   setShowDoor(v) {
     this._showDoor = !!v;
     this._cabinets.forEach((c) => this._applyDoorVisibility(c.mesh));
+    this.requestRender && this.requestRender();
   }
 
   // 按当前柜体色返回 edge 线的样式。白色柜体下板缝密集叠加 0x6b7280 / 0.22 会把
@@ -1032,7 +1113,11 @@ class ThreeRenderer {
       if (node.userData && node.userData._edged) return;
       try {
         const eg = new THREE.EdgesGeometry(node.geometry, EDGE_ANGLE);
-        const ls = new THREE.LineSegments(eg, mat);
+        // 玻璃门本体 opacity=0.28 + 白色内壁 + 白色 shell → 融于背景, 显示时肉眼看不见.
+        // 用独立黑色边框 material 勾勒轮廓; 不共享 _edgeMat, 避免被 _syncEdgeMatToColor 按柜色 tint 覆盖.
+        const useGlassEdge = node.userData && node.userData.material === 'glass';
+        const edgeMat = useGlassEdge ? this._getGlassEdgeMat() : mat;
+        const ls = new THREE.LineSegments(eg, edgeMat);
         ls.userData._isEdge = true;
         node.add(ls);
         node.userData._edged = true;
@@ -1042,10 +1127,23 @@ class ThreeRenderer {
     });
   }
 
+  _getGlassEdgeMat() {
+    if (this._glassEdgeMat) return this._glassEdgeMat;
+    const THREE = this.THREE;
+    if (!THREE.LineBasicMaterial) return null;
+    this._glassEdgeMat = new THREE.LineBasicMaterial({
+      color: 0x000000,
+      transparent: false,
+      opacity: 1.0,
+    });
+    return this._glassEdgeMat;
+  }
+
   _applyDoorVisibility(group) {
     if (!group) return;
     // 老的 shoe 路径整柜是一块 mesh, 切门会误隐掉整柜, 所以之前 early return.
     // 现在鞋柜门 (lower_door_N / upper_door_N) 是参数化生成的独立 mesh, 命中下方的 door 正则.
+    // 书柜玻璃门也跟其他门一样受 _showDoor 开关控制 (默认 false).
     group.traverse((node) => {
       const raw = node.name || '';
       const lower = raw.toLowerCase();
@@ -1074,6 +1172,7 @@ class ThreeRenderer {
     if (colorId === 'white' && !this._whiteImage) {
       this._ensureWhiteTexture();
     }
+    this.requestRender && this.requestRender();
   }
 
   // 懒加载 utils/white.png → 仅缓存 Image 对象（不缓存 Texture）。
@@ -1095,6 +1194,7 @@ class ThreeRenderer {
         if (this._color === 'white') {
           if (this._cabinets && this._cabinets.length) {
             this._cabinets.forEach((c) => this._applyMaterial(c.mesh, 'white', c.item));
+            this.requestRender && this.requestRender();
           }
           if (this._previewGroup) {
             this._previewGroup.children.forEach((g) => {
@@ -1137,6 +1237,7 @@ class ThreeRenderer {
               this._applyMaterial(c.mesh, this._color, c.item);
             }
           });
+          this.requestRender && this.requestRender();
         }
         if (this._previewGroup) {
           this._previewGroup.children.forEach((g) => {
@@ -1180,6 +1281,7 @@ class ThreeRenderer {
         if (this._color === 'wood') {
           if (this._cabinets && this._cabinets.length) {
             this._cabinets.forEach((c) => this._applyMaterial(c.mesh, 'wood', c.item));
+            this.requestRender && this.requestRender();
           }
           if (this._previewGroup) {
             this._previewGroup.children.forEach((g) => {
@@ -1368,6 +1470,29 @@ class ThreeRenderer {
       const nm = (node.name || '').toLowerCase();
       if (nm === 'back' || nm === 'rod') return;
 
+      // 玻璃门 (userData.material==='glass'): 覆盖为透明白色, 不参与颜色系统.
+      // miniprogram three 环境 MeshPhysicalMaterial 不稳, 退化为 MeshStandardMaterial + transparent.
+      if (node.userData && node.userData.material === 'glass') {
+        const mats = Array.isArray(node.material) ? node.material : [node.material];
+        mats.forEach((m) => {
+          if (!m) return;
+          if ('map' in m) m.map = null;
+          if ('normalMap' in m) m.normalMap = null;
+          if ('bumpMap' in m) m.bumpMap = null;
+          if ('bumpScale' in m) m.bumpScale = 0;
+          if (m.color) m.color.setHex(0xffffff);
+          if (m.emissive && m.emissive.setHex) m.emissive.setHex(0x000000);
+          if ('emissiveIntensity' in m) m.emissiveIntensity = 0;
+          if ('roughness' in m) m.roughness = 0.1;
+          if ('metalness' in m) m.metalness = 0;
+          if ('transparent' in m) m.transparent = true;
+          if ('opacity' in m) m.opacity = 0.28;
+          if ('depthWrite' in m) m.depthWrite = false;
+          m.needsUpdate = true;
+        });
+        return;
+      }
+
       // 鞋柜台面: 强制大理石纹理, 不受 colorId (wood/white/等) 影响.
       // marble 未就绪时静默跳过 (占位白色保留), 加载完 _ensureMarbleTexture 会重刷.
       if (nm === 'countertop' && this._marbleImage) {
@@ -1452,6 +1577,23 @@ class ThreeRenderer {
     console.log('[3D] setItems done bottom', bottom.length, 'top', top.length);
     // 柜体位置到位了才能算每柜宽标签位置 & 剩余宽 xLast,replay 一次
     this._rebuildDimensions();
+    this.requestRender && this.requestRender();
+  }
+
+  // 遍历当前 _cabinets, 对每个带 _dynParts 的 (shoe/bookshelf) 提取 dyn 板件 → 按 item.id 归档.
+  // 返回 { [id]: { board_list, door_list, hardware_list } }, 供 design 页 onConfirmLayout
+  // 把结果挂到 plan.cabinets[i] 的 dynamicBoardList/dynamicDoorList/dynamicHardware.
+  // cost-engine.mergeDynamicIntoMeta 消费这三个字段.
+  extractDynBoardLists() {
+    const { partsToBoardList } = require('../../utils/parts-to-board-list.js');
+    const out = {};
+    (this._cabinets || []).forEach((c) => {
+      const dyn = c.mesh && c.mesh.userData && c.mesh.userData._dynParts;
+      const id = c.item && c.item.id;
+      if (!dyn || !id) return;
+      out[id] = partsToBoardList(dyn);
+    });
+    return out;
   }
 
   async _placeRow(rowItems, yBase) {
@@ -1478,12 +1620,15 @@ class ThreeRenderer {
           it.kind === 'shoe' ||
           ((it.kind === 'standard' || it.kind === 'nonstandard') && it.w >= 125)
         ) && !(mesh.userData && mesh.userData.isFallback);
+        const isBookshelf = it.kind === 'bookshelf'
+          && !(mesh.userData && mesh.userData.isFallback);
         // 转角柜物理 depth = 宽 = 110cm; 其它衣柜 CABINET_DEPTH_CM(60)
         const isCornerLike =
           it.kind === 'corner' ||
           (it.kind === 'raise' && (it.code === 'yg' || it.code === 'zg'));
         let sx, sy, sz, targetDepth;
         let _dynShoe = null;
+        let _dynBookshelf = null;
         if (isShoe) {
           // [DIAG] 入 shoe 分支时的 item 信息
           console.log('[shoe-diag] item:', { kind: it.kind, code: it.code, w: it.w, h: it.h });
@@ -1519,7 +1664,42 @@ class ThreeRenderer {
           });
           // 生成参数化部件 (mm 单位); 挂载延迟到 mesh 位置归零之后, 避免 mesh 三轴独立缩放的二次拉伸
           console.log('[shoe-diag] scale:', 'sx=' + sx.toFixed(3), 'sy=' + sy.toFixed(3), 'sz=' + sz.toFixed(3), 'kWidthRatio=' + kWidthRatio.toFixed(3));
-          _dynShoe = shoeCabinetParts.generateCabinetDynamicParts(THREE, targetWmm, targetHmm, sampleGeometries);
+          // 传 variant (a/b/c/d), 由 shoe-cabinet-parts 内部分发到 150A/B/C/D 生成器
+          _dynShoe = shoeCabinetParts.generateCabinetDynamicParts(
+            THREE, targetWmm, targetHmm, sampleGeometries,
+            { variant: (it.code || 'a').toLowerCase() }
+          );
+        } else if (isBookshelf) {
+          // 书柜: 加载 120A GLB 壳, 剔除动态部件, 追加参数化三段门/层/隔/背板
+          const sampleGeometries = this._prepareBookshelfShellAndSamples(mesh);
+          const targetWmm = it.w * 10;
+          const targetHmm = it.h * 10;
+          const bbox3 = new THREE.Box3().setFromObject(mesh);
+          const size3 = new THREE.Vector3();
+          bbox3.getSize(size3);
+          // GLB 原始单位反推: 假设 120A.glb 原始 x 宽对应 1200mm
+          const kToMm = size3.x > 0.001 ? 1200 / size3.x : 1;
+          const glbWmm = size3.x * kToMm;
+          const glbHmm = size3.y * kToMm;
+          const glbDmm = size3.z * kToMm;
+          const kSceneToCm = 0.1;
+          sx = (targetWmm / glbWmm) * kToMm * kSceneToCm;
+          sy = (targetHmm / glbHmm) * kToMm * kSceneToCm;
+          sz = (bookshelfParts.DEPTH_TOTAL / glbDmm) * kToMm * kSceneToCm;
+          targetDepth = bookshelfParts.DEPTH_TOTAL / 10; // 42cm
+          mesh.scale.set(sx, sy, sz);
+          // 侧板不缩 X (同鞋柜策略)
+          const kWidthRatio = targetWmm / 1200;
+          mesh.traverse((n) => {
+            if (!n.isMesh) return;
+            const nn = (n.name || '').toLowerCase();
+            if (nn.indexOf('side_left_panel') >= 0 || nn.indexOf('side_right_panel') >= 0) {
+              n.scale.x = 1 / kWidthRatio;
+            }
+          });
+          _dynBookshelf = bookshelfParts.generateBookshelfDynamicParts(
+            THREE, targetWmm, targetHmm, sampleGeometries
+          );
         } else {
           sx = size.x > 0.001 ? it.w / size.x : 1;
           sy = size.y > 0.001 ? it.h / size.y : 1;
@@ -1536,6 +1716,8 @@ class ThreeRenderer {
         mesh.position.x -= (bbox2.min.x + bbox2.max.x) / 2;
         mesh.position.z -= (bbox2.min.z + bbox2.max.z) / 2;
         if (isShoe && _dynShoe) {
+          // 暴露 dyn root 到 group.userData 供外部提取 (成本计算读 userData.panel)
+          group.userData._dynParts = _dynShoe.root;
           // dyn.root 在 mm 空间, 挂到外层 group (与 mesh 平级), 避免 mesh 三轴独立缩放的二次拉伸
           // 只需 mm→cm 换算 (scale=0.1), 三轴一致
           _dynShoe.root.scale.set(0.1, 0.1, 0.1);
@@ -1549,6 +1731,15 @@ class ThreeRenderer {
           console.log('[shoe-diag] dynShoe.root.position:', _dynShoe.root.position.x.toFixed(2), _dynShoe.root.position.y.toFixed(2), _dynShoe.root.position.z.toFixed(2));
           group.add(_dynShoe.root);
         }
+        if (isBookshelf && _dynBookshelf) {
+          group.userData._dynParts = _dynBookshelf.root;
+          // 与 shoe 同策略: mm 空间的 dyn root 挂到 group 平级, scale 0.1 换算 cm,
+          // 位置对齐到 shell 正面 (bbox.max.z) 与左底.
+          _dynBookshelf.root.scale.set(0.1, 0.1, 0.1);
+          const shellBbox = new THREE.Box3().setFromObject(mesh);
+          _dynBookshelf.root.position.set(shellBbox.min.x, shellBbox.min.y, shellBbox.max.z);
+          group.add(_dynBookshelf.root);
+        }
         // 衣柜后表面贴后墙：转角柜中心 z = -D + 110/2 = -95，其它柜体 z = -D + 30
         const cabZ = -this._sceneDepthCm + targetDepth / 2;
         group.position.set(cursor, yBase, cabZ);
@@ -1561,6 +1752,7 @@ class ThreeRenderer {
         });
         this._roomGroup.add(group);
         if (isShoe) group.userData._isShoe = true;
+        if (isBookshelf) group.userData._isBookshelf = true;
         this._stripNonGeometryNodes(group);
         this._normalizeMaterials(group);
         this._applyMaterial(group, this._color, it);
@@ -1610,8 +1802,16 @@ class ThreeRenderer {
         name.indexOf('door_sample') >= 0 ||
         name.indexOf('mid_panel_sample') >= 0 ||
         name.indexOf('shelf_sample') >= 0 ||
+        // 150B/C/D 抽屉族: drawer_sample_18 / drawer_front_double_18 (150C) /
+        //                   drawer_double_1_18 / drawer_single_1_18 (150D).
+        // 由 shoe-cabinet-parts 参数化重建 (drawer_front_NN + 4 盒板).
+        name.indexOf('drawer_sample') >= 0 ||
+        name.indexOf('drawer_front') >= 0 ||
+        name.indexOf('drawer_double') >= 0 ||
+        name.indexOf('drawer_single') >= 0 ||
         name.indexOf('lower_door') >= 0 ||
         name.indexOf('upper_door') >= 0 ||
+        // 150B/C 主分割板: mid_divider_full_18 / mid_divider_full_sample_18 (indexOf 已覆盖)
         name.indexOf('mid_divider') >= 0 ||
         name.indexOf('shelf_fixed_up') >= 0 ||
         name.indexOf('shelf_fixed_down') >= 0 ||
@@ -1628,8 +1828,14 @@ class ThreeRenderer {
         // createFixedBackPanelGroup 按 [168,982] / [1000,1500] 重建.
         name.indexOf('back_panel_lower') >= 0 ||
         name.indexOf('back_panel_middle') >= 0 ||
+        // 150B/C: 左右分柜背板 back_panel_left_lower/upper_18, back_panel_right_18,
+        //         back_panel_right_total_18. 由 _generate150B/C 按左右柜内宽重建.
+        name.indexOf('back_panel_left') >= 0 ||
+        name.indexOf('back_panel_right') >= 0 ||
         /shelf_upper_[lr]\d/.test(name) ||
-        /shelf_fixed_[lr]\d/.test(name)
+        // 150B: shelf_fixed_R_18 (无数字变体, 右柜下柜顶板). 用 [_\d] 边界既保留
+        // 原来的 shelf_fixed_L1_18/R1_18 匹配, 又覆盖无数字场景.
+        /shelf_fixed_[lr][_\d]/.test(name)
       ) {
         toRemove.push(n);
       }
@@ -1652,9 +1858,91 @@ class ThreeRenderer {
     };
   }
 
+  // 书柜: 从 120A.glb 剔除全部动态部件, 保留 shell (侧板/顶板/底板/踢脚).
+  // 120A.glb 里 mesh 层节点全叫 "Geom3D", 语义 name 挂在父节点上 (双写形式如
+  // "lower_door_1_lower_door_1"), 与 150S.glb 结构不同. 因此遍历时沿 parent 链
+  // 找第一个有 name 的祖先来匹配, 而不是直接读 mesh.name.
+  _prepareBookshelfShellAndSamples(root) {
+    const THREE = this.THREE;
+    const toRemove = [];
+    const ancestorName = (n) => {
+      let cur = n && n.parent;
+      while (cur) {
+        if (cur.name) return cur.name.toLowerCase();
+        cur = cur.parent;
+      }
+      return '';
+    };
+    root.traverse((n) => {
+      if (!n.isMesh) return;
+      const self = (n.name || '').toLowerCase();
+      const anc = ancestorName(n);
+      const sem = self && self !== 'geom3d' ? self : anc;
+      if (
+        // sample 节点
+        sem.indexOf('door_sample') >= 0 ||
+        sem.indexOf('shelf_sample') >= 0 ||
+        sem.indexOf('mid_panel_sample') >= 0 ||
+        sem.indexOf('glass_door_sample') >= 0 ||
+        sem.indexOf('led_strip_sample') >= 0 ||
+        // 门 (下段/中段玻璃/上段)
+        sem.indexOf('lower_door_') >= 0 ||
+        sem.indexOf('upper_door_') >= 0 ||
+        sem.indexOf('mid_glass_door_') >= 0 ||
+        // 层板 (下段/中段)
+        sem.indexOf('shelf_lower') >= 0 ||
+        sem.indexOf('shelf_mid') >= 0 ||
+        // 中侧板 (下段/中段/上段)
+        sem.indexOf('lower_divider') >= 0 ||
+        sem.indexOf('mid_divider') >= 0 ||
+        sem.indexOf('upper_divider') >= 0 ||
+        // 固定水平板
+        sem.indexOf('shelf_fixed_down') >= 0 ||
+        sem.indexOf('shelf_fixed_up') >= 0 ||
+        // 背板三段
+        sem.indexOf('back_panel') >= 0 ||
+        // LED 灯条 (装饰, 不参与成本; 由参数化模块决定是否重建)
+        sem.indexOf('led_strip_') >= 0
+      ) {
+        toRemove.push(n);
+      }
+    });
+    toRemove.forEach((n) => { if (n.parent) n.parent.remove(n); });
+    // 120A.glb material 用 KHR_materials_pbrSpecularGlossiness 扩展, GLTFLoader
+    // 编译成自定义 ShaderMaterial (isGLTFSpecularGlossinessMaterial=true), 渲染读
+    // uniforms.diffuse 而非 material.color, _applyMaterial 改 m.color 完全无效,
+    // shell 就被渲染成材质原始色 (wood_wood_enf_19 diffuse=浅木 + specular*metalness
+    // 一叠加, 在无强 IBL 下呈近黑). 150S/150A 的 GLB 里没有 materials 定义, GLTFLoader
+    // 自动给每 mesh 分配 MeshStandardMaterial, 才能被 _applyMaterial 正常操控.
+    // 这里把 shell 遗留的 SpecGloss ShaderMaterial 兜底替换成 MeshStandardMaterial.
+    root.traverse((n) => {
+      if (!n.isMesh || !n.material) return;
+      const mats = Array.isArray(n.material) ? n.material : [n.material];
+      const replaced = mats.map((m) => {
+        if (m && m.isGLTFSpecularGlossinessMaterial) {
+          const std = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 });
+          if (m.dispose) { try { m.dispose(); } catch (e) {} }
+          return std;
+        }
+        return m;
+      });
+      n.material = Array.isArray(n.material) ? replaced : replaced[0];
+    });
+    return {
+      doorGeometry: new THREE.BoxGeometry(450, 846, 18),
+      shelfGeometry: new THREE.BoxGeometry(1, 1, 1),
+      dividerGeometry: new THREE.BoxGeometry(1, 1, 1),
+    };
+  }
+
   // 把 it 归一化到 { subdir, name } —— hot-replace 订阅与 getLocalPath 都用它
   _resolveTarget(it) {
     const code = (it.code || '').toLowerCase();
+    if (it.kind === 'bookshelf') {
+      // 120cm/120A.glb / 120B.glb / ... (后续可扩)
+      const letter = (it.code || 'a').charAt(0).toLowerCase();
+      return { subdir: '120cm', name: `120${letter.toUpperCase()}.glb` };
+    }
     if (it.kind === 'shoe') {
       // 按 code 拼名 (与衣柜标准柜对称): 150A.glb / 150B.glb / ...
       // 老 plan 里可能存 code='s' (硬编码遗留), 兜底成 'a'
@@ -1766,6 +2054,7 @@ class ThreeRenderer {
       this._roomGroup.remove(oldGroup);
       this._roomGroup.add(wrap);
       match.mesh = wrap;
+      this.requestRender && this.requestRender();
     });
   }
 

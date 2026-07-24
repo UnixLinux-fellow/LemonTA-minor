@@ -353,7 +353,11 @@ function serialize(state, planMeta) {
 function flattenCabinets(state) {
   const list = [];
   const standards = state.items.filter(
-    (it) => it.kind === 'standard' || it.kind === 'corner' || it.kind === 'nonstandard'
+    (it) => it.kind === 'standard'
+         || it.kind === 'corner'
+         || it.kind === 'nonstandard'
+         || it.kind === 'shoe'
+         || it.kind === 'bookshelf'
   );
   standards.forEach((it, idx) => {
     list.push({
@@ -363,6 +367,10 @@ function flattenCabinets(state) {
       w: it.w,
       h: it.h,
       kind: it.kind,
+      // shoe/bookshelf 的 dyn 板件靠这个 id 在 design 页 onConfirmLayout 里
+      // 从 renderer._cabinets 匹配对应 group.userData._dynParts.
+      // standard/corner/nonstandard/raise 走 glb 元数据, 不需要 id.
+      id: it.id,
     });
   });
   if (state.meta.hasRaise) {

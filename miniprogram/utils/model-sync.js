@@ -11,7 +11,7 @@ const cloud = require('./cloud.js');
 
 const ROOT_DIRNAME = 'cabinet-model';
 const MANIFEST_NAME = 'manifest.json';
-const SUBDIRS = ['50cm', '100cm', '150cm', 'zj'];
+const SUBDIRS = ['50cm', '100cm', '120cm', '150cm', 'zj'];
 const MAX_CONCURRENT_DOWNLOADS = 3;
 
 // ---- 单例状态 ----
@@ -364,6 +364,7 @@ function inferKind(subdir, code) {
     return 'corner';
   }
   if (subdir === '150cm') return 'shoe';
+  if (subdir === '120cm') return 'bookshelf';
   if (/^g/.test(code)) return 'raise';
   return 'standard';
 }

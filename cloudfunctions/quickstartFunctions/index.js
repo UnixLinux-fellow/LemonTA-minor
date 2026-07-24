@@ -182,7 +182,7 @@ const listCabinetModels = async () => {
   // 通过 app.storage.cloudPathToFileId(key) 让 SDK 从当前 env 配置里读 Bucket 并拼装，避免手写 bucket。
   const envId = cloud.getWXContext().ENV;
   const app = CloudBase.init({ envId });
-  const subdirs = ["50cm", "100cm", "150cm", "zj"];
+  const subdirs = ["50cm", "100cm", "120cm", "150cm", "zj"];
   const models = [];
   let anyOk = false;
   for (const subdir of subdirs) {

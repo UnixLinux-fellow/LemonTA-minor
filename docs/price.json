@@ -58,3 +58,7 @@
 {"_id":"78167c7f6a54b0771e4f32641f5285fe","code":"countersunk_screw_import","name":"SW4 6.3×50mm 白锌合金 沉头螺丝","price":0.1,"category":"hardware","brand_type":"import","unit":"颗"}
 {"_id":"78167c7f6a54b0771e4f32654d5a4cdb","code":"wood_dowel_import","name":"8×40mm 定位木销","price":0.1,"category":"hardware","brand_type":"import","unit":"根"}
 {"_id":"78167c7f6a54b0771e4f326657b34d26","code":"cable_channel_import","name":"PVC方形线槽","price":2.0,"category":"hardware","brand_type":"import","unit":"米"}
+{"_id":"78167c7f6a54b0771e4f326700000001","code":"glass_door","name":"书柜中段玻璃门","price":0.0,"category":"door_material","brand_type":null,"unit":"㎡"}
+{"_id":"78167c7f6a54b0771e4f326700000002","code":"countertop_marble_50","name":"50mm厚大理石台面","price":1200.0,"category":"countertop","brand_type":null,"unit":"米"}
+{"_id":"78167c7f6a54b0771e4f326700000003","code":"glass_door_hinge_domestic","name":"玻璃门铰链（国产）","price":0.0,"category":"hardware","brand_type":"domestic","unit":"个"}
+{"_id":"78167c7f6a54b0771e4f326700000004","code":"glass_door_hinge_import","name":"玻璃门铰链（进口）","price":0.0,"category":"hardware","brand_type":"import","unit":"个"}

@@ -41,12 +41,15 @@ Page({
     const draft = getApp().globalData.draftPlan;
     const mode = (draft && draft.mode) || 'wardrobe';
     const isShoe = mode === 'shoe';
-    const wallHint = isShoe
+    const isBookshelf = mode === 'bookshelf';
+    // 书柜与鞋柜共享墙面尺寸限制、靠墙选项与文案
+    const isCompact = isShoe || isBookshelf;
+    const wallHint = isCompact
       ? { w: '80 ~ 300 cm', h: '220 ~ 270 cm' }
       : { w: '44 ~ 1000 cm', h: '232 ~ 1000 cm' };
-    const cornerOptions = isShoe ? this.CORNER_OPTIONS_SHOE : this.CORNER_OPTIONS_WARDROBE;
-    const cornerSectionLabel = isShoe ? '是否靠墙' : '是否有转角衣柜';
-    const defaultCorner = isShoe ? 'BKQ' : 'WZJ';
+    const cornerOptions = isCompact ? this.CORNER_OPTIONS_SHOE : this.CORNER_OPTIONS_WARDROBE;
+    const cornerSectionLabel = isCompact ? '是否靠墙' : '是否有转角衣柜';
+    const defaultCorner = isCompact ? 'BKQ' : 'WZJ';
     this.setData({
       mode,
       wallHint,
@@ -119,15 +122,16 @@ Page({
         errorMsg = wallCheck.message;
       }
     }
-    // 鞋柜模式跳过转角与标准段校验
-    if (ok && wallW && mode !== 'shoe') {
+    // 鞋柜 / 书柜跳过转角与标准段校验
+    const skipStdChecks = mode === 'shoe' || mode === 'bookshelf';
+    if (ok && wallW && !skipStdChecks) {
       const cornerCheck = rules.validateCorner(w, cornerType);
       if (!cornerCheck.ok) {
         ok = false;
         errorMsg = cornerCheck.message;
       }
     }
-    if (ok && wallW && mode !== 'shoe') {
+    if (ok && wallW && !skipStdChecks) {
       const range = rules.computeStandardRange(w, cornerType);
       if (!range.valid || range.x < 50) {
         ok = false;
@@ -155,7 +159,11 @@ Page({
     const plan = Object.assign({}, draft, {
       id: draft.id || planStore.makeId(),
       name,
-      wall: { w: parseInt(wallW, 10), h: parseInt(wallH, 10), d: mode === 'shoe' ? 50 : 150 },
+      wall: {
+        w: parseInt(wallW, 10),
+        h: parseInt(wallH, 10),
+        d: (mode === 'shoe' || mode === 'bookshelf') ? 50 : 150,
+      },
       cornerType,
       mode,
       photoPath,
