@@ -66,7 +66,6 @@ class ThreeRenderer {
     const h = Math.floor(sizeInfo.cssHeight * dpr);
     canvas.width = w;
     canvas.height = h;
-    console.log('[3D] canvas buffer', w, 'x', h, 'css', sizeInfo.cssWidth, 'x', sizeInfo.cssHeight);
 
     const THREE = createScopedThreejs(canvas);
     this.THREE = THREE;
@@ -128,7 +127,6 @@ class ThreeRenderer {
     this._ensureMarbleTexture();
 
     this.startLoop();
-    console.log('[3D] init done, wall', this.wall.w, '×', this.wall.h);
   }
 
   // 兼容旧调用：保留 init 作为 initRoom 的别名，待所有调用方迁移完毕后可移除
@@ -148,7 +146,6 @@ class ThreeRenderer {
     const h = Math.floor(sizeInfo.cssHeight * dpr);
     canvas.width = w;
     canvas.height = h;
-    console.log('[3D-preview] canvas buffer', w, 'x', h, 'css', sizeInfo.cssWidth, 'x', sizeInfo.cssHeight);
 
     const THREE = createScopedThreejs(canvas);
     this.THREE = THREE;
@@ -1439,6 +1436,7 @@ class ThreeRenderer {
     let whiteTex = null;
     if (useWhiteTex) {
       whiteTex = new THREE.Texture(this._whiteImage);
+      whiteTex.__lemonDyn = true;
       if (THREE.RepeatWrapping) {
         whiteTex.wrapS = THREE.RepeatWrapping;
         whiteTex.wrapT = THREE.RepeatWrapping;
@@ -1454,6 +1452,7 @@ class ThreeRenderer {
     let woodTex = null;
     if (useWood) {
       woodTex = new THREE.Texture(this._woodImage);
+      woodTex.__lemonDyn = true;
       if (THREE.sRGBEncoding) woodTex.encoding = THREE.sRGBEncoding;
       if (THREE.RepeatWrapping) {
         woodTex.wrapS = THREE.RepeatWrapping;
@@ -1463,6 +1462,16 @@ class ThreeRenderer {
       if (maxAniso) woodTex.anisotropy = Math.min(8, maxAniso);
       woodTex.needsUpdate = true;
     }
+
+    // 换 map 前先释放上一次我们打过标的 Texture（避免 GPU 端悬空）。
+    // 只 dispose 带 __lemonDyn 标的，避免误 dispose GLB 原生 / cache 共享 Texture。
+    const setMap = (m, newTex) => {
+      const old = m.map;
+      if (old && old !== newTex && old.__lemonDyn && old.dispose) {
+        try { old.dispose(); } catch (e) { /* ignore */ }
+      }
+      m.map = newTex;
+    };
 
     group.traverse((node) => {
       if (!node.isMesh || !node.material) return;
@@ -1476,7 +1485,7 @@ class ThreeRenderer {
         const mats = Array.isArray(node.material) ? node.material : [node.material];
         mats.forEach((m) => {
           if (!m) return;
-          if ('map' in m) m.map = null;
+          if ('map' in m) setMap(m, null);
           if ('normalMap' in m) m.normalMap = null;
           if ('bumpMap' in m) m.bumpMap = null;
           if ('bumpScale' in m) m.bumpScale = 0;
@@ -1497,6 +1506,7 @@ class ThreeRenderer {
       // marble 未就绪时静默跳过 (占位白色保留), 加载完 _ensureMarbleTexture 会重刷.
       if (nm === 'countertop' && this._marbleImage) {
         const marbleTex = new THREE.Texture(this._marbleImage);
+        marbleTex.__lemonDyn = true;
         if (THREE.sRGBEncoding) marbleTex.encoding = THREE.sRGBEncoding;
         if (THREE.RepeatWrapping) {
           marbleTex.wrapS = THREE.RepeatWrapping;
@@ -1510,7 +1520,7 @@ class ThreeRenderer {
         const mats = Array.isArray(node.material) ? node.material : [node.material];
         mats.forEach((m) => {
           if (!m) return;
-          if ('map' in m) m.map = marbleTex;
+          if ('map' in m) setMap(m, marbleTex);
           if ('normalMap' in m) m.normalMap = null;
           if ('bumpMap' in m) m.bumpMap = null;
           if ('bumpScale' in m) m.bumpScale = 0;
@@ -1529,7 +1539,7 @@ class ThreeRenderer {
       mats.forEach((m) => {
         if (!m) return;
         if (useWood) {
-          if ('map' in m) m.map = woodTex;
+          if ('map' in m) setMap(m, woodTex);
           // 无凹凸贴图：仅靠 wood.jpg 颜色纹理表达木纹，牺牲浮雕感换 519K 包体积。
           // threejs-miniprogram 下 GLTF 缺切线 attribute，normalMap 路径会渲染成全黑，
           // 因此这里显式清掉 normalMap/bumpMap，避免 GLTF 自带贴图残留。
@@ -1539,13 +1549,13 @@ class ThreeRenderer {
           // map 需要 color 为白才不会被反向 tint
           if (m.color) m.color.copy(whiteTintColor);
         } else if (useWhiteTex) {
-          if ('map' in m) m.map = whiteTex;
+          if ('map' in m) setMap(m, whiteTex);
           if ('normalMap' in m) m.normalMap = null;
           if ('bumpMap' in m) m.bumpMap = null;
           if ('bumpScale' in m) m.bumpScale = 0;
           if (m.color) m.color.copy(whiteTintColor);
         } else {
-          if ('map' in m) m.map = null;
+          if ('map' in m) setMap(m, null);
           if ('normalMap' in m) m.normalMap = null;
           if ('bumpMap' in m) m.bumpMap = null;
           if ('bumpScale' in m) m.bumpScale = 0;
@@ -1574,7 +1584,6 @@ class ThreeRenderer {
 
     await this._placeRow(bottom, 0);
     await this._placeRow(top, 230);
-    console.log('[3D] setItems done bottom', bottom.length, 'top', top.length);
     // 柜体位置到位了才能算每柜宽标签位置 & 剩余宽 xLast,replay 一次
     this._rebuildDimensions();
     this.requestRender && this.requestRender();
@@ -1630,8 +1639,6 @@ class ThreeRenderer {
         let _dynShoe = null;
         let _dynBookshelf = null;
         if (isShoe) {
-          // [DIAG] 入 shoe 分支时的 item 信息
-          console.log('[shoe-diag] item:', { kind: it.kind, code: it.code, w: it.w, h: it.h });
           // 鞋柜: 加载 150S GLB 壳, 剔除动态部件, 追加参数化门/隔/层
           const sampleGeometries = this._prepareShoeShellAndSamples(mesh);
           const targetWmm = it.w * 10;
@@ -1640,7 +1647,6 @@ class ThreeRenderer {
           const bbox3 = new THREE.Box3().setFromObject(mesh);
           const size3 = new THREE.Vector3();
           bbox3.getSize(size3);
-          console.log('[shoe-diag] bbox after strip, size:', size3.x.toFixed(3), size3.y.toFixed(3), size3.z.toFixed(3));
           // GLB 原始单位反推: 假设 150S.glb 原始 x 宽对应 1500mm
           const kToMm = size3.x > 0.001 ? 1500 / size3.x : 1;
           const glbWmm = size3.x * kToMm;
@@ -1663,7 +1669,6 @@ class ThreeRenderer {
             }
           });
           // 生成参数化部件 (mm 单位); 挂载延迟到 mesh 位置归零之后, 避免 mesh 三轴独立缩放的二次拉伸
-          console.log('[shoe-diag] scale:', 'sx=' + sx.toFixed(3), 'sy=' + sy.toFixed(3), 'sz=' + sz.toFixed(3), 'kWidthRatio=' + kWidthRatio.toFixed(3));
           // 传 variant (a/b/c/d), 由 shoe-cabinet-parts 内部分发到 150A/B/C/D 生成器
           _dynShoe = shoeCabinetParts.generateCabinetDynamicParts(
             THREE, targetWmm, targetHmm, sampleGeometries,
@@ -1725,10 +1730,7 @@ class ThreeRenderer {
           // 因此 mm z=0 必须对齐到 shell 的正面 (bbox.max.z), 不是背面 (min.z), 否则
           // 门跑到背墙里, 内部隔板/层板穿墙而出.
           const shellBbox = new THREE.Box3().setFromObject(mesh);
-          console.log('[shoe-diag] shellBbox min:', shellBbox.min.x.toFixed(2), shellBbox.min.y.toFixed(2), shellBbox.min.z.toFixed(2),
-                      'max:', shellBbox.max.x.toFixed(2), shellBbox.max.y.toFixed(2), shellBbox.max.z.toFixed(2));
           _dynShoe.root.position.set(shellBbox.min.x, shellBbox.min.y, shellBbox.max.z);
-          console.log('[shoe-diag] dynShoe.root.position:', _dynShoe.root.position.x.toFixed(2), _dynShoe.root.position.y.toFixed(2), _dynShoe.root.position.z.toFixed(2));
           group.add(_dynShoe.root);
         }
         if (isBookshelf && _dynBookshelf) {
@@ -1789,12 +1791,6 @@ class ThreeRenderer {
   _prepareShoeShellAndSamples(root) {
     const THREE = this.THREE;
     const toRemove = [];
-    // [DIAG] 剔除前打印所有 mesh 名字
-    const allMeshNames = [];
-    root.traverse((n) => {
-      if (n.isMesh) allMeshNames.push(n.name || '(no-name)');
-    });
-    console.log('[shoe-diag] before strip, mesh names:', allMeshNames);
     root.traverse((n) => {
       if (!n.isMesh) return;
       const name = (n.name || '').toLowerCase();
@@ -1840,17 +1836,9 @@ class ThreeRenderer {
         toRemove.push(n);
       }
     });
-    // [DIAG] 剔除的清单
-    console.log('[shoe-diag] strip removes:', toRemove.map((n) => n.name || '(no-name)'));
     toRemove.forEach((n) => {
       if (n.parent) n.parent.remove(n);
     });
-    // [DIAG] 剔除后残留的 mesh
-    const remainNames = [];
-    root.traverse((n) => {
-      if (n.isMesh) remainNames.push(n.name || '(no-name)');
-    });
-    console.log('[shoe-diag] after strip, remain:', remainNames);
     return {
       doorGeometry: new THREE.BoxGeometry(450, 846, 18),
       shelfGeometry: new THREE.BoxGeometry(1, 1, 1),
@@ -2112,7 +2100,6 @@ class ThreeRenderer {
                   return resolve(this._fallbackBox(it));
                 }
                 this._loaderCache[path] = root;
-                console.log('[3D] glb loaded', path);
                 resolve(root.clone(true));
               },
               (err) => {
