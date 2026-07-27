@@ -400,6 +400,10 @@ Page({
   },
 
   onUnload() {
+    if (this._toastTimer) {
+      clearTimeout(this._toastTimer);
+      this._toastTimer = null;
+    }
     if (this._renderer) {
       this._renderer.dispose();
       this._renderer = null;
@@ -477,7 +481,10 @@ Page({
     if (last && last.w === sizeTab) {
       selIdx = list.findIndex((m) => m.code === last.code);
     }
-    this.setData({
+    // modelList 内含缩略图路径 + 中文描述 + 规格，一次约几十 KB。
+    // 拖拽/换色的热路径里它其实不变，只在剩余宽度触发 50/100 切换时才动。
+    // 因此拆成两部分：轻量字段每次都推，modelList 仅在真正变化时推。
+    const payload = {
       items: state.items,
       meta: state.meta,
       standardWidth: state.meta.standardWidth,
@@ -489,14 +496,16 @@ Page({
       confirmReady: state.meta.isFull,
       nextBtnText: state.meta.isFull ? '确认布局' : '下一模块',
       sizeTab,
-      modelList: enrichWithDesc(list),
       show50,
       show100,
       show150,
       remainingStd: remaining,
       selectedModelIdx: selIdx,
-    }, () => {
-      // modelList 变了（剩余宽度触发 50/100 切换）才重建 thumb canvas，避免空动作
+    };
+    if (modelListChanged) {
+      payload.modelList = enrichWithDesc(list);
+    }
+    this.setData(payload, () => {
       if (modelListChanged) {
         this._refreshThumbCanvases();
         this._updateScrollIndicator();
@@ -723,11 +732,22 @@ Page({
     // 并行上传 3 张图到云存储
     const app = getApp();
     const photoExt = (plan.photoPath && (plan.photoPath.match(/\.([a-zA-Z0-9]+)$/) || [])[1]) || 'jpg';
-    const [previewFileID, wireframeFileID, photoFileID] = await Promise.all([
-      this._uploadDesignImage(previewImage,   plan.id, 'preview', 'png'),
-      this._uploadDesignImage(wireframeImage, plan.id, 'wire',    'png'),
-      this._uploadDesignImage(plan.photoPath, plan.id, 'photo',   photoExt.toLowerCase()),
-    ]);
+    let previewFileID = '', wireframeFileID = '', photoFileID = '';
+    try {
+      [previewFileID, wireframeFileID, photoFileID] = await Promise.all([
+        this._uploadDesignImage(previewImage,   plan.id, 'preview', 'png'),
+        this._uploadDesignImage(wireframeImage, plan.id, 'wire',    'png'),
+        this._uploadDesignImage(plan.photoPath, plan.id, 'photo',   photoExt.toLowerCase()),
+      ]);
+    } catch (err) {
+      console.warn('[design] 上传图片失败', err && (err.errMsg || err.message));
+      wx.showModal({
+        title: '上传失败',
+        content: '网络异常，请检查后重试',
+        showCancel: false,
+      });
+      return;
+    }
 
     // 回填内存 plan：既留 FileID 也留本地路径，供本次会话直接渲染，跳过一次云端下载
     const updatedPlan = Object.assign({}, plan, {
@@ -749,7 +769,13 @@ Page({
     });
 
     // 写入云 designs 集合（app.saveDesign 内部会剔除 wxfile 字段）
-    const saveRes = await app.saveDesign(updatedPlan);
+    let saveRes;
+    try {
+      saveRes = await app.saveDesign(updatedPlan);
+    } catch (err) {
+      console.warn('[design] saveDesign 抛异常', err && (err.errMsg || err.message));
+      saveRes = { success: false, msg: (err && err.errMsg) || '网络异常' };
+    }
     if (saveRes && saveRes.success) {
       updatedPlan._id = saveRes._id || updatedPlan._id;
     } else {
@@ -767,8 +793,12 @@ Page({
   },
 
   showToast(msg) {
+    if (this._toastTimer) clearTimeout(this._toastTimer);
     this.setData({ toast: msg });
-    setTimeout(() => this.setData({ toast: '' }), 2000);
+    this._toastTimer = setTimeout(() => {
+      this._toastTimer = null;
+      this.setData({ toast: '' });
+    }, 2000);
   },
 
   onTouchStartCanvas(e) {
