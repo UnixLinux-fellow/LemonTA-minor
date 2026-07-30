@@ -25,10 +25,9 @@ Page({
     plans: [],
     confirmDelete: null,
     toast: '',
-    exportSelectOpen: false,
+    selectedMap: {},
     exportNameOpen: false,
     _selectedExportIds: [],
-    costExportSelectOpen: false,
     costExportNameOpen: false,
     _costSelectedIds: [],
     statusBarHeight: 20,
@@ -57,6 +56,9 @@ Page({
   },
 
   onShow() {
+    // 底栏只在首页展示 —— 本页隐藏 tabBar
+    wx.hideTabBar({ animation: false });
+
     const app = getApp();
     // upload-processor 走完后回到本页,globalData.uploadToast 承载结果 → 消费一次
     const t = app.globalData && app.globalData.uploadToast;
@@ -69,9 +71,36 @@ Page({
     // 异步拉云端覆盖；失败静默保留本地兜底
     app.refreshDesigns().then((designs) => {
       this.setData({ plans: designs || [] });
+      this._pruneSelection();
     }).catch((err) => {
       console.warn('[plan-list] refreshDesigns 失败:', err);
     });
+  },
+
+  // 云端刷新后如果某些 id 已不存在，清掉勾选，避免导出脏 id
+  _pruneSelection() {
+    const validIds = new Set((this.data.plans || []).map((p) => p.id));
+    const next = {};
+    Object.keys(this.data.selectedMap || {}).forEach((id) => {
+      if (validIds.has(id)) next[id] = true;
+    });
+    this.setData({ selectedMap: next });
+  },
+
+  _getSelectedIds() {
+    return Object.keys(this.data.selectedMap || {}).filter((id) => this.data.selectedMap[id]);
+  },
+
+  onTogglePlanCheck(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    const selectedMap = Object.assign({}, this.data.selectedMap);
+    if (selectedMap[id]) {
+      delete selectedMap[id];
+    } else {
+      selectedMap[id] = true;
+    }
+    this.setData({ selectedMap });
   },
 
   onTapStart() {
@@ -149,8 +178,6 @@ Page({
     };
     const report = planImageCache.diagnosePlanImages([plan]);
     if (!report.ready) {
-      // 真机排查用：哪个字段为什么 not ready 一目了然
-      console.log('[plan-list] onTapItem loading, diagnosis:', report.details);
       wx.showLoading({ title: '加载中…', mask: true });
     }
     planImageCache.resolvePlanImages([plan]).then(() => {
@@ -181,6 +208,7 @@ Page({
           plans: app.globalData.designs || [],
           confirmDelete: null,
         });
+        this._pruneSelection();
       } else {
         this.setData({ confirmDelete: null });
         wx.showToast({ title: '删除失败', icon: 'none' });
@@ -189,20 +217,12 @@ Page({
   },
 
   onTapExport() {
-    if (!this.data.plans.length) return;
-    this.setData({ exportSelectOpen: true });
-  },
-
-  onExportSelectCancel() {
-    this.setData({ exportSelectOpen: false });
-  },
-
-  onExportSelectConfirm(e) {
-    this.setData({
-      exportSelectOpen: false,
-      exportNameOpen: true,
-      _selectedExportIds: e.detail.ids || [],
-    });
+    const ids = this._getSelectedIds();
+    if (!ids.length) {
+      this.showToast('请先勾选要导出的方案');
+      return;
+    }
+    this.setData({ exportNameOpen: true, _selectedExportIds: ids });
   },
 
   onExportNameCancel() {
@@ -265,20 +285,12 @@ Page({
   },
 
   onTapExportCost() {
-    if (!this.data.plans.length) return;
-    this.setData({ costExportSelectOpen: true });
-  },
-
-  onCostExportSelectCancel() {
-    this.setData({ costExportSelectOpen: false });
-  },
-
-  onCostExportSelectConfirm(e) {
-    this.setData({
-      costExportSelectOpen: false,
-      costExportNameOpen: true,
-      _costSelectedIds: e.detail.ids || [],
-    });
+    const ids = this._getSelectedIds();
+    if (!ids.length) {
+      this.showToast('请先勾选要导出的方案');
+      return;
+    }
+    this.setData({ costExportNameOpen: true, _costSelectedIds: ids });
   },
 
   onCostExportNameCancel() {

@@ -80,7 +80,7 @@ test('150B: root.userData.variant = "b"', () => {
   assert.equal(r.root.userData.variant, 'b');
 });
 
-test('150B: 主分割板 main_divider_LR 存在, X = xOffsets[2]-GAP/2, Y 贯穿 [SKIRT_H, totalH]', () => {
+test('150B: 主分割板 main_divider_LR 存在, X = xOffsets[2]-GAP/2, Y=[SKIRT_H+18, totalH-18] (只接触底板/顶板)', () => {
   const r = gen('b', 1500, 2400);
   const sizeAndX = parts.calcDoorSizeAndX(1500, 3);
   const md = findByName(r.root, 'main_divider_LR');
@@ -88,8 +88,8 @@ test('150B: 主分割板 main_divider_LR 存在, X = xOffsets[2]-GAP/2, Y 贯穿
   assert.equal(md.position.x, sizeAndX.xOffsets[2] - parts.GAP / 2);
   const bottom = md.position.y - md.scale.y / 2;
   const top = md.position.y + md.scale.y / 2;
-  assert.equal(bottom, parts.SKIRT_H);
-  assert.equal(top, 2400);
+  assert.equal(bottom, parts.SKIRT_H + 18);
+  assert.equal(top, 2400 - 18);
   assert.equal(md.scale.x, 18);
   assert.equal(md.scale.z, parts.DEPTH_INNER);
 });
@@ -243,11 +243,11 @@ test('150B: 右柜奇数门 (rightDoorCount=3) → 中侧板下段 1 上段 1', 
   const rDivsUpper = findAllByCode(r.root, 'mid_divider_upper_R_');
   assert.equal(rDivsLower.length, 1);
   assert.equal(rDivsUpper.length, 1);
-  // 下段中侧板 Y 覆盖 [SKIRT_H, SKIRT_H + RIGHT_LOWER_H - 18] = [150, 1032]
+  // 下段中侧板 Y 覆盖 [SKIRT_H + 18, SKIRT_H + RIGHT_LOWER_H - 18] = [168, 1032] (只接触底板/下柜顶板)
   const dl = rDivsLower[0];
   const bottom = dl.position.y - dl.scale.y / 2;
   const top = dl.position.y + dl.scale.y / 2;
-  assert.equal(bottom, 150);
+  assert.equal(bottom, 168);
   assert.equal(top, 1032);
 });
 

@@ -132,6 +132,6 @@
   </view>
 
   <view class="bottom-bar">
-    <view class="btn primary" bindtap="onCalc">计算成本</view>
+    <view class="btn primary" bindtap="onCalc">成本透视</view>
   </view>
 </view>

@@ -48,8 +48,10 @@
     <!-- 已保存方案列表 -->
     <view class="saved-section" wx:if="{{plans.length}}">
       <view class="saved-heading">已保存方案 ({{plans.length}}/30)</view>
-      <view class="saved-list">
+      <scroll-view class="saved-list" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{plans.length > 5}}">
         <view class="plan-item section-card" wx:for="{{plans}}" wx:key="id">
+          <view class="plan-check {{selectedMap[item.id] ? 'on' : ''}}"
+                data-id="{{item.id}}" catchtap="onTogglePlanCheck"></view>
           <view class="plan-main" data-id="{{item.id}}" bindtap="onTapItem">
             <text class="plan-name">{{item.name}}</text>
             <view class="plan-meta">
@@ -65,7 +67,7 @@
             <text>✕</text>
           </view>
         </view>
-      </view>
+      </scroll-view>
     </view>
 
     <!-- 空态 -->
@@ -73,12 +75,12 @@
       <text class="empty-text">还没有保存的设计</text>
       <text class="empty-tip">点击上方"开始新设计"开始第一个空间</text>
     </view>
+  </view>
 
-    <!-- 导出按钮组 -->
-    <view class="export-btn-wrap">
-      <view class="export-btn btn-outline" bindtap="onTapExport">导出方案信息</view>
-      <view class="export-btn btn-outline" bindtap="onTapExportCost">导出方案成本</view>
-    </view>
+  <!-- 导出按钮组 —— 吸附底部 -->
+  <view class="export-btn-bar">
+    <button class="btn-primary export-btn" bindtap="onTapExport">导出方案信息</button>
+    <button class="btn-primary export-btn" bindtap="onTapExportCost">导出方案成本</button>
   </view>
 
   <!-- 删除确认弹窗（使用全局 modal 类） -->
@@ -93,25 +95,11 @@
     </view>
   </view>
 
-  <plan-select-modal
-    visible="{{exportSelectOpen}}"
-    plans="{{plans}}"
-    bind:cancel="onExportSelectCancel"
-    bind:confirm="onExportSelectConfirm">
-  </plan-select-modal>
-
   <filename-input-modal
     visible="{{exportNameOpen}}"
     bind:cancel="onExportNameCancel"
     bind:confirm="onExportNameConfirm">
   </filename-input-modal>
-
-  <plan-select-modal
-    visible="{{costExportSelectOpen}}"
-    plans="{{plans}}"
-    bind:cancel="onCostExportSelectCancel"
-    bind:confirm="onCostExportSelectConfirm">
-  </plan-select-modal>
 
   <filename-input-modal
     visible="{{costExportNameOpen}}"

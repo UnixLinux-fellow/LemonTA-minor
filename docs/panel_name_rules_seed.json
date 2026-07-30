@@ -1,0 +1,76 @@
+// 云端 panel_name_dict 集合的模糊匹配规则种子清单。
+// 用法: 每一行是一条要写入云表的记录(_id 交给云端自动生成)。
+//   - match_type 缺失 或 "exact": panel_code 精确匹配 (行为不变)
+//   - match_type = "regex":       panel_code 是 JS 正则字符串, display_name 是模板,
+//                                 支持 $1/$2 反向引用捕获组的值。
+// 匹配优先级 (panel-dict.js 内):
+//   1) 精确 Map 命中
+//   2) 遍历所有 regex 行(按 _id 顺序), 第一条匹配的胜出
+// 无效正则的行会被 warn 且跳过, 不会阻断加载。
+//
+// 命名约定:
+//   - 数字/编号统一放句末: "下门1", "01号抽面"
+//   - L/R 左右分柜作为中文前缀: "左柜..." / "右柜..."
+//   - 书柜中门是玻璃门, 中文名带"玻璃"标识
+//   - 与现有精确行(side_left_panel_18 等)共存, 精确优先
+
+// ============ 鞋柜: 门板 ============
+{"panel_code":"^lower_door_(\\d+)$","display_name":"下门$1","category":"door_panel","enable":true,"match_type":"regex"}
+{"panel_code":"^upper_door_(\\d+)$","display_name":"上门$1","category":"door_panel","enable":true,"match_type":"regex"}
+{"panel_code":"^door_lower_L_(\\d+)$","display_name":"左柜下门$1","category":"door_panel","enable":true,"match_type":"regex"}
+{"panel_code":"^door_upper_L_(\\d+)$","display_name":"左柜上门$1","category":"door_panel","enable":true,"match_type":"regex"}
+{"panel_code":"^door_lower_R_(\\d+)$","display_name":"右柜下门$1","category":"door_panel","enable":true,"match_type":"regex"}
+{"panel_code":"^door_upper_R_(\\d+)$","display_name":"右柜上门$1","category":"door_panel","enable":true,"match_type":"regex"}
+
+// ============ 书柜: 门板 (三段, 中门为玻璃) ============
+{"panel_code":"^door_lower_(\\d+)$","display_name":"下门$1","category":"door_panel","enable":true,"match_type":"regex"}
+{"panel_code":"^door_middle_(\\d+)$","display_name":"$1号玻璃门","category":"door_panel","enable":true,"match_type":"regex"}
+{"panel_code":"^door_upper_(\\d+)$","display_name":"上门$1","category":"door_panel","enable":true,"match_type":"regex"}
+
+// ============ 层板 ============
+{"panel_code":"^shelf_lower_(\\d+)$","display_name":"下层板$1","category":"cabinet_frame","enable":true,"match_type":"regex"}
+{"panel_code":"^shelf_middle_(\\d+)$","display_name":"中段层板$1","category":"cabinet_frame","enable":true,"match_type":"regex"}
+{"panel_code":"^shelf_upper_(\\d+)$","display_name":"上层板$1","category":"cabinet_frame","enable":true,"match_type":"regex"}
+{"panel_code":"^shelf_lower_L_(\\d+)$","display_name":"左柜下层板$1","category":"cabinet_frame","enable":true,"match_type":"regex"}
+{"panel_code":"^shelf_lower_R_(\\d+)$","display_name":"右柜下层板$1","category":"cabinet_frame","enable":true,"match_type":"regex"}
+{"panel_code":"^shelf_upper_L_(\\d+)$","display_name":"左柜上层板$1","category":"cabinet_frame","enable":true,"match_type":"regex"}
+{"panel_code":"^shelf_upper_R_(\\d+)$","display_name":"右柜上层板$1","category":"cabinet_frame","enable":true,"match_type":"regex"}
+
+// ============ 中侧板 ============
+{"panel_code":"^mid_divider_lower_(\\d+)$","display_name":"下中侧板$1","category":"cabinet_frame","enable":true,"match_type":"regex"}
+{"panel_code":"^mid_divider_middle_(\\d+)$","display_name":"中段中侧板$1","category":"cabinet_frame","enable":true,"match_type":"regex"}
+{"panel_code":"^mid_divider_upper_(\\d+)$","display_name":"上中侧板$1","category":"cabinet_frame","enable":true,"match_type":"regex"}
+{"panel_code":"^mid_divider_lower_R_(\\d+)$","display_name":"右柜下中侧板$1","category":"cabinet_frame","enable":true,"match_type":"regex"}
+{"panel_code":"^mid_divider_upper_R_(\\d+)$","display_name":"右柜上中侧板$1","category":"cabinet_frame","enable":true,"match_type":"regex"}
+
+// ============ 主分割板 (150B/C) ============
+{"panel_code":"main_divider_LR","display_name":"主分割板","category":"cabinet_frame","enable":true}
+
+// ============ 固定水平板 ============
+{"panel_code":"shelf_fixed_down","display_name":"下柜顶板","category":"cabinet_frame","enable":true}
+{"panel_code":"shelf_fixed_up","display_name":"上柜底板","category":"cabinet_frame","enable":true}
+{"panel_code":"shelf_fixed_down_L","display_name":"左柜下柜顶板","category":"cabinet_frame","enable":true}
+{"panel_code":"shelf_fixed_R","display_name":"右柜下柜顶板","category":"cabinet_frame","enable":true}
+{"panel_code":"fixed_divider_down","display_name":"下柜顶板","category":"cabinet_frame","enable":true}
+{"panel_code":"fixed_divider_up","display_name":"上柜底板","category":"cabinet_frame","enable":true}
+
+// ============ 背板 ============
+{"panel_code":"back_panel_lower","display_name":"下背板","category":"cabinet_frame","enable":true}
+{"panel_code":"back_panel_middle","display_name":"中背板","category":"cabinet_frame","enable":true}
+{"panel_code":"back_panel_upper","display_name":"上背板","category":"cabinet_frame","enable":true}
+{"panel_code":"back_panel_lower_L","display_name":"左柜下背板","category":"cabinet_frame","enable":true}
+{"panel_code":"back_panel_lower_R","display_name":"右柜下背板","category":"cabinet_frame","enable":true}
+{"panel_code":"back_panel_upper_L","display_name":"左柜上背板","category":"cabinet_frame","enable":true}
+{"panel_code":"back_panel_upper_R","display_name":"右柜上背板","category":"cabinet_frame","enable":true}
+
+// ============ 台面 ============
+{"panel_code":"countertop","display_name":"台面","category":"cabinet_frame","enable":true}
+{"panel_code":"countertop_L","display_name":"左柜台面","category":"cabinet_frame","enable":true}
+
+// ============ 抽屉 (150D 无 L/R, 150C 左柜带 _L_) ============
+{"panel_code":"^drawer_front_(\\d+)$","display_name":"$1号抽面","category":"drawer_component","enable":true,"match_type":"regex"}
+{"panel_code":"^drawer_front_L_(\\d+)$","display_name":"左柜$1号抽面","category":"drawer_component","enable":true,"match_type":"regex"}
+{"panel_code":"^drawer_box_left_(\\d+)_18$","display_name":"$1号左抽帮","category":"drawer_component","enable":true,"match_type":"regex"}
+{"panel_code":"^drawer_box_right_(\\d+)_18$","display_name":"$1号右抽帮","category":"drawer_component","enable":true,"match_type":"regex"}
+{"panel_code":"^drawer_box_back_(\\d+)_18$","display_name":"$1号后抽堵","category":"drawer_component","enable":true,"match_type":"regex"}
+{"panel_code":"^drawer_box_bottom_(\\d+)_18$","display_name":"$1号抽底","category":"drawer_component","enable":true,"match_type":"regex"}

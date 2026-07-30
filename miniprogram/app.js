@@ -135,7 +135,6 @@ App({
     try {
       if (wx.getStorageSync('PLAN_LIST')) {
         wx.removeStorageSync('PLAN_LIST');
-        console.log('[migrate] cleaned legacy PLAN_LIST');
       }
     } catch (e) { /* ignore */ }
 

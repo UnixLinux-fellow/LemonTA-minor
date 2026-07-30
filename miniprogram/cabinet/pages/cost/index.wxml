@@ -78,41 +78,45 @@
         <view class="card-title">{{currentDetail.label}} {{currentDetail.code}}</view>
         <view class="card-total">¥ {{currentDetail.total}}</view>
       </view>
-      <view class="card-section">
-        <view class="card-sec-title">板材（含加工费用）</view>
-        <view class="tbl-row tbl-head">
-          <view class="c1">名称</view>
-          <view class="c2">尺寸</view>
-          <view class="c3">面积</view>
-          <view class="c4">单价</view>
-          <view class="c5">小计</view>
+      <view class="card-body">
+        <view class="card-section">
+          <view class="card-sec-title">板材（含加工费用）</view>
+          <view class="tbl-row tbl-head">
+            <view class="c1">名称</view>
+            <view class="c2">尺寸</view>
+            <view class="c3">面积</view>
+            <view class="c4">单价</view>
+            <view class="c5">小计</view>
+          </view>
+          <view class="tbl-row" wx:for="{{currentDetail.detail.panels}}" wx:key="name">
+            <view class="c1">{{item.name}}</view>
+            <view class="c2">{{item.size}}</view>
+            <view class="c3">{{item.area}}㎡×{{item.qty}}</view>
+            <view class="c4">¥{{item.unit}}</view>
+            <view class="c5">¥{{item.total}}</view>
+          </view>
         </view>
-        <view class="tbl-row" wx:for="{{currentDetail.detail.panels}}" wx:key="name">
-          <view class="c1">{{item.name}}</view>
-          <view class="c2">{{item.size}}</view>
-          <view class="c3">{{item.area}}㎡×{{item.qty}}</view>
-          <view class="c4">¥{{item.unit}}</view>
-          <view class="c5">¥{{item.total}}</view>
+        <view class="card-section">
+          <view class="card-sec-title">五金 & 配件</view>
+          <view class="tbl-row tbl-head">
+            <view class="c1">部件</view>
+            <view class="c2">规格</view>
+            <view class="c3">数量</view>
+            <view class="c4">单价</view>
+            <view class="c5">小计</view>
+          </view>
+          <view class="tbl-row" wx:for="{{currentDetail.detail.hardware}}" wx:key="name">
+            <view class="c1">{{item.name}}</view>
+            <view class="c2">{{item.spec}}</view>
+            <view class="c3">{{item.qty}}</view>
+            <view class="c4">¥{{item.unit}}</view>
+            <view class="c5">¥{{item.total}}</view>
+          </view>
         </view>
       </view>
-      <view class="card-section">
-        <view class="card-sec-title">五金 & 配件</view>
-        <view class="tbl-row tbl-head">
-          <view class="c1">部件</view>
-          <view class="c2">规格</view>
-          <view class="c3">数量</view>
-          <view class="c4">单价</view>
-          <view class="c5">小计</view>
-        </view>
-        <view class="tbl-row" wx:for="{{currentDetail.detail.hardware}}" wx:key="name">
-          <view class="c1">{{item.name}}</view>
-          <view class="c2">{{item.spec}}</view>
-          <view class="c3">{{item.qty}}</view>
-          <view class="c4">¥{{item.unit}}</view>
-          <view class="c5">¥{{item.total}}</view>
-        </view>
+      <view class="card-footer">
+        <view class="btn primary" bindtap="closeDetail">关闭</view>
       </view>
-      <view class="card-close" bindtap="closeDetail">关闭</view>
     </view>
   </view>
 

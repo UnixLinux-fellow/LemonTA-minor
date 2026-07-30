@@ -14,6 +14,11 @@ Page({
     }
   },
 
+  onShow: function() {
+    // 从其它 tab（隐藏了 tabBar）切回首页时，恢复底栏显示
+    wx.showTabBar({ animation: false });
+  },
+
   // 点击"开始设计"跳转到设计tab
   goToDesign: function() {
     wx.switchTab({

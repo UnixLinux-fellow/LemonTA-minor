@@ -107,3 +107,87 @@ test('无 wx 环境:no-op', async () => {
   await dict.preloadAll();
   assert.equal(dict.get('any'), undefined);
 });
+
+test('regex 行:模式命中展开 $1', async () => {
+  const wx = makeStorageMock();
+  const rows = [
+    { panel_code: '^door_lower_L_(\\d+)$', display_name: '左柜下门$1', category: 'door_panel', enable: true, match_type: 'regex' },
+    { panel_code: '^door_middle_(\\d+)$', display_name: '$1号玻璃门', category: 'door_panel', enable: true, match_type: 'regex' },
+    { panel_code: '^drawer_box_left_(\\d+)_18$', display_name: '$1号左抽帮', category: 'drawer_component', enable: true, match_type: 'regex' },
+  ];
+  global.wx = Object.assign({}, wx, { cloud: makeCloudMock(rows) });
+  try {
+    const dict = loadFresh();
+    await dict.preloadAll();
+    const a = dict.get('door_lower_L_1');
+    assert.equal(a.display_name, '左柜下门1');
+    assert.equal(a.category, 'door_panel');
+    assert.equal(a.panel_code, 'door_lower_L_1');
+    assert.equal(dict.get('door_lower_L_3').display_name, '左柜下门3');
+    assert.equal(dict.get('door_middle_2').display_name, '2号玻璃门');
+    assert.equal(dict.get('drawer_box_left_01_18').display_name, '01号左抽帮');
+  } finally { delete global.wx; }
+});
+
+test('regex 行:未命中返 undefined, 边界 anchor 生效', async () => {
+  const wx = makeStorageMock();
+  const rows = [
+    { panel_code: '^door_lower_(\\d+)$', display_name: '下门$1', category: 'door_panel', enable: true, match_type: 'regex' },
+  ];
+  global.wx = Object.assign({}, wx, { cloud: makeCloudMock(rows) });
+  try {
+    const dict = loadFresh();
+    await dict.preloadAll();
+    assert.equal(dict.get('door_lower_L_1'), undefined, 'L_1 不应被 door_lower_(\\d+) 命中');
+    assert.equal(dict.get('xdoor_lower_1'), undefined, '前缀多余字符不命中');
+    assert.equal(dict.get('door_lower_1_extra'), undefined, '后缀多余字符不命中');
+  } finally { delete global.wx; }
+});
+
+test('精确行优先于模式行', async () => {
+  const wx = makeStorageMock();
+  const rows = [
+    { panel_code: '^countertop.*$', display_name: '通用台面$1', category: 'cabinet_frame', enable: true, match_type: 'regex' },
+    { panel_code: 'countertop', display_name: '台面', category: 'cabinet_frame', enable: true },
+  ];
+  global.wx = Object.assign({}, wx, { cloud: makeCloudMock(rows) });
+  try {
+    const dict = loadFresh();
+    await dict.preloadAll();
+    assert.equal(dict.get('countertop').display_name, '台面', '精确胜出');
+    assert.equal(dict.get('countertop_L').display_name, '通用台面', '无精确时走模式');
+  } finally { delete global.wx; }
+});
+
+test('无效正则被跳过, 不阻断其他行', async () => {
+  const wx = makeStorageMock();
+  const originalWarn = console.warn;
+  const warns = [];
+  console.warn = (...a) => warns.push(a);
+  const rows = [
+    { panel_code: '^door_(', display_name: '坏', category: 'door_panel', enable: true, match_type: 'regex' },
+    { panel_code: '^door_lower_(\\d+)$', display_name: '下门$1', category: 'door_panel', enable: true, match_type: 'regex' },
+    { panel_code: 'top_panel_18', display_name: '柜体顶板', category: 'cabinet_frame', enable: true },
+  ];
+  global.wx = Object.assign({}, wx, { cloud: makeCloudMock(rows) });
+  try {
+    const dict = loadFresh();
+    await dict.preloadAll();
+    assert.equal(dict.get('door_lower_1').display_name, '下门1');
+    assert.equal(dict.get('top_panel_18').display_name, '柜体顶板');
+    assert.ok(warns.some((w) => String(w[0]).includes('bad regex')), '应 warn 一次 bad regex');
+  } finally { console.warn = originalWarn; delete global.wx; }
+});
+
+test('$$ 转义为字面 $', async () => {
+  const wx = makeStorageMock();
+  const rows = [
+    { panel_code: '^money_(\\d+)$', display_name: '$$$1元', category: 'cabinet_frame', enable: true, match_type: 'regex' },
+  ];
+  global.wx = Object.assign({}, wx, { cloud: makeCloudMock(rows) });
+  try {
+    const dict = loadFresh();
+    await dict.preloadAll();
+    assert.equal(dict.get('money_50').display_name, '$50元');
+  } finally { delete global.wx; }
+});

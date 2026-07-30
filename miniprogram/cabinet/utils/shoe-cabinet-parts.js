@@ -181,10 +181,16 @@ function createDoorGroup(THREE, totalWidth, totalHeight, sizeAndX, doorGeometry)
 function createDividerGroup(THREE, totalWidth, totalHeight, sizeAndX, dividerGeometry) {
   const group = new THREE.Group();
   group.userData = { kind: 'dividers' };
-  const upperH = totalHeight - FIXED_H;
-  const lowerYBottom = SKIRT_H + GAP;
-  const upperYBottom = FIXED_H + GAP;
-  const lowerH = LOWER_CABINET_H;
+  // 中侧板 Y 段: 只接触不穿透底板 / 下柜顶板 (shelf_fixed_down) /
+  //             上柜底板 (shelf_fixed_up) / 顶板 (top_plate).
+  //   下段 Y = [SKIRT_H + 18, SKIRT_H + LOWER_CABINET_H - 18] = [168, 982]
+  //   上段 Y = [FIXED_H + 18, totalHeight - 18]              = [1518, totalH-18]
+  const lowerYBottom = SKIRT_H + 18;                     // 168 (底板顶面)
+  const lowerYTop = SKIRT_H + LOWER_CABINET_H - 18;      // 982 (shelf_fixed_down 底面)
+  const lowerH = lowerYTop - lowerYBottom;
+  const upperYBottom = FIXED_H + 18;                     // 1518 (shelf_fixed_up 顶面)
+  const upperYTop = totalHeight - 18;                    // top_plate 底面
+  const upperH = upperYTop - upperYBottom;
   const doorCount = sizeAndX.doorWidths.length;
   // spec: 隔板正面 Z=-18 (藏在门后). mesh.position 是几何中心,
   // 深度 = DEPTH_INNER, 故中心 Z = -18 - DEPTH_INNER/2.
@@ -197,14 +203,14 @@ function createDividerGroup(THREE, totalWidth, totalHeight, sizeAndX, dividerGeo
     const xCenter = sizeAndX.xOffsets[boundaryDoorIdx] - GAP / 2;
     const lower = new THREE.Mesh(dividerGeometry, _makePlaceholderMaterial(THREE));
     lower.scale.set(18, lowerH, DEPTH_INNER);
-    lower.position.set(xCenter, lowerYBottom + lowerH / 2 - GAP, dividerZ);
+    lower.position.set(xCenter, lowerYBottom + lowerH / 2, dividerZ);
     lower.userData = { role: 'lower', index: k };
     lower.name = `mid_divider_lower_${k + 1}`;
     _tagPanel(lower, lower.name, Math.max(lowerH, DEPTH_INNER), Math.min(lowerH, DEPTH_INNER), 18);
     group.add(lower);
     const upper = new THREE.Mesh(dividerGeometry, _makePlaceholderMaterial(THREE));
     upper.scale.set(18, upperH, DEPTH_INNER);
-    upper.position.set(xCenter, upperYBottom + upperH / 2 - GAP, dividerZ);
+    upper.position.set(xCenter, upperYBottom + upperH / 2, dividerZ);
     upper.userData = { role: 'upper', index: k };
     upper.name = `mid_divider_upper_${k + 1}`;
     _tagPanel(upper, upper.name, Math.max(upperH, DEPTH_INNER), Math.min(upperH, DEPTH_INNER), 18);
@@ -411,10 +417,14 @@ function _generate150B(THREE, w, h, geometries) {
     leftW = w / 2; // 兜底: 中点对分
   }
   const dividerX = leftW;
+  // 主分割板 Y: 只接触不穿透底板 / 顶板.
+  //   底 = SKIRT_H + 18 (底板顶面), 顶 = h - 18 (顶板底面).
+  const mainDividerYBottom = SKIRT_H + 18;
+  const mainDividerYTop = h - 18;
   const mainDivider = _makeBoard(
     THREE, shelfG,
-    { x: dividerX, y: (SKIRT_H + h) / 2, z: shelfZ,
-      w: 18, h: h - SKIRT_H, d: DEPTH_INNER },
+    { x: dividerX, y: (mainDividerYBottom + mainDividerYTop) / 2, z: shelfZ,
+      w: 18, h: mainDividerYTop - mainDividerYBottom, d: DEPTH_INNER },
     'main_divider_LR', 18
   );
   mainDivider.userData.role = 'main_divider';
@@ -547,8 +557,8 @@ function _generate150B(THREE, w, h, geometries) {
   rFixedTop.userData.role = 'fixed_middle';
   fixedDividersG.add(rFixedTop);
 
-  // 右柜下柜中侧板 (Y 覆盖踢脚顶到下柜顶板底面)
-  const rLowerDivBottom = SKIRT_H;
+  // 右柜下柜中侧板 (Y 覆盖底板顶面到下柜顶板底面, 不穿透)
+  const rLowerDivBottom = SKIRT_H + 18;
   const rLowerDivTop = SKIRT_H + RIGHT_LOWER_H - 18;
   rDividerXs.forEach((xC, k) => {
     const mesh = _makeBoard(THREE, geometries.dividerGeometry,

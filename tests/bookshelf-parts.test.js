@@ -151,6 +151,28 @@ test('层板: 下段 1 块 (Y=430) + 中段 3 块 + 上段 0 块', () => {
   assert.equal(lower[0].position.y, 430);
 });
 
+test('层板: 上段高 > 600mm 时补 1 块居中层板 (shelf_upper_1)', () => {
+  const { THREE } = makeThreeMock();
+  const geos = makeGeometries(THREE);
+  // upperH = totalH - 2000; > 600 → totalH > 2600
+  // 边界: 2600 (upperH=600, 不加) 与 2601 (upperH=601, 加)
+  const noShelf = bs.generateBookshelfDynamicParts(THREE, 1200, 2600, geos);
+  assert.equal(noShelf.shelves.children.filter((m) => m.userData.role === 'upper').length, 0);
+
+  const withShelf = bs.generateBookshelfDynamicParts(THREE, 1200, 2601, geos);
+  const upper = withShelf.shelves.children.filter((m) => m.userData.role === 'upper');
+  assert.equal(upper.length, 1);
+  assert.equal(upper[0].name, 'shelf_upper_1');
+  // 居中: 上段内空 [2018, totalH-18]
+  const totalH = 2601;
+  assert.equal(upper[0].position.y, (2018 + (totalH - 18)) / 2);
+
+  const tall = bs.generateBookshelfDynamicParts(THREE, 1200, 3000, geos);
+  const tallUpper = tall.shelves.children.filter((m) => m.userData.role === 'upper');
+  assert.equal(tallUpper.length, 1);
+  assert.equal(tallUpper[0].position.y, (2018 + 2982) / 2); // 2500
+});
+
 test('中段 3 层板: 中段内空 [818, 2000] 4 等分 (1/4=1113.5, 1/2=1409, 3/4=1704.5)', () => {
   const { THREE } = makeThreeMock();
   const geos = makeGeometries(THREE);
@@ -209,8 +231,8 @@ test('中侧板: N=4 门 → 每门一格 → 每段 3 块中侧板, 共 9 块',
   assert.equal(r.dividers.children.length, 9);
 });
 
-// 中侧板必须无缝贴合固定水平板 / 踢脚 / 顶板 —— 板件之间不允许有缝隙.
-test('中侧板 Y 范围贴合水平结构: 下段[60,782] 中段[800,1982] 上段[2000,totalH-18]', () => {
+// 中侧板必须无缝贴合固定水平板 / 底板 / 顶板 —— 只接触不穿透.
+test('中侧板 Y 范围贴合水平结构: 下段[78,782] 中段[800,1982] 上段[2000,totalH-18]', () => {
   const { THREE } = makeThreeMock();
   const geos = makeGeometries(THREE);
   const totalH = 2400;
@@ -218,8 +240,8 @@ test('中侧板 Y 范围贴合水平结构: 下段[60,782] 中段[800,1982] 上�
   const lower = r.dividers.children.find((m) => m.userData.role === 'lower');
   const middle = r.dividers.children.find((m) => m.userData.role === 'middle');
   const upper = r.dividers.children.find((m) => m.userData.role === 'upper');
-  // 下段: 踢脚顶面 60 -> fixed_divider_down 底面 782
-  assert.equal(lower.position.y - lower.scale.y / 2, 60);
+  // 下段: bottom_plate 顶面 78 -> fixed_divider_down 底面 782
+  assert.equal(lower.position.y - lower.scale.y / 2, 78);
   assert.equal(lower.position.y + lower.scale.y / 2, 782);
   // 中段: fixed_divider_down 顶面 800 -> fixed_divider_up 底面 1982
   assert.equal(middle.position.y - middle.scale.y / 2, 800);

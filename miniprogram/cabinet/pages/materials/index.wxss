@@ -153,30 +153,43 @@
 
 /* .opts / .opt* 网格样式已随所有 5 组选项迁移到 option-scroll-card 组件而废弃 */
 
-/* 底栏样式与 cost 页 .bottom-bar 完全对齐: 全宽贴底、无浮空、border-top 分隔 */
+/* 底栏: 与方案列表 .export-btn-bar 对齐 —— 半透明毛玻璃吸底 */
 .bottom-bar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 20;
   display: flex;
   gap: 16rpx;
-  padding: 24rpx 28rpx env(safe-area-inset-bottom);
-  background: #fff;
-  border-top: 2rpx solid #f3f4f6;
+  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-top: 1rpx solid rgba(60, 60, 67, 0.08);
 }
 
 .btn {
   flex: 1;
   text-align: center;
-  padding: 26rpx 0;
-  border-radius: 999rpx;
-  font-size: 30rpx;
+  padding: 28rpx 0;
+  border-radius: 32rpx;
+  font-size: 34rpx;
+  font-weight: 600;
+  letter-spacing: 0.5rpx;
+  transition: all 0.2s ease;
 }
 
 .btn.primary {
-  background: #1f2937;
-  color: #fef9c3;
+  background: linear-gradient(180deg, #FFB140 0%, #FC9700 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 8rpx 24rpx rgba(252, 151, 0, 0.28);
+}
+
+.btn.primary:active {
+  transform: scale(0.97);
+  opacity: 0.9;
 }
 
 /* —— 费用预览 (吸顶) ——

@@ -2,7 +2,6 @@
   "navigationBarTitleText": "我的设计方案",
   "usingComponents": {
     "cabinet-toast": "/components/cabinet-toast/index",
-    "plan-select-modal": "/components/plan-select-modal/index",
     "filename-input-modal": "/components/filename-input-modal/index",
     "upload-model-modal": "/components/upload-model-modal/index",
     "bg-image": "/components/bg-image/index"

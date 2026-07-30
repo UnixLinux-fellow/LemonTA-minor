@@ -109,7 +109,7 @@ function createDoorGroup(THREE, totalWidth, totalHeight, sizeAndX, doorGeometry)
 // 层板 group:
 //   下段 1 块: Y = (SKIRT_H_BS + LOWER_TOP_Y) / 2 = 430
 //   中段 3 块: 中段内空 [LOWER_TOP_Y + 18, MIDDLE_TOP_Y] = [818, 2000], 4 等分
-//   上段 0 块
+//   上段: 上段高 (totalH - MIDDLE_TOP_Y) > 600mm 时给 1 块居中层板
 function createShelfGroup(THREE, totalWidth, totalHeight, shelfGeometry) {
   const group = new THREE.Group();
   group.userData = { kind: 'shelves' };
@@ -137,6 +137,20 @@ function createShelfGroup(THREE, totalWidth, totalHeight, shelfGeometry) {
     _tagPanel(mesh, mesh.name, Math.max(innerW, DEPTH_INNER), Math.min(innerW, DEPTH_INNER), 18);
     group.add(mesh);
   });
+
+  // 上段: 上段高 > 600mm 时给 1 块居中层板
+  // 上段内空 = [MIDDLE_TOP_Y + 18, totalHeight - 18] (fixed_divider_up 顶面到 top_plate 底面)
+  const upperH = totalHeight - MIDDLE_TOP_Y;
+  if (upperH > 600) {
+    const upperInnerBottom = MIDDLE_TOP_Y + 18;
+    const upperInnerTop = totalHeight - 18;
+    const mesh = _cloneScaledMesh(THREE, shelfGeometry, 1, 1, 1, innerW, 18, DEPTH_INNER);
+    mesh.position.set(xCenter, (upperInnerBottom + upperInnerTop) / 2, shelfZ);
+    mesh.userData = { role: 'upper', index: 0 };
+    mesh.name = 'shelf_upper_1';
+    _tagPanel(mesh, mesh.name, Math.max(innerW, DEPTH_INNER), Math.min(innerW, DEPTH_INNER), 18);
+    group.add(mesh);
+  }
   return group;
 }
 
@@ -144,8 +158,8 @@ function createShelfGroup(THREE, totalWidth, totalHeight, shelfGeometry) {
 // 书柜规则: 每扇门一格 (支撑性要求, 不允许对开), 相邻两门之间必须有中侧板;
 // 与鞋柜的对开门共享 getDoorGroups 逻辑不同, 书柜这里强制 groups=[1,1,...,1].
 // 每处 X = xOffsets[boundaryDoorIdx] - GAP/2.
-// 中侧板必须无缝贴合固定水平板 / 踢脚 / 顶板 —— 板件之间不允许有缝隙:
-//   下段: 踢脚顶面 60 → fixed_divider_down 底面 782
+// 中侧板必须无缝贴合固定水平板 / 底板 / 顶板, 且只接触不穿透:
+//   下段: bottom_plate 顶面 78 → fixed_divider_down 底面 782
 //   中段: fixed_divider_down 顶面 800 → fixed_divider_up 底面 1982
 //   上段: fixed_divider_up 顶面 2000 → top_plate 底面 totalH-18
 function createDividerGroup(THREE, totalWidth, totalHeight, sizeAndX, dividerGeometry) {
@@ -155,8 +169,8 @@ function createDividerGroup(THREE, totalWidth, totalHeight, sizeAndX, dividerGeo
   const groups = new Array(doorCount).fill(1);
   const dividerZ = -18 - DEPTH_INNER / 2;
 
-  // 三段的 Y 内空: 贴合上下水平结构, 不留 GAP.
-  const lowerYBottom = SKIRT_H_BS;              // 60 (踢脚顶面)
+  // 三段的 Y 内空: 贴合上下水平结构, 不留 GAP, 也不穿透水平板.
+  const lowerYBottom = SKIRT_H_BS + 18;         // 78 (bottom_plate 顶面)
   const lowerYTop = LOWER_TOP_Y - 18;           // 782 (fixed_divider_down 底面)
   const lowerH = lowerYTop - lowerYBottom;
 
